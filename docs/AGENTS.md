@@ -1,118 +1,128 @@
-# Instant Chat AI 编码规范
+# Instant Chat AI Coding Standards
 
-> 本文件是本仓库中所有 AI 编码代理必须遵守的最高优先级项目规范。
-> 适用于代码生成、修改、重构、测试、文档、数据库迁移、Docker 配置及发布脚本。
-> 若用户当前指令与本文件冲突，必须先明确指出冲突并等待用户确认；不得静默绕过。
+> This file contains the highest-priority project rules for every AI coding agent working in this repository.
+> It applies to code generation, edits, refactoring, tests, documentation, database migrations, Docker configuration, and release scripts.
+> If a user's current instruction conflicts with this file, identify the conflict and wait for confirmation. Never bypass a rule silently.
 
-## 1. 项目目标与固定技术栈
+## 1. Project Goal and Fixed Technology Stack
 
-本项目是一个复古 UI 风格的 macOS 即时通讯客户端。
+Instant Chat is a retro-style macOS instant messaging client.
 
-固定技术栈：
+The fixed technology stack is:
 
-- 客户端：Flutter stable、Dart stable、macOS desktop。
-- 客户端状态管理：Riverpod。
-- 客户端路由：go_router。
-- 客户端网络：Dio + WebSocket。
-- 客户端本地存储：Drift + SQLite。
-- 服务端：Go stable，模块化单体架构。
-- 服务端接口：REST + WebSocket。
-- 服务端数据库访问：`database/sql` + sqlc。
-- 数据库：MySQL 8.4 LTS，字符集统一为 `utf8mb4`。
-- 数据库迁移：golang-migrate 或 goose；一个项目只能保留其中一种。
-- 基础设施：Docker Compose；Redis、MinIO 按实际需求启用。
-- 接口描述：OpenAPI 3.x。
+- Client: Flutter stable, Dart stable, and macOS desktop.
+- Client state management: Riverpod.
+- Client routing: go_router.
+- Client networking: Dio and WebSocket.
+- Client local storage: Drift and SQLite.
+- Server: Go stable using a modular monolith architecture.
+- Server interfaces: REST and WebSocket.
+- Server database access: `database/sql` and sqlc.
+- Database: MySQL 8.4 LTS with `utf8mb4`.
+- Database migrations: golang-migrate or goose. The project may use only one.
+- Infrastructure: Docker Compose, with Redis and MinIO enabled only when required.
+- API contract: OpenAPI 3.x.
 
-未经用户明确批准，AI 不得：
+Without explicit user approval, an AI agent must not:
 
-- 更换或并存另一套状态管理、路由、ORM、数据库或服务端框架。
-- 将模块化单体拆为微服务。
-- 引入 GraphQL、gRPC、消息队列、Kubernetes 或服务网格。
-- 使用 Firebase、Supabase 等托管后端替代 Go 服务端。
-- 让 Flutter 客户端直接连接 MySQL、Redis 或对象存储的管理接口。
+- Replace or add a competing state manager, router, ORM, database, or server framework.
+- Split the modular monolith into microservices.
+- Introduce GraphQL, gRPC, a message queue, Kubernetes, or a service mesh.
+- Replace the Go server with Firebase, Supabase, or another managed backend.
+- Allow the Flutter client to connect directly to MySQL, Redis, or an object storage administration interface.
 
-## 2. 指令优先级
+## 2. Language and Locale
 
-发生冲突时按以下顺序执行：
+The repository language is American English (`en-US`).
 
-1. 用户在当前任务中的明确要求。
-2. 本文件及距离目标文件最近的下级 `AGENTS.md`。
-3. 仓库中已存在的架构、测试和代码风格。
-4. 官方语言或框架惯例。
+- All user-facing copy must use natural American English.
+- All documentation, code comments, test names, logs, errors, examples, and commit messages must use American English.
+- Use American spelling, including `color`, `behavior`, `center`, `initialize`, and `license`.
+- Source identifiers, API fields, and database identifiers must remain English.
+- Do not add Chinese or other non-English copy unless the user explicitly approves localization work.
+- User-provided content and localization test fixtures are exempt when they are required by a feature.
+- API timestamps remain UTC RFC 3339 values regardless of display locale.
 
-AI 不得用“行业最佳实践”覆盖项目中已经明确的选择。
+## 3. Instruction Priority
 
-## 3. 开始任务前的强制检查
+When instructions conflict, apply them in this order:
 
-修改任何文件前必须：
+1. The user's explicit instruction for the current task.
+2. This file and any closer-scoped `AGENTS.md` file.
+3. Existing repository architecture, tests, and style.
+4. Official language and framework conventions.
 
-1. 阅读根目录及目标目录作用域内的全部 `AGENTS.md`。
-2. 检查工作区状态，识别用户尚未提交的修改。
-3. 阅读与任务直接相关的代码、测试、配置和接口定义。
-4. 确认任务边界、输入、输出和可验证的完成条件。
-5. 检查是否已有可复用实现，禁止重复造轮子。
-6. 对可能影响数据、安全、协议兼容或发布的假设进行显式说明。
+Do not replace an established project choice with a supposed industry best practice.
 
-如果需求存在多种会显著影响结果的解释，必须先询问；不得静默选择。
+## 4. Required Preflight Checks
 
-简单任务可直接执行，但不得跳过文件检查和验证。
+Before modifying any file:
 
-## 4. 变更原则
+1. Read the root `AGENTS.md` and every applicable nested `AGENTS.md` in full.
+2. Check the working tree and identify uncommitted user changes.
+3. Read the code, tests, configuration, and contracts directly related to the task.
+4. Define the task boundary, inputs, outputs, and verifiable completion criteria.
+5. Search for an existing implementation before creating a new one.
+6. State assumptions that affect data, security, protocol compatibility, or releases.
 
-所有变更必须满足：
+If multiple interpretations would materially change the result, ask before choosing one. A small task may be executed immediately, but file inspection and verification are still mandatory.
 
-- 最小化：只修改完成当前任务所需的内容。
-- 可追溯：每一处改动都必须能对应到用户需求。
-- 可验证：新增行为必须有测试或可重复的验证方式。
-- 可回退：不得混入无关格式化、重命名或顺手重构。
-- 一致性：优先匹配现有代码风格和模块边界。
-- 简单性：单次使用的逻辑不得提前抽象；没有明确需求的扩展点不得创建。
+## 5. Change Principles
 
-禁止：
+Every change must be:
 
-- 修改无关代码、注释、空白或 import 顺序。
-- 因为“看起来更好”而重构相邻模块。
-- 一次任务同时引入新架构、新依赖和大范围重构。
-- 为假设中的未来需求增加配置项、接口或抽象层。
-- 复制粘贴已有业务逻辑形成第二套实现。
-- 留下无法编译、无法迁移或测试失败的中间状态作为最终结果。
+- Minimal: modify only what the current task requires.
+- Traceable: every changed line must map to the user's request.
+- Verifiable: changed behavior must have a test or repeatable validation method.
+- Reversible: do not mix unrelated formatting, renaming, or cleanup into the task.
+- Consistent: follow the existing project style and module boundaries.
+- Simple: do not create abstractions or extension points for hypothetical future needs.
 
-## 5. 修改权限矩阵
+Do not:
 
-### 5.1 可直接执行
+- Modify unrelated code, comments, whitespace, or import order.
+- Refactor neighboring code because it could look better.
+- Combine a new architecture, new dependency, and broad refactor in one task.
+- Add configuration or interfaces for speculative future requirements.
+- Duplicate existing business logic.
+- Deliver code that does not compile, migrate, or pass the applicable tests.
 
-- 在现有模块内修复明确 bug。
-- 为当前变更新增或更新测试。
-- 更新与当前行为直接相关的文档。
-- 新增向后兼容的字段或内部实现。
-- 删除由本次修改产生的未使用 import、变量和函数。
+## 6. Change Authorization Matrix
 
-### 5.2 必须先获得用户批准
+### 6.1 Allowed Without Additional Approval
 
-- 新增运行时依赖或 Flutter 插件。
-- 新增仓库顶层目录。
-- 修改公共 API、WebSocket 事件结构或数据库核心模型。
-- 修改鉴权、加密、权限、Token 或密钥存储方案。
-- 创建破坏性数据库迁移或数据回填任务。
-- 更改最低 macOS 版本、Bundle ID、签名或沙盒权限。
-- 更改 Docker 暴露端口、网络拓扑或持久卷策略。
-- 删除文件、移动模块、批量重命名或大范围格式化。
-- 引入后台常驻、开机启动、自动更新或遥测。
-- 修改 CI/CD、发布、签名、公证流程。
+- Fix a clearly defined bug inside an existing module.
+- Add or update tests for the current change.
+- Update documentation directly related to current behavior.
+- Add a backward-compatible field or internal implementation detail.
+- Remove imports, variables, and functions made unused by the current change.
 
-### 5.3 永远禁止
+### 6.2 Requires Explicit User Approval
 
-- 提交密钥、证书、密码、Token、个人数据或真实 `.env`。
-- 绕过测试、静态检查、安全检查或代码签名。
-- 使用 `git reset --hard`、强制推送或覆盖用户未提交的修改。
-- 手工编辑生成代码、依赖锁文件或数据库生成文件。
-- 禁用 TLS 校验、证书校验或 macOS 安全机制来“解决”问题。
-- 在日志、错误消息、截图或测试夹具中泄露敏感数据。
-- 自行设计密码学算法或声称未审计的实现是安全的。
+- Add a runtime dependency or Flutter plugin.
+- Add a top-level repository directory.
+- Change a public API, WebSocket event shape, or core database model.
+- Change authentication, encryption, authorization, token, or secret storage behavior.
+- Create a destructive migration or data backfill.
+- Change the minimum macOS version, bundle identifier, signing, or sandbox entitlements.
+- Change Docker ports, network topology, or volume strategy.
+- Delete files, move modules, rename items in bulk, or reformat the repository broadly.
+- Add a resident background process, launch-at-login behavior, automatic updates, or telemetry.
+- Change CI/CD, release, signing, or notarization workflows.
 
-## 6. 强制目录结构
+### 6.3 Always Prohibited
 
-仓库顶层只允许以下结构：
+- Commit keys, certificates, passwords, tokens, personal data, or a real `.env` file.
+- Bypass tests, static analysis, security checks, or code signing.
+- Use `git reset --hard`, force-push, or overwrite uncommitted user changes.
+- Manually edit generated code, dependency lockfiles, or generated database files.
+- Disable TLS validation, certificate validation, or macOS protections to make a feature work.
+- Expose sensitive data in logs, errors, screenshots, or test fixtures.
+- Invent cryptographic algorithms or describe an unaudited design as secure.
+
+## 7. Required Directory Structure
+
+Only the following top-level structure is allowed:
 
 ```text
 Instant Chat/
@@ -141,63 +151,62 @@ Instant Chat/
     └── workflows/
 ```
 
-约束：
+Rules:
 
-- 不得在根目录散落临时脚本、数据库文件、构建产物或调试输出。
-- 除根目录 `AGENTS.md` 规则入口外，所有 Markdown 文档必须放在 `docs` 目录。
-- 临时文件必须位于系统临时目录，不得提交仓库。
-- 新增顶层目录前必须说明原因并获得批准。
-- Flutter 代码只能放在 `apps/macos_client`。
-- Go 服务端代码只能放在 `services/api`。
-- SQL 迁移只能放在 `db/migrations`。
-- SQL 查询定义只能放在 `db/queries`。
-- OpenAPI 是 REST 接口的契约源，放在 `api/openapi`。
-- Dockerfile 与 Compose 文件放在 `deploy/docker`；服务专属 Dockerfile 可放在服务目录，但必须由部署文件引用。
-- 通用脚本放在 `scripts`，脚本必须非交互、可重复执行并在失败时返回非零状态码。
+- Do not place temporary scripts, database files, build artifacts, or debug output in the repository root.
+- All Markdown documentation must live under `docs`, except the root `AGENTS.md` instruction entry point.
+- Temporary files must use the operating system's temporary directory and must not be committed.
+- Obtain approval before adding a top-level directory.
+- Flutter code belongs only in `apps/macos_client`.
+- Go server code belongs only in `services/api`.
+- SQL migrations belong only in `db/migrations`.
+- SQL query definitions belong only in `db/queries`.
+- The REST contract source belongs in `api/openapi`.
+- Docker and Compose files belong in `deploy/docker`. A service-specific Dockerfile may live beside that service if deployment configuration references it.
+- Shared scripts belong in `scripts`. They must be noninteractive, repeatable, and return a nonzero status on failure.
 
-## 7. 文件与命名规范
+## 8. File and Naming Standards
 
-### 通用规则
+### General
 
-- 文件编码统一为 UTF-8，换行符统一为 LF。
-- 源代码、接口字段和数据库字段使用英文；用户可见文案允许中文。
-- 禁止使用无意义名称，如 `util2`、`temp`、`data1`、`new_manager`。
-- 禁止创建 `utils`、`common`、`helpers` 作为无边界杂物目录。
-- 一个文件只承担一个清晰职责。
-- 手写源文件原则上不超过 300 行；超过前必须先拆分或说明不能拆分的理由。
-- 单个函数原则上不超过 60 行；复杂分支必须拆解并增加测试。
-- 注释解释“为什么”，不得复述代码“做了什么”。
-- TODO 必须写明原因和后续动作；不得留下无上下文的 TODO/FIXME。
-- 生成文件必须带生成标记，且只能通过对应生成命令更新。
+- Use UTF-8 and LF line endings.
+- Use meaningful names. Do not create names such as `util2`, `temp`, `data1`, or `new_manager`.
+- Do not create unbounded junk drawers named `utils`, `common`, or `helpers`.
+- Each file must have one clear responsibility.
+- A handwritten source file should not exceed 300 lines. Split it or explain why it cannot be split before exceeding the limit.
+- A function should not exceed 60 lines. Split complex branches and add tests.
+- Comments explain why, not what the code already states.
+- A TODO must include its reason and next action. Do not leave context-free TODO or FIXME comments.
+- Generated files must carry their generator marker and may be updated only with the corresponding generation command.
 
-### Dart/Flutter 命名
+### Dart and Flutter
 
-- 文件名使用 `snake_case.dart`。
-- 类型、Widget、枚举使用 `UpperCamelCase`。
-- 变量、方法、Provider 使用 `lowerCamelCase`。
-- 私有成员以 `_` 开头。
-- 一个页面、一个功能或一个可复用组件使用独立文件。
+- File names use `snake_case.dart`.
+- Types, widgets, and enums use `UpperCamelCase`.
+- Variables, methods, and providers use `lowerCamelCase`.
+- Private members start with `_`.
+- A page, feature, or reusable component gets its own file.
 
-### Go 命名
+### Go
 
-- 包名使用简短、小写、单数名词，不使用下划线。
-- 文件名使用小写 `snake_case.go`。
-- 导出标识符必须有有效的 GoDoc 注释。
-- 接口在使用方定义，不在实现方为“以后可能替换”而预建。
-- 禁止 `GetUserServiceManagerImpl` 一类堆叠式名称。
+- Package names are short, lowercase, singular nouns without underscores.
+- File names use lowercase `snake_case.go`.
+- Every exported identifier requires useful GoDoc.
+- Define interfaces at the point of use, not beside an implementation for hypothetical replacement.
+- Do not create stacked names such as `GetUserServiceManagerImpl`.
 
-### SQL 命名
+### SQL
 
-- 表名与字段名使用小写 `snake_case`。
-- 表名统一使用复数形式。
-- 索引命名：`idx_<table>_<columns>`。
-- 唯一索引命名：`uq_<table>_<columns>`。
-- 外键命名：`fk_<table>_<referenced_table>`。
-- 所有迁移文件名必须包含递增版本和简短动作描述。
+- Tables and columns use lowercase `snake_case`.
+- Table names use the plural form consistently.
+- Index names use `idx_<table>_<columns>`.
+- Unique indexes use `uq_<table>_<columns>`.
+- Foreign keys use `fk_<table>_<referenced_table>`.
+- Migration file names contain an increasing version and a short action description.
 
-## 8. Flutter 客户端架构
+## 9. Flutter Client Architecture
 
-Flutter 代码按功能组织：
+Organize Flutter code by feature:
 
 ```text
 lib/
@@ -217,7 +226,7 @@ lib/
 └── main.dart
 ```
 
-每个 feature 可包含：
+A feature may contain:
 
 ```text
 feature/
@@ -226,41 +235,41 @@ feature/
 └── presentation/
 ```
 
-仅在确实需要时创建对应层，禁止为空目录或模板代码填充结构。
+Create only the layers a feature actually needs. Do not create empty directories or template filler.
 
-强制规则：
+Mandatory rules:
 
-- Widget 不得直接访问 Dio、SQLite、Keychain 或 WebSocket。
-- Widget 不得包含数据库模型、协议解析或业务规则。
-- Provider 负责状态编排，但不得成为无限膨胀的全局服务定位器。
-- 网络 DTO、本地数据库模型和领域模型必须分离；转换必须显式。
-- 所有异步状态必须明确处理加载、成功、空数据和失败。
-- `BuildContext` 不得跨异步间隙使用，除非再次确认 `mounted`。
-- 禁止使用 `dynamic` 绕过类型系统；JSON 边界必须校验。
-- 禁止使用 `print`；统一使用项目日志接口，发布构建不得输出敏感内容。
-- 密码、refresh token、加密密钥只能存储在 macOS Keychain。
-- SQLite 只保存允许离线缓存的数据，不保存明文密码或服务端密钥。
-- 所有长连接必须实现重连退避、心跳、主动关闭和状态恢复。
-- 所有发送消息必须使用 `client_message_id` 保证重试幂等。
-- 客户端必须通过服务端分配的会话 `sequence` 增量同步，不以本地时间判断消息完整性。
+- Widgets must not access Dio, SQLite, Keychain, or WebSocket directly.
+- Widgets must not contain database models, protocol parsing, or business rules.
+- Providers orchestrate state but must not become a global service locator.
+- Network DTOs, local database models, and domain models remain separate with explicit conversion.
+- Every asynchronous state handles loading, success, empty data, and failure explicitly.
+- Do not use `BuildContext` across an asynchronous gap without checking `mounted` again.
+- Do not use `dynamic` to bypass type safety. Validate every JSON boundary.
+- Do not use `print`. Use the project logging interface and never log sensitive data in release builds.
+- Passwords, refresh tokens, and cryptographic keys belong only in macOS Keychain.
+- SQLite stores only approved offline data, never plaintext passwords or server secrets.
+- Every long-lived connection implements backoff, heartbeat, explicit close, and state recovery.
+- Every outgoing message uses `client_message_id` for retry idempotency.
+- Incremental synchronization uses the server-assigned conversation `sequence`, not the client's local clock.
 
-## 9. 复古 UI 规范
+## 10. Retro UI Standards
 
-复古是视觉表现，不得牺牲可用性、性能和可访问性。
+Retro styling must not compromise usability, performance, or accessibility.
 
-- 颜色、间距、边框、圆角、阴影、字体和动画时长必须来自主题令牌。
-- 禁止在业务 Widget 中散落颜色值、字号和像素尺寸。
-- 主题至少支持明暗对比足够的正文和焦点状态。
-- 所有可交互元素必须支持键盘焦点、Hover、Pressed 和 Disabled 状态。
-- 文本不得因系统字体缩放而截断核心信息。
-- 动画必须可关闭或尊重系统减少动态效果设置。
-- 音效默认可关闭，不得阻塞 UI，不得在测试中真实播放。
-- macOS 原生行为优先：菜单、快捷键、窗口恢复、通知和 Dock 未读数应符合平台习惯。
-- 不得直接复制受版权保护的软件图标、音效、商标或完整界面。
+- Colors, spacing, borders, corner radii, shadows, typography, and animation timing come from theme tokens.
+- Do not scatter literal colors, font sizes, or dimensions throughout feature widgets.
+- Body text and focus states must have sufficient contrast.
+- Every interactive element supports keyboard focus, hover, pressed, and disabled states.
+- System font scaling must not hide or clip essential content.
+- Animations must be optional or respect the system Reduce Motion setting.
+- Sound effects must be optional, nonblocking, and disabled in tests.
+- Follow native macOS conventions for menus, shortcuts, window restoration, notifications, and Dock badges.
+- Do not copy copyrighted icons, sounds, trademarks, or complete interfaces.
 
-## 10. Go 服务端架构
+## 11. Go Server Architecture
 
-服务端按业务模块组织，保持模块化单体：
+Keep the server as a modular monolith organized by business capability:
 
 ```text
 services/api/
@@ -277,33 +286,33 @@ services/api/
 └── go.mod
 ```
 
-强制规则：
+Mandatory rules:
 
-- `cmd/api` 只负责装配依赖、启动和优雅关闭。
-- HTTP Handler 只负责解析、校验、调用用例和映射响应。
-- 业务规则放在对应模块的 service/usecase 中。
-- SQL 只能通过仓储层或 sqlc 生成代码访问。
-- 禁止跨模块直接访问对方的数据库实现。
-- 禁止使用全局可变状态和隐式 Service Locator。
-- 所有 I/O 方法第一个参数必须是 `context.Context`。
-- 所有 goroutine 必须有明确所有者、退出条件和错误处理。
-- 错误必须保留上下文并使用 `%w` 包装；不得依赖字符串比较错误。
-- 不得忽略错误；确需忽略时必须注释说明安全原因。
-- Panic 只允许表示不可恢复的启动配置错误，不得用于普通业务错误。
-- 所有服务必须支持优雅关闭，并设置 HTTP 读写及空闲超时。
-- 数据库连接池参数必须显式配置且有合理默认值。
-- 日志使用结构化字段，不记录密码、Token、消息正文或个人隐私。
+- `cmd/api` handles dependency assembly, startup, and graceful shutdown only.
+- An HTTP handler parses, validates, invokes a use case, and maps the response only.
+- Business rules belong in the relevant module's service or use case.
+- SQL access goes through a repository or sqlc-generated code.
+- A module must not access another module's database implementation directly.
+- Do not use mutable global state or an implicit service locator.
+- Every I/O method takes `context.Context` as its first parameter.
+- Every goroutine has an owner, an exit condition, and error handling.
+- Preserve error context with `%w`. Do not compare errors by string.
+- Do not ignore errors. If an error is intentionally discarded, explain why it is safe.
+- Panic is limited to unrecoverable startup configuration errors, never routine business errors.
+- Every service supports graceful shutdown and defines HTTP read, write, and idle timeouts.
+- Database pool settings must be explicit and have reasonable defaults.
+- Use structured logging and never log passwords, tokens, message bodies, or private user data.
 
-## 11. REST 与 WebSocket 契约
+## 12. REST and WebSocket Contracts
 
-- REST 路径统一以 `/api/v1` 开头。
-- JSON 字段统一使用 `snake_case`。
-- 时间统一使用 UTC RFC 3339 字符串。
-- ID 在 JSON 中统一使用字符串，避免跨语言整数精度问题。
-- 分页必须使用游标，不得为消息历史使用大 offset。
-- 错误响应必须包含稳定的机器码，不得让客户端解析自然语言。
+- REST paths start with `/api/v1`.
+- JSON fields use `snake_case`.
+- Time values use UTC RFC 3339 strings.
+- JSON IDs use strings to avoid cross-language integer precision loss.
+- Message history uses cursor pagination, not large offsets.
+- Error responses contain a stable machine-readable code. Clients must not parse natural-language messages.
 
-错误结构：
+Error shape:
 
 ```json
 {
@@ -315,7 +324,7 @@ services/api/
 }
 ```
 
-WebSocket 事件必须包含：
+Every WebSocket event contains:
 
 ```json
 {
@@ -327,105 +336,105 @@ WebSocket 事件必须包含：
 }
 ```
 
-规则：
+Rules:
 
-- 事件 `type` 与既有字段一经发布不得改变语义。
-- 新增字段必须向后兼容；删除、重命名或改变类型必须升级协议版本。
-- 客户端必须忽略未知的可选字段，但不得忽略未知的安全关键事件。
-- REST 与 WebSocket 的公共模型必须来自同一份契约或拥有契约测试。
-- 修改接口时必须同时更新 OpenAPI、示例、客户端模型和测试。
+- Once published, an event `type` and existing field must not change meaning.
+- Adding fields must remain backward compatible. Removing, renaming, or changing a type requires a protocol version change.
+- Clients ignore unknown optional fields but must not ignore unknown security-critical events.
+- Shared REST and WebSocket models come from one contract source or have contract tests.
+- An API change updates OpenAPI, examples, client models, and tests in the same task.
 
-## 12. 数据库规范
+## 13. Database Standards
 
-- 数据库仅允许服务端访问。
-- 所有表必须使用 InnoDB、`utf8mb4` 和明确排序规则。
-- 所有时间在数据库和应用中统一使用 UTC。
-- 金额不得使用浮点数；本项目无金额需求时不得预建相关字段。
-- 外键、唯一性、非空和数据长度约束应优先在数据库中表达。
-- 查询必须参数化，禁止拼接用户输入生成 SQL。
-- 新查询必须检查索引使用情况，避免无界全表扫描。
-- 列表查询必须有确定排序和上限。
-- 消息写入必须具备幂等约束，例如唯一的 `client_message_id + sender_id`。
-- 会话内 `sequence` 必须唯一且单调，用于断线增量同步。
-- 迁移必须提供 up/down；若 down 不安全，必须明确注释并获得批准。
-- 已合并或已在共享环境执行的迁移不得修改，只能新增修复迁移。
-- 禁止应用启动时自动修改生产数据库结构。
-- 破坏性变更必须采用“扩展、迁移、切换、收缩”的分阶段方式。
-- 数据回填必须可重入、可观察、限速，并提供失败恢复策略。
+- Only the server may access the database.
+- Every table uses InnoDB, `utf8mb4`, and an explicit collation.
+- Store and process time in UTC.
+- Never use floating point for money. Do not prebuild monetary fields when the project has no monetary requirement.
+- Prefer database constraints for foreign keys, uniqueness, nullability, and data length.
+- Parameterize every query. Never concatenate user input into SQL.
+- Check index use for new queries and prevent unbounded table scans.
+- Every list query has deterministic ordering and a limit.
+- Message writes have an idempotency constraint, such as unique `client_message_id + sender_id`.
+- A conversation `sequence` is unique and monotonic for reconnect synchronization.
+- Migrations provide up and down operations. If down is unsafe, document that fact and obtain approval.
+- Never modify a migration already merged or run in a shared environment. Add a corrective migration instead.
+- Production application startup must not modify the database schema automatically.
+- Destructive schema work follows an expand, migrate, switch, and contract sequence.
+- A data backfill is repeatable, observable, rate-limited, and recoverable.
 
-## 13. 安全与隐私
+## 14. Security and Privacy
 
-- 所有生产网络通信必须使用 TLS。
-- 密码使用 Argon2id 或 bcrypt；参数必须集中配置并有升级策略。
-- access token 必须短期有效；refresh token 必须可撤销、可轮换并仅存储摘要或等价安全表示。
-- 登录、注册、重置密码、上传和消息发送必须限流。
-- 权限校验必须在服务端执行，客户端 UI 隐藏不等于授权。
-- 每次读取会话或消息前必须确认当前用户是会话成员。
-- 文件上传必须限制尺寸、类型和数量，服务端生成对象键，禁止信任原始文件名。
-- 不得将用户上传内容放入可执行路径。
-- CORS、重定向、回调 URL 和深链必须使用允许列表。
-- `.env.example` 只能包含占位符和说明，不得包含可用凭据。
-- 端到端加密属于独立架构决策，未经批准不得加入伪实现。
+- All production network traffic uses TLS.
+- Hash passwords with Argon2id or bcrypt using centralized parameters and an upgrade path.
+- Access tokens are short-lived. Refresh tokens are revocable, rotated, and stored only as a digest or equivalent protected form.
+- Rate-limit sign-in, registration, password reset, upload, and message sending.
+- Enforce authorization on the server. Hiding client UI is not authorization.
+- Confirm conversation membership before returning a conversation or message.
+- Limit upload size, type, and count. Generate object keys on the server and never trust an original file name.
+- Do not place uploaded content in an executable path.
+- Use allowlists for CORS, redirects, callback URLs, and deep links.
+- `.env.example` contains placeholders and instructions only, never usable credentials.
+- End-to-end encryption is a separate architecture decision. Do not add a placeholder or false implementation without approval.
 
-## 14. Docker 与配置规范
+## 15. Docker and Configuration Standards
 
-- 镜像必须固定到明确版本，不得使用 `latest`。
-- Go 服务镜像使用多阶段构建，运行阶段使用非 root 用户。
-- Compose 中 MySQL、Redis、MinIO 默认只绑定本机或内部网络。
-- MySQL 数据必须使用命名卷，不得写入仓库目录。
-- 每个长期运行服务必须有 healthcheck。
-- 容器必须设置停止信号和合理的优雅关闭时间。
-- 密码通过环境变量或密钥管理注入，不得写进镜像和 Compose 文件。
-- `.env` 必须被 Git 忽略；只提交 `.env.example`。
-- 开发、测试和生产配置必须明确分离，不得靠手工改文件切换。
-- Docker Compose 只用于开发和部署，不作为 macOS 客户端运行依赖。
+- Pin images to explicit versions. Never use `latest`.
+- Build Go services with multiple stages and run the final image as a non-root user.
+- Bind MySQL, Redis, and MinIO to localhost or an internal network by default.
+- Store MySQL data in a named volume, never in the repository.
+- Every long-running service defines a health check.
+- Containers define an appropriate stop signal and graceful shutdown period.
+- Inject passwords through environment variables or secret management, never an image or committed Compose file.
+- Git ignores `.env`; only `.env.example` may be committed.
+- Development, test, and production configuration remain distinct without manual file editing to switch environments.
+- Docker Compose supports development and server deployment. It is not a macOS client runtime dependency.
 
-## 15. 依赖管理
+## 16. Dependency Management
 
-新增依赖前必须说明：
+Before adding a dependency, explain:
 
-1. 当前标准库或已有依赖为什么不能解决。
-2. 依赖的维护状态、许可证和 macOS 支持情况。
-3. 对包体积、构建、权限和安全面的影响。
-4. 可替代方案以及选择理由。
+1. Why the standard library and existing dependencies cannot solve the problem.
+2. Its maintenance status, license, and macOS support.
+3. Its effect on binary size, builds, permissions, and security surface.
+4. Alternatives considered and the reason for the selection.
 
-规则：
+Rules:
 
-- 未经批准不得添加运行时依赖。
-- 禁止为了一个简单函数引入大型工具库。
-- 禁止同时保留功能重叠的依赖。
-- 锁文件必须提交，但只能由官方包管理命令更新。
-- 依赖升级必须独立成任务，不得夹带在功能修改中。
-- 大版本升级必须提供迁移说明并运行完整测试。
+- Do not add a runtime dependency without approval.
+- Do not add a large utility package for one simple function.
+- Do not retain dependencies with overlapping responsibilities.
+- Commit lockfiles, but update them only through the official package manager.
+- Dependency upgrades are isolated tasks, not side effects of feature work.
+- A major upgrade requires migration notes and the full applicable test suite.
 
-## 16. 测试规范
+## 17. Testing Standards
 
-任何行为变更都必须更新测试。
+Every behavior change requires a corresponding test update.
 
-最低要求：
+Minimum requirements:
 
-- Bug 修复：先提供能复现问题的测试，再修复。
-- 新业务规则：覆盖成功、失败、边界和权限场景。
-- API 修改：更新 Handler 测试与契约测试。
-- SQL 修改：覆盖唯一约束、事务和迁移测试。
-- WebSocket 修改：覆盖重连、重复事件、乱序和断线补偿。
-- Flutter 状态修改：提供 Provider/单元测试。
-- 关键交互修改：提供 Widget 测试。
-- 不得只测试 mock 的调用次数而不验证用户可见结果。
+- Bug fix: add a test that reproduces the failure before fixing it.
+- Business rule: cover success, failure, boundaries, and authorization.
+- API change: update handler and contract tests.
+- SQL change: cover constraints, transactions, and migrations.
+- WebSocket change: cover reconnects, duplicates, ordering, and catch-up behavior.
+- Flutter state change: add provider or unit tests.
+- Critical interaction change: add widget tests.
+- Do not test only mock call counts. Verify the observable outcome.
 
-测试必须：
+Tests must:
 
-- 可重复、可并行、无顺序依赖。
-- 不访问真实第三方服务或生产数据。
-- 不依赖开发者个人目录、时区或语言环境。
-- 使用固定时钟或可注入时钟测试时间逻辑。
-- 对随机数据固定种子或验证不依赖具体随机值。
+- Be repeatable, parallel-safe, and independent of execution order.
+- Avoid real third-party services and production data.
+- Avoid dependence on a developer's home directory, time zone, or locale.
+- Use a fixed or injectable clock for time logic.
+- Fix random seeds or assert behavior that does not depend on a specific random value.
 
-## 17. 格式化、静态检查与验证
+## 18. Formatting, Static Analysis, and Verification
 
-提交结果前必须根据变更范围执行适用检查：
+Run the checks applicable to the change before delivery.
 
-Flutter：
+Flutter:
 
 ```bash
 dart format --output=none --set-exit-if-changed .
@@ -434,7 +443,7 @@ flutter test
 flutter build macos --debug
 ```
 
-Go：
+Go:
 
 ```bash
 gofmt -l .
@@ -443,90 +452,90 @@ go test -race ./...
 go build ./cmd/api
 ```
 
-Docker 与数据库：
+Docker and database:
 
 ```bash
 docker compose config --quiet
 docker compose build
 ```
 
-约束：
+Rules:
 
-- 只格式化本次修改涉及的文件，除非用户要求全仓格式化。
-- 不得通过关闭 lint、删除测试或降低断言强度让检查通过。
-- 无法执行某项验证时，必须在最终报告中说明原因和风险。
-- 失败的验证必须修复；若失败与本次修改无关，必须提供证据并明确指出。
+- Format only files changed by the task unless the user requests repository-wide formatting.
+- Do not disable a lint, remove a test, or weaken an assertion to make a check pass.
+- If a check cannot run, state the reason and risk in the final report.
+- Fix failing checks. If a failure is unrelated, provide evidence and identify it clearly.
 
-## 18. Git 与工作区保护
+## 19. Git and Working Tree Protection
 
-- 默认不创建 commit、tag、branch 或 pull request，除非用户明确要求。
-- 不得覆盖、暂存、恢复或删除用户未提交的修改。
-- 不得使用破坏性 Git 命令。
-- 不得修改与当前任务无关的锁文件或生成文件。
-- 不得提交构建产物、日志、覆盖率报告、数据库卷或编辑器缓存。
-- 提交信息如由用户要求创建，使用 Conventional Commits，且一个提交只表达一个逻辑变更。
+- Do not create a commit, tag, branch, or pull request unless the user explicitly requests it.
+- Do not overwrite, stage, restore, or delete uncommitted user work.
+- Do not use destructive Git commands.
+- Do not modify unrelated lockfiles or generated files.
+- Do not commit build artifacts, logs, coverage reports, database volumes, or editor caches.
+- When the user requests a commit, use Conventional Commits and keep one logical change per commit.
 
-## 19. 文档同步
+## 20. Documentation Synchronization
 
-出现以下变更时必须同步文档：
+Update documentation in the same task when:
 
-- 新增或修改环境变量：更新 `.env.example` 和配置说明。
-- 新增或修改 API：更新 OpenAPI 和请求/响应示例。
-- 修改数据库结构：新增迁移并更新相关模型说明。
-- 修改启动方式：更新 `docs/README.md`。
-- 修改架构边界：更新 `docs/architecture.md` 并说明决策原因。
-- 修改用户可见行为：更新相关功能文档或发布说明。
+- An environment variable changes: update `.env.example` and configuration instructions.
+- An API changes: update OpenAPI and request or response examples.
+- The database schema changes: add a migration and update model documentation.
+- Startup behavior changes: update `docs/README.md`.
+- Architecture boundaries change: update `docs/architecture.md` and explain the decision.
+- User-visible behavior changes: update the relevant feature documentation or release notes.
 
-文档中的命令必须实际可执行，不得提供未经验证的伪命令。
+Every documented command must be executable. Do not publish an unverified placeholder command.
 
-## 20. AI 输出要求
+## 21. AI Reporting Requirements
 
-开始复杂任务前，AI 应简短说明：
+Before a complex task, briefly state:
 
-- 对需求的理解。
-- 将修改的范围。
-- 可验证的完成条件。
-- 重要假设或需要确认的风险。
+- The interpreted requirement.
+- The intended change scope.
+- Verifiable completion criteria.
+- Important assumptions or risks that need confirmation.
 
-完成任务后必须报告：
+After a task, report:
 
-- 实际修改了什么。
-- 修改了哪些文件。
-- 执行了哪些测试或检查及其结果。
-- 未执行的检查及原因。
-- 是否存在迁移、兼容性、安全或发布注意事项。
+- What changed.
+- Which files changed.
+- Which tests and checks ran and their results.
+- Which checks did not run and why.
+- Any migration, compatibility, security, or release concerns.
 
-不得：
+Do not:
 
-- 声称未实际运行的测试“已通过”。
-- 隐藏失败、警告或不确定性。
-- 用大段过程描述代替明确结果。
-- 在任务结束时遗留未说明的临时文件或调试代码。
+- Claim that a test passed unless it actually ran.
+- Hide failures, warnings, or uncertainty.
+- Replace a clear result with a long process narrative.
+- Leave unexplained temporary files or debug code.
 
-## 21. 完成定义（Definition of Done）
+## 22. Definition of Done
 
-只有全部满足时，任务才可声称完成：
+A task is complete only when all applicable statements are true:
 
-- 实现与用户需求一致，没有额外功能。
-- 变更符合目录和架构边界。
-- 所有新增行为拥有相称的测试。
-- 相关格式化、静态检查、测试和构建已通过。
-- 接口、数据库、配置和文档已同步。
-- 不包含秘密、调试输出、临时文件或无关修改。
-- 对现有兼容性、数据迁移和安全影响已有明确说明。
-- 最终报告准确列出验证结果与残余风险。
+- The implementation matches the request without extra features.
+- The change respects directory and architecture boundaries.
+- New behavior has proportionate tests.
+- Formatting, static analysis, tests, and builds pass.
+- Contracts, database changes, configuration, and documentation are synchronized.
+- No secrets, debug output, temporary files, or unrelated changes remain.
+- Compatibility, migration, and security effects are documented.
+- The final report accurately describes validation results and remaining risks.
 
-## 22. 每次任务的强制自检清单
+## 23. Required Final Self-Check
 
-AI 在结束前必须逐项确认：
+Before finishing, confirm:
 
-- [ ] 我只修改了完成当前任务必需的文件。
-- [ ] 我没有覆盖用户已有修改。
-- [ ] 我没有静默改变技术栈或架构。
-- [ ] 我没有新增未经批准的依赖和顶层目录。
-- [ ] 我没有在客户端暴露数据库或服务端秘密。
-- [ ] 我为行为变更添加或更新了测试。
-- [ ] 我运行了适用的格式化、检查、测试和构建。
-- [ ] 我同步了接口、迁移、配置和文档。
-- [ ] 我移除了本次变更产生的死代码和调试输出。
-- [ ] 我在最终报告中如实说明了结果和未解决风险。
+- [ ] I changed only files required for the current task.
+- [ ] I did not overwrite user work.
+- [ ] I did not silently change the technology stack or architecture.
+- [ ] I did not add an unapproved dependency or top-level directory.
+- [ ] I did not expose a database credential or server secret to the client.
+- [ ] I added or updated tests for behavior changes.
+- [ ] I ran the applicable formatter, checks, tests, and build.
+- [ ] I synchronized contracts, migrations, configuration, and documentation.
+- [ ] I removed dead code and debug output created by my change.
+- [ ] I reported results and unresolved risks accurately.

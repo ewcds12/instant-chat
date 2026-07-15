@@ -117,7 +117,7 @@ class _StatusPanel extends StatelessWidget {
   factory _StatusPanel.loading(ColorScheme colors) {
     return _StatusPanel(
       label: 'DIALING...',
-      detail: '正在连接本地 API',
+      detail: 'Connecting to the local API',
       color: colors.secondary,
       icon: Icons.hourglass_top,
     );
@@ -126,7 +126,8 @@ class _StatusPanel extends StatelessWidget {
   factory _StatusPanel.offline(ColorScheme colors) {
     return _StatusPanel(
       label: 'OFFLINE',
-      detail: '无法连接本地 API，请确认服务已启动',
+      detail:
+          'Could not reach the local API. Make sure the service is running.',
       color: colors.error,
       icon: Icons.link_off,
     );
@@ -136,7 +137,7 @@ class _StatusPanel extends StatelessWidget {
     if (!health.isHealthy) {
       return _StatusPanel(
         label: 'DEGRADED',
-        detail: 'API 已连接，但数据库当前不可用',
+        detail: 'The API is online, but the database is unavailable.',
         color: colors.secondary,
         icon: Icons.warning_amber,
       );
@@ -144,7 +145,7 @@ class _StatusPanel extends StatelessWidget {
     return _StatusPanel(
       label: 'ONLINE',
       detail:
-          'API 与 MySQL 均正常 // ${health.checkedAt.toUtc().toIso8601String()}',
+          'API and MySQL are operational // ${health.checkedAt.toUtc().toIso8601String()}',
       color: colors.primary,
       icon: Icons.link,
     );

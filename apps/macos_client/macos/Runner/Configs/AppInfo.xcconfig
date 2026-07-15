@@ -7,6 +7,9 @@
 // The application's name. By default this is also the title of the Flutter window.
 PRODUCT_NAME = Instant Chat
 
+// The application's fixed development language and locale.
+DEVELOPMENT_LANGUAGE = en-US
+
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = com.ewcds12.instantchat
 

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/widgets.dart';
 import 'package:instant_chat/app/instant_chat_app.dart';
 import 'package:instant_chat/features/system_status/domain/service_health.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_provider.dart';
@@ -24,7 +25,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('ONLINE'), findsOneWidget);
-    expect(find.textContaining('API 与 MySQL 均正常'), findsOneWidget);
+    expect(
+      find.textContaining('API and MySQL are operational'),
+      findsOneWidget,
+    );
+    final pageContext = tester.element(find.text('ONLINE'));
+    expect(Localizations.localeOf(pageContext), const Locale('en', 'US'));
   });
 
   testWidgets('shows offline when API request fails', (tester) async {

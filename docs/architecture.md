@@ -1,6 +1,6 @@
-# Instant Chat 架构
+# Instant Chat Architecture
 
-## 当前边界
+## Current Boundaries
 
 ```text
 Flutter macOS client
@@ -14,45 +14,47 @@ Go modular monolith
 MySQL 8.4
 ```
 
-Flutter 客户端不直接访问 MySQL。Docker Compose 只管理本地服务端基础设施，不是客户端运行依赖。
+The Flutter client never accesses MySQL directly. Docker Compose manages local server infrastructure only; it is not a client runtime dependency.
 
-## macOS 客户端
+The application locale and repository language are fixed to American English (`en-US`).
 
-客户端位于 `apps/macos_client`，当前包含：
+## macOS Client
 
-- `app`：应用入口与全局主题装配。
-- `core/config`：编译期 API 地址配置。
-- `core/theme`：复古 UI 的颜色、字体和布局令牌。
-- `features/system_status`：健康状态领域模型、Dio 数据访问、Riverpod 状态和页面。
+The client is located in `apps/macos_client` and currently contains:
 
-Widget 不直接访问 Dio。页面只观察 Riverpod Provider，健康响应在数据边界完成结构校验后才进入领域层。
+- `app`: application entry point and global theme assembly.
+- `core/config`: compile-time API address configuration.
+- `core/theme`: retro UI color, typography, and layout tokens.
+- `features/system_status`: health domain model, Dio data access, Riverpod state, and presentation.
+
+Widgets do not access Dio directly. The page observes a Riverpod provider, and the data layer validates the health response structure before passing it to the domain layer.
 
 ## Go API
 
-服务端位于 `services/api`，当前包含：
+The server is located in `services/api` and currently contains:
 
-- `cmd/api`：依赖装配、HTTP Server、信号处理和优雅关闭。
-- `internal/config`：环境变量加载与校验。
-- `internal/health`：API 和数据库健康检查。
+- `cmd/api`: dependency assembly, HTTP server, signal handling, and graceful shutdown.
+- `internal/config`: environment variable loading and validation.
+- `internal/health`: API and database health checks.
 
-API 使用标准库 `net/http`。除 MySQL `database/sql` 驱动外，当前没有引入服务端框架。
+The API uses the standard library's `net/http` package. The MySQL `database/sql` driver is currently its only third-party server dependency.
 
-## 健康状态
+## Health States
 
-`GET /api/v1/health` 返回两种状态：
+`GET /api/v1/health` returns one of two HTTP states:
 
-- HTTP 200：API 与 MySQL 均正常。
-- HTTP 503：API 正常运行，但 MySQL 不可用。
+- HTTP 200: the API and MySQL are both healthy.
+- HTTP 503: the API is running, but MySQL is unavailable.
 
-完整响应结构由 `api/openapi/openapi.yaml` 定义。客户端将网络不可达显示为 `OFFLINE`，将 HTTP 503 显示为 `DEGRADED`。
+The complete response shape is defined in `api/openapi/openapi.yaml`. The client displays an unreachable network as `OFFLINE` and an HTTP 503 response as `DEGRADED`.
 
-## 配置
+## Configuration
 
-- Go 从环境变量读取监听地址和数据库 DSN。
-- Flutter 通过 `API_BASE_URL` 编译期变量覆盖默认 API 地址。
-- Docker Compose 从根目录 `.env` 注入 MySQL 配置。
-- 密码、Token、证书和真实 `.env` 不进入 Git。
+- Go reads its listening address and database DSN from environment variables.
+- Flutter uses the compile-time `API_BASE_URL` variable to override its default API address.
+- Docker Compose injects MySQL configuration from the root `.env` file.
+- Passwords, tokens, certificates, and real `.env` files never enter Git.
 
-## 暂未实现
+## Not Yet Implemented
 
-当前没有登录、联系人、会话、消息、WebSocket、本地消息缓存、数据库迁移、Redis、MinIO 或端到端加密。新增能力时必须保持模块化单体边界，并同步更新本文档。
+The project does not yet include sign-in, contacts, conversations, messages, WebSocket, local message caching, database migrations, Redis, MinIO, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.

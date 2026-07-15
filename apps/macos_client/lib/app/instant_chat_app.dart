@@ -10,6 +10,8 @@ class InstantChatApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Instant Chat',
+      locale: const Locale('en', 'US'),
+      supportedLocales: const [Locale('en', 'US')],
       theme: RetroTheme.data,
       home: const SystemStatusPage(),
     );
