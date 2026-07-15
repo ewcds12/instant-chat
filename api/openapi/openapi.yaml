@@ -1,0 +1,52 @@
+openapi: 3.1.0
+info:
+  title: Instant Chat API
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:8080/api/v1
+    description: Local development
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Check API and database health
+      responses:
+        "200":
+          description: API and database are healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+        "503":
+          description: API is running but its database is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+components:
+  schemas:
+    Health:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - service
+        - database
+        - checked_at
+      properties:
+        status:
+          type: string
+          enum:
+            - healthy
+            - degraded
+        service:
+          type: string
+          const: instant-chat-api
+        database:
+          type: string
+          enum:
+            - healthy
+            - unavailable
+        checked_at:
+          type: string
+          format: date-time
