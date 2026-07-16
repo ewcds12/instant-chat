@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +8,8 @@ import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/messages/data/dio_message_gateway.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/domain/message_gateway.dart';
+import 'package:instant_chat/features/messages/presentation/message_reconciliation.dart';
+import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 
 final messageGatewayProvider = Provider<MessageGateway>((ref) {
   return DioMessageGateway(ref.watch(dioProvider));
@@ -65,6 +68,13 @@ class MessagesController extends AsyncNotifier<MessagesState> {
   MessagesController(this.conversationId);
 
   final String conversationId;
+  final _pendingRealtime = <Message>[];
+  StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<int>? _connectionSubscription;
+  var _active = true;
+  var _realtimeReady = false;
+  var _syncing = false;
+  var _pendingSync = false;
 
   MessageGateway get _gateway => ref.read(messageGatewayProvider);
 
@@ -78,11 +88,25 @@ class MessagesController extends AsyncNotifier<MessagesState> {
 
   @override
   Future<MessagesState> build() async {
+    final realtime = ref.read(realtimeConnectionProvider);
+    _messageSubscription = realtime.messages.listen(_receiveRealtime);
+    _connectionSubscription = realtime.connections.listen((_) {
+      _pendingSync = true;
+      _startPendingSync();
+    });
+    ref.onDispose(() {
+      _active = false;
+      unawaited(_messageSubscription?.cancel());
+      unawaited(_connectionSubscription?.cancel());
+    });
     final page = await _gateway.list(
       accessToken: _accessToken,
       conversationId: conversationId,
     );
-    return MessagesState(messages: page.messages, nextCursor: page.nextCursor);
+    final messages = reconcileMessages(page.messages, _pendingRealtime);
+    _pendingRealtime.clear();
+    Timer.run(_activateRealtime);
+    return MessagesState(messages: messages, nextCursor: page.nextCursor);
   }
 
   Future<bool> send(String body) {
@@ -115,9 +139,10 @@ class MessagesController extends AsyncNotifier<MessagesState> {
         conversationId: conversationId,
         before: current.nextCursor,
       );
+      final latest = state.requireValue;
       state = AsyncData(
-        current.copyWith(
-          messages: [...page.messages, ...current.messages],
+        latest.copyWith(
+          messages: reconcileMessages(latest.messages, page.messages),
           nextCursor: page.nextCursor,
           clearCursor: page.nextCursor == null,
           isLoadingOlder: false,
@@ -125,9 +150,12 @@ class MessagesController extends AsyncNotifier<MessagesState> {
         ),
       );
     } on ApiFailure catch (failure) {
-      _setHistoryFailure(current, failure.message);
+      _setHistoryFailure(state.requireValue, failure.message);
     } on FormatException {
-      _setHistoryFailure(current, 'The server returned an invalid response.');
+      _setHistoryFailure(
+        state.requireValue,
+        'The server returned an invalid response.',
+      );
     }
   }
 
@@ -143,15 +171,10 @@ class MessagesController extends AsyncNotifier<MessagesState> {
         clientMessageId: pending.clientMessageId,
         body: pending.body,
       );
-      final messages =
-          current.messages.any(
-            (item) => item.clientMessageId == message.clientMessageId,
-          )
-          ? current.messages
-          : [...current.messages, message];
+      final latest = state.requireValue;
       state = AsyncData(
-        current.copyWith(
-          messages: messages,
+        latest.copyWith(
+          messages: reconcileMessages(latest.messages, [message]),
           isSending: false,
           clearFailure: true,
           clearError: true,
@@ -159,15 +182,84 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       );
       return true;
     } on ApiFailure catch (failure) {
-      _setSendFailure(current, pending, failure.message);
+      _setSendFailure(state.requireValue, pending, failure.message);
     } on FormatException {
       _setSendFailure(
-        current,
+        state.requireValue,
         pending,
         'The server returned an invalid response.',
       );
     }
     return false;
+  }
+
+  void _activateRealtime() {
+    if (!_active || !state.hasValue) {
+      return;
+    }
+    _realtimeReady = true;
+    if (_pendingRealtime.isNotEmpty) {
+      _applyMessages(List.of(_pendingRealtime));
+      _pendingRealtime.clear();
+    }
+    _startPendingSync();
+  }
+
+  void _receiveRealtime(Message message) {
+    if (message.conversationId != conversationId) {
+      return;
+    }
+    if (!_realtimeReady || !state.hasValue) {
+      _pendingRealtime.add(message);
+      return;
+    }
+    _applyMessages([message]);
+  }
+
+  void _applyMessages(Iterable<Message> incoming) {
+    final current = state.requireValue;
+    state = AsyncData(
+      current.copyWith(messages: reconcileMessages(current.messages, incoming)),
+    );
+  }
+
+  void _startPendingSync() {
+    if (!_active || !_realtimeReady || !_pendingSync || _syncing) {
+      return;
+    }
+    unawaited(_syncNewer());
+  }
+
+  Future<void> _syncNewer() async {
+    _syncing = true;
+    _pendingSync = false;
+    var after = latestSequence(state.requireValue.messages);
+    try {
+      while (_active) {
+        final page = await _gateway.list(
+          accessToken: _accessToken,
+          conversationId: conversationId,
+          after: after,
+          limit: 100,
+        );
+        if (!_active) {
+          return;
+        }
+        _applyMessages(page.messages);
+        final next = page.nextCursor;
+        if (next == null) {
+          return;
+        }
+        after = next;
+      }
+    } on ApiFailure {
+      // The next successful connection retries sequence-based recovery.
+    } on FormatException {
+      // A malformed recovery page is retried after the next connection.
+    } finally {
+      _syncing = false;
+      _startPendingSync();
+    }
   }
 
   void _setSendFailure(

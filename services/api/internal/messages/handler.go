@@ -14,7 +14,7 @@ import (
 
 type messageService interface {
 	Send(context.Context, uint64, uint64, string, string) (Message, bool, error)
-	List(context.Context, uint64, uint64, *uint64, int) (Page, error)
+	List(context.Context, uint64, uint64, *uint64, *uint64, int) (Page, error)
 }
 
 // Handler maps message HTTP requests to the service.
@@ -84,11 +84,21 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	after, ok := optionalSequence(w, r, "after")
+	if !ok {
+		return
+	}
+	if before != nil && after != nil {
+		writeInvalidArgument(w, r, "Before and after cannot be used together.")
+		return
+	}
 	limit, ok := optionalLimit(w, r)
 	if !ok {
 		return
 	}
-	page, err := h.service.List(r.Context(), currentUserID(r), conversationID, before, limit)
+	page, err := h.service.List(
+		r.Context(), currentUserID(r), conversationID, before, after, limit,
+	)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
@@ -106,6 +116,19 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		Messages   []messageResponse `json:"messages"`
 		NextCursor *string           `json:"next_cursor"`
 	}{Messages: responses, NextCursor: nextCursor})
+}
+
+func optionalSequence(w http.ResponseWriter, r *http.Request, name string) (*uint64, bool) {
+	raw := r.URL.Query().Get(name)
+	if raw == "" {
+		return nil, true
+	}
+	value, err := strconv.ParseUint(raw, 10, 64)
+	if err != nil {
+		writeInvalidArgument(w, r, "After cursor must be a nonnegative integer string.")
+		return nil, false
+	}
+	return &value, true
 }
 
 func conversationID(w http.ResponseWriter, r *http.Request) (uint64, bool) {

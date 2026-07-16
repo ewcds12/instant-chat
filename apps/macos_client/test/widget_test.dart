@@ -8,13 +8,13 @@ import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
-import 'package:instant_chat/features/messages/domain/message.dart';
-import 'package:instant_chat/features/messages/domain/message_gateway.dart';
-import 'package:instant_chat/features/messages/domain/message_page.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
+import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/system_status/domain/service_health.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
+
+import 'support/widget_network_stubs.dart';
 
 void main() {
   testWidgets('shows online when API and database are healthy', (tester) async {
@@ -37,6 +37,9 @@ void main() {
           ),
           conversationsControllerProvider.overrideWith(
             () => _StubConversationsController(_emptyConversations),
+          ),
+          realtimeConnectionProvider.overrideWithValue(
+            const StubRealtimeConnection(),
           ),
         ],
         child: const InstantChatApp(),
@@ -71,6 +74,9 @@ void main() {
           ),
           conversationsControllerProvider.overrideWith(
             () => _StubConversationsController(_emptyConversations),
+          ),
+          realtimeConnectionProvider.overrideWithValue(
+            const StubRealtimeConnection(),
           ),
         ],
         child: const InstantChatApp(),
@@ -132,6 +138,9 @@ void main() {
               ConversationsState(conversations: [_conversation]),
             ),
           ),
+          realtimeConnectionProvider.overrideWithValue(
+            const StubRealtimeConnection(),
+          ),
         ],
         child: const InstantChatApp(),
       ),
@@ -162,7 +171,7 @@ void main() {
   testWidgets('opens a direct text channel and sends a message with Enter', (
     tester,
   ) async {
-    final messageGateway = _StubMessageGateway();
+    final messageGateway = StubMessageGateway(_session.user);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
@@ -178,6 +187,9 @@ void main() {
             ),
           ),
           messageGatewayProvider.overrideWithValue(messageGateway),
+          realtimeConnectionProvider.overrideWithValue(
+            const StubRealtimeConnection(),
+          ),
         ],
         child: const InstantChatApp(),
       ),
@@ -264,37 +276,4 @@ class _StubConversationsController extends ConversationsController {
 
   @override
   Future<ConversationsState> build() async => conversationsState;
-}
-
-class _StubMessageGateway implements MessageGateway {
-  String? sentBody;
-
-  @override
-  Future<MessagePage> list({
-    required String accessToken,
-    required String conversationId,
-    String? before,
-    int limit = 50,
-  }) async {
-    return const MessagePage(messages: [], nextCursor: null);
-  }
-
-  @override
-  Future<Message> send({
-    required String accessToken,
-    required String conversationId,
-    required String clientMessageId,
-    required String body,
-  }) async {
-    sentBody = body;
-    return Message(
-      id: '21',
-      conversationId: conversationId,
-      sender: PublicUser.fromAuthUser(_session.user),
-      clientMessageId: clientMessageId,
-      sequence: '1',
-      body: body,
-      createdAt: DateTime.utc(2026, 7, 15, 13),
-    );
-  }
 }

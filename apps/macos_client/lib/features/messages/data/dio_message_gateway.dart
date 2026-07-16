@@ -14,12 +14,13 @@ class DioMessageGateway implements MessageGateway {
     required String accessToken,
     required String conversationId,
     String? before,
+    String? after,
     int limit = 50,
   }) async {
     final response = await apiRequest(
       () => _dio.get<Object?>(
         '/api/v1/conversations/$conversationId/messages',
-        queryParameters: {'before': ?before, 'limit': limit},
+        queryParameters: {'before': ?before, 'after': ?after, 'limit': limit},
         options: _options(accessToken),
       ),
     );

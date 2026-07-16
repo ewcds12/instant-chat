@@ -15,26 +15,26 @@ The authentication, contacts, direct conversations, and persisted text-message f
 - The chat workspace provides real conversation filtering and a persistent desktop master-detail layout.
 - The resizable macOS window opens at 1,180 by 660 points.
 - Users can search by exact username, send contact requests, accept or reject incoming requests, remove contacts, and open a direct conversation.
-- Direct channels load cursor-paginated message history, search loaded messages, and can send or retry text messages without creating duplicates.
+- Direct channels load cursor-paginated history, receive realtime messages, recover sequence gaps after reconnecting, and can send or retry text messages without creating duplicates.
 - The Go API provides health, registration, sign-in, refresh, sign-out, and current-user endpoints.
 - The Go API enforces unique bilateral contact relationships and unique direct conversations.
 - The health check verifies the MySQL connection with `PingContext`.
 - MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, members, and ordered messages.
 - Docker Compose provides a pinned MySQL 8.4 development environment.
-- OpenAPI defines the complete implemented HTTP contract.
+- OpenAPI defines the implemented HTTP and WebSocket event contracts.
 
-WebSocket delivery, local Drift storage, read receipts, Redis, and file uploads have not been implemented.
+Local Drift storage, read receipts, Redis, and file uploads have not been implemented.
 
 ## Technology Stack
 
 - macOS client: Flutter, Dart, Riverpod, Dio, and macOS Keychain.
-- Server: Go, REST, `database/sql`, and sqlc.
+- Server: Go, REST, WebSocket, `database/sql`, and sqlc.
 - Database: MySQL 8.4 LTS.
 - Local infrastructure: Docker Compose.
 - API contract: OpenAPI 3.1.
 - Database migrations: golang-migrate.
 
-Future features will add go_router, WebSocket, Drift, SQLite, Redis, and MinIO only when they are needed.
+Future features will add go_router, Drift, SQLite, Redis, and MinIO only when they are needed.
 
 ## Requirements
 
@@ -126,6 +126,8 @@ POST /api/v1/conversations
 GET  /api/v1/conversations
 POST /api/v1/conversations/{conversation_id}/messages
 GET  /api/v1/conversations/{conversation_id}/messages?before={sequence}&limit={count}
+GET  /api/v1/conversations/{conversation_id}/messages?after={sequence}&limit={count}
+GET  /api/v1/realtime  (WebSocket upgrade)
 ```
 
 Start the client in another terminal:
@@ -155,4 +157,4 @@ Architecture boundaries are documented in `docs/architecture.md`. The REST contr
 
 ## Next Milestone
 
-Add WebSocket delivery and reconnect synchronization on top of the persisted REST message source of truth.
+Add local Drift caching and unread state on top of the persisted REST and WebSocket message source of truth.

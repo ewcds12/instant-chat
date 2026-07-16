@@ -5,7 +5,7 @@
 ```text
 Flutter macOS client
         |
-        | HTTP /api/v1/health, /api/v1/auth/*, contacts, conversations, messages
+        | HTTP APIs + authenticated WebSocket /api/v1/realtime
         v
 Go modular monolith
         |
@@ -30,7 +30,8 @@ The client is located in `apps/macos_client` and currently contains:
 - `features/users`: the public account identity shared by contacts and direct conversations.
 - `features/contacts`: exact username search, contact-request workflows, accepted contacts, and Riverpod state.
 - `features/conversations`: direct-conversation creation, list state, and channel selection.
-- `features/messages`: message history, REST sending, idempotent retry state, and channel presentation.
+- `features/messages`: message history, REST sending, realtime reconciliation, idempotent retry state, and channel presentation.
+- `features/realtime`: authenticated WebSocket lifecycle, heartbeat, reconnect backoff, and event parsing.
 - `features/system_status`: health domain model, Dio data access, Riverpod state, and presentation.
 
 Widgets do not access Dio or Keychain directly. Presentation observes Riverpod providers, while data adapters validate remote and stored JSON before passing domain objects upward.
@@ -49,12 +50,13 @@ The server is located in `services/api` and currently contains:
 - `internal/contacts`: exact account search, pending and accepted relationship rules, HTTP handlers, and MySQL persistence.
 - `internal/conversations`: authorized direct-conversation creation, membership transactions, list handlers, and MySQL persistence.
 - `internal/messages`: text validation, idempotent REST sending, cursor history, membership authorization, and MySQL persistence.
+- `internal/realtime`: authenticated WebSocket connections, member-targeted delivery, heartbeat, and graceful shutdown.
 - `internal/config`: environment variable loading and validation.
 - `internal/health`: API and database health checks.
 - `internal/httpapi`: bounded JSON handling, stable errors, request IDs, and IP rate limiting.
 - `internal/store`: sqlc-generated database access code; generated files must not be edited manually.
 
-The API uses the standard library's `net/http` package. MySQL access stays behind repository interfaces and sqlc-generated queries.
+The API uses the standard library's `net/http` package and the zero-dependency ISC-licensed `github.com/coder/websocket` package for RFC 6455 framing. MySQL access stays behind repository interfaces and sqlc-generated queries.
 
 ## Authentication
 
@@ -82,9 +84,11 @@ Each message carries a 32-character, client-generated hexadecimal ID. A unique d
 
 Each conversation owns a monotonically increasing sequence. Sending locks the conversation row, allocates its next sequence, creates the message, advances the sequence, and updates the conversation timestamp in one transaction. A unique conversation-and-sequence constraint protects the ordering invariant.
 
-History is returned in ascending sequence order, at most 100 messages per request. The optional `before` cursor requests older sequences, and `next_cursor` is null when no older page remains. Send and history endpoints return the same not-found response when the conversation is missing or the user is not a member. Message sending is limited to 60 attempts per IP address per minute in each API process.
+History is returned in ascending sequence order, at most 100 messages per request. The optional `before` cursor requests older sequences. The mutually exclusive `after` cursor requests newer sequences for reconnect recovery. `next_cursor` continues in the requested direction and is null when that direction is complete. Send and history endpoints return the same not-found response when the conversation is missing or the user is not a member. Message sending is limited to 60 attempts per IP address per minute in each API process.
 
-The macOS client loads history when a channel opens, can request older pages, and retains the original client message ID after a failed send so retry cannot create a duplicate. REST is the only message transport in this milestone.
+After a new message commits, the realtime hub looks up the conversation members and sends a versioned `message.created` event to every connected window for those users. A failed realtime lookup or disconnected client does not change the successful REST result because persisted history remains the source of truth.
+
+The macOS client opens one authenticated WebSocket per signed-in session, sends heartbeat pings, reconnects with bounded exponential backoff, and closes the connection on sign-out. Active channels merge REST responses and realtime events by sender and client message ID, sort by server sequence, and request every sequence after the latest local message after a connection is restored.
 
 ## Health States
 
@@ -105,4 +109,4 @@ The complete response shape is defined in `api/openapi/openapi.yaml`. The client
 
 ## Not Yet Implemented
 
-The project does not yet include WebSocket delivery, local message caching, read receipts, attachments, Redis, MinIO, password reset, email verification, social sign-in, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.
+The project does not yet include local message caching, unread counts, read receipts, attachments, Redis, MinIO, password reset, email verification, social sign-in, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.

@@ -6,6 +6,7 @@ import 'package:instant_chat/features/contacts/presentation/contacts_page.dart';
 import 'package:instant_chat/features/contacts/presentation/requests_page.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_page.dart';
+import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_page.dart';
 
 class AuthenticatedShell extends ConsumerStatefulWidget {
@@ -27,6 +28,7 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
 
   @override
   Widget build(BuildContext context) {
+    ref.watch(realtimeConnectionProvider);
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
       body: Row(

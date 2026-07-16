@@ -96,6 +96,37 @@ func (r *MySQLRepository) List(
 	return r.listBefore(ctx, conversationID, *before, limit)
 }
 
+// ListAfter returns ascending rows newer than a server sequence.
+func (r *MySQLRepository) ListAfter(
+	ctx context.Context,
+	userID, conversationID, after uint64,
+	limit int,
+) ([]Message, error) {
+	member, err := r.queries.IsConversationMember(ctx, store.IsConversationMemberParams{
+		ConversationID: conversationID,
+		UserID:         userID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("check conversation membership: %w", err)
+	}
+	if !member {
+		return nil, ErrConversationNotFound
+	}
+	rows, err := r.queries.ListMessagesAfter(ctx, store.ListMessagesAfterParams{
+		ConversationID: conversationID,
+		AfterSequence:  after,
+		Limit:          int32(limit),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("list messages after sequence: %w", err)
+	}
+	messages := make([]Message, 0, len(rows))
+	for _, row := range rows {
+		messages = append(messages, messageFromAfterRow(row))
+	}
+	return messages, nil
+}
+
 func createMessage(
 	ctx context.Context,
 	queries *store.Queries,
@@ -179,6 +210,14 @@ func messageFromLatestRow(row store.ListLatestMessagesRow) Message {
 }
 
 func messageFromBeforeRow(row store.ListMessagesBeforeRow) Message {
+	return newMessage(
+		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
+		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
+		row.Sequence, row.Body, row.CreatedAt,
+	)
+}
+
+func messageFromAfterRow(row store.ListMessagesAfterRow) Message {
 	return newMessage(
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
 		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,

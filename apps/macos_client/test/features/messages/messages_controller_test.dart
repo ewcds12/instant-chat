@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/core/network/api_failure.dart';
@@ -8,20 +10,25 @@ import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/domain/message_gateway.dart';
 import 'package:instant_chat/features/messages/domain/message_page.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
+import 'package:instant_chat/features/realtime/domain/realtime_connection.dart';
+import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 void main() {
   test('retry reuses the failed client message ID', () async {
     final gateway = _FakeMessageGateway()..failNextSend = true;
+    final realtime = _FakeRealtimeConnection();
     final container = ProviderContainer(
       overrides: [
         authControllerProvider.overrideWith(
           () => _StubAuthController(AuthState(session: _session)),
         ),
         messageGatewayProvider.overrideWithValue(gateway),
+        realtimeConnectionProvider.overrideWithValue(realtime),
       ],
     );
     addTearDown(container.dispose);
+    addTearDown(realtime.close);
     await container.read(authControllerProvider.future);
     final provider = messagesControllerProvider('11');
     final subscription = container.listen(provider, (_, _) {});
@@ -49,15 +56,18 @@ void main() {
         MessagePage(messages: [_message('3'), _message('4')], nextCursor: null),
       ],
     );
+    final realtime = _FakeRealtimeConnection();
     final container = ProviderContainer(
       overrides: [
         authControllerProvider.overrideWith(
           () => _StubAuthController(AuthState(session: _session)),
         ),
         messageGatewayProvider.overrideWithValue(gateway),
+        realtimeConnectionProvider.overrideWithValue(realtime),
       ],
     );
     addTearDown(container.dispose);
+    addTearDown(realtime.close);
     await container.read(authControllerProvider.future);
     final provider = messagesControllerProvider('11');
     final subscription = container.listen(provider, (_, _) {});
@@ -75,6 +85,90 @@ void main() {
       ['3', '4', '5'],
     );
     expect(container.read(provider).requireValue.nextCursor, isNull);
+  });
+
+  test(
+    'reconnect catches up, deduplicates, and restores sequence order',
+    () async {
+      final gateway = _FakeMessageGateway(
+        pages: [
+          MessagePage(
+            messages: [_message('1'), _message('2')],
+            nextCursor: null,
+          ),
+          MessagePage(
+            messages: [_message('2'), _message('4'), _message('3')],
+            nextCursor: null,
+          ),
+        ],
+      );
+      final realtime = _FakeRealtimeConnection();
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          messageGatewayProvider.overrideWithValue(gateway),
+          realtimeConnectionProvider.overrideWithValue(realtime),
+        ],
+      );
+      addTearDown(container.dispose);
+      addTearDown(realtime.close);
+      await container.read(authControllerProvider.future);
+      final provider = messagesControllerProvider('11');
+      final subscription = container.listen(provider, (_, _) {});
+      addTearDown(subscription.close);
+      await container.read(provider.future);
+      await _flushEvents();
+
+      realtime.emitConnection();
+      await _flushEvents();
+
+      expect(gateway.afterCursors, ['2']);
+      expect(
+        container
+            .read(provider)
+            .requireValue
+            .messages
+            .map((message) => message.sequence),
+        ['1', '2', '3', '4'],
+      );
+    },
+  );
+
+  test('realtime events merge in server sequence order', () async {
+    final gateway = _FakeMessageGateway();
+    final realtime = _FakeRealtimeConnection();
+    final container = ProviderContainer(
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => _StubAuthController(AuthState(session: _session)),
+        ),
+        messageGatewayProvider.overrideWithValue(gateway),
+        realtimeConnectionProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(realtime.close);
+    await container.read(authControllerProvider.future);
+    final provider = messagesControllerProvider('11');
+    final subscription = container.listen(provider, (_, _) {});
+    addTearDown(subscription.close);
+    await container.read(provider.future);
+    await _flushEvents();
+
+    realtime.emitMessage(_message('4'));
+    realtime.emitMessage(_message('3'));
+    await _flushEvents();
+
+    expect(
+      container
+          .read(provider)
+          .requireValue
+          .messages
+          .map((message) => message.sequence),
+      ['3', '4'],
+    );
   });
 }
 
@@ -115,6 +209,7 @@ class _FakeMessageGateway implements MessageGateway {
 
   final List<MessagePage> pages;
   final List<String> clientIDs = [];
+  final List<String> afterCursors = [];
   var listIndex = 0;
   var failNextSend = false;
 
@@ -123,8 +218,12 @@ class _FakeMessageGateway implements MessageGateway {
     required String accessToken,
     required String conversationId,
     String? before,
+    String? after,
     int limit = 50,
   }) async {
+    if (after != null) {
+      afterCursors.add(after);
+    }
     return pages[listIndex++];
   }
 
@@ -149,6 +248,37 @@ class _FakeMessageGateway implements MessageGateway {
       body: body,
       createdAt: DateTime.utc(2026, 7, 16, 13),
     );
+  }
+}
+
+class _FakeRealtimeConnection implements RealtimeConnection {
+  final _messages = StreamController<Message>.broadcast();
+  final _connections = StreamController<int>.broadcast();
+  var _generation = 0;
+
+  @override
+  Stream<int> get connections => _connections.stream;
+
+  @override
+  Stream<Message> get messages => _messages.stream;
+
+  @override
+  void start() {}
+
+  void emitConnection() => _connections.add(++_generation);
+
+  void emitMessage(Message message) => _messages.add(message);
+
+  @override
+  Future<void> close() async {
+    await _messages.close();
+    await _connections.close();
+  }
+}
+
+Future<void> _flushEvents() async {
+  for (var index = 0; index < 4; index++) {
+    await Future<void>.delayed(Duration.zero);
   }
 }
 

@@ -130,6 +130,36 @@ func (q *Queries) IsConversationMember(ctx context.Context, arg IsConversationMe
 	return is_member, err
 }
 
+const listConversationMemberIDs = `-- name: ListConversationMemberIDs :many
+SELECT user_id
+FROM conversation_members
+WHERE conversation_id = ?
+ORDER BY user_id ASC
+`
+
+func (q *Queries) ListConversationMemberIDs(ctx context.Context, conversationID uint64) ([]uint64, error) {
+	rows, err := q.db.QueryContext(ctx, listConversationMemberIDs, conversationID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []uint64{}
+	for rows.Next() {
+		var user_id uint64
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLatestMessages = `-- name: ListLatestMessages :many
 SELECT
   message.id,
@@ -176,6 +206,79 @@ func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessages
 	items := []ListLatestMessagesRow{}
 	for rows.Next() {
 		var i ListLatestMessagesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ConversationID,
+			&i.SenderID,
+			&i.SenderUsername,
+			&i.SenderDisplayName,
+			&i.SenderCreatedAt,
+			&i.ClientMessageID,
+			&i.Sequence,
+			&i.Body,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listMessagesAfter = `-- name: ListMessagesAfter :many
+SELECT
+  message.id,
+  message.conversation_id,
+  message.sender_id,
+  sender.username AS sender_username,
+  sender.display_name AS sender_display_name,
+  sender.created_at AS sender_created_at,
+  message.client_message_id,
+  message.sequence,
+  message.body,
+  message.created_at
+FROM messages AS message
+JOIN users AS sender ON sender.id = message.sender_id
+WHERE message.conversation_id = ?
+  AND message.sequence > ?
+ORDER BY message.sequence ASC
+LIMIT ?
+`
+
+type ListMessagesAfterParams struct {
+	ConversationID uint64 `db:"conversation_id"`
+	AfterSequence  uint64 `db:"after_sequence"`
+	Limit          int32  `db:"limit"`
+}
+
+type ListMessagesAfterRow struct {
+	ID                uint64    `db:"id"`
+	ConversationID    uint64    `db:"conversation_id"`
+	SenderID          uint64    `db:"sender_id"`
+	SenderUsername    string    `db:"sender_username"`
+	SenderDisplayName string    `db:"sender_display_name"`
+	SenderCreatedAt   time.Time `db:"sender_created_at"`
+	ClientMessageID   string    `db:"client_message_id"`
+	Sequence          uint64    `db:"sequence"`
+	Body              string    `db:"body"`
+	CreatedAt         time.Time `db:"created_at"`
+}
+
+func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterParams) ([]ListMessagesAfterRow, error) {
+	rows, err := q.db.QueryContext(ctx, listMessagesAfter, arg.ConversationID, arg.AfterSequence, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListMessagesAfterRow{}
+	for rows.Next() {
+		var i ListMessagesAfterRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ConversationID,

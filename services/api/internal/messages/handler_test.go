@@ -36,10 +36,29 @@ func (s *stubMessageService) List(
 	uint64,
 	uint64,
 	*uint64,
+	*uint64,
 	int,
 ) (Page, error) {
 	cursor := uint64(3)
 	return Page{Messages: []Message{testMessage()}, NextCursor: &cursor}, nil
+}
+
+func TestHandlerListRejectsBeforeAndAfterTogether(t *testing.T) {
+	handler := authenticated(http.HandlerFunc(NewHandler(&stubMessageService{}).List))
+	request := httptest.NewRequest(
+		http.MethodGet,
+		"/api/v1/conversations/11/messages?before=4&after=2",
+		nil,
+	)
+	request.SetPathValue("conversation_id", "11")
+	request.Header.Set("Authorization", "Bearer access")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want %d", recorder.Code, http.StatusBadRequest)
+	}
 }
 
 type stubAuthService struct{}

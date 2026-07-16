@@ -6,6 +6,7 @@ abstract interface class MessageGateway {
     required String accessToken,
     required String conversationId,
     String? before,
+    String? after,
     int limit = 50,
   });
 

@@ -59,4 +59,14 @@ type Repository interface {
 		before *uint64,
 		limit int,
 	) ([]Message, error)
+	ListAfter(
+		ctx context.Context,
+		userID, conversationID, after uint64,
+		limit int,
+	) ([]Message, error)
+}
+
+// Publisher delivers newly persisted messages without affecting REST success.
+type Publisher interface {
+	PublishMessage(ctx context.Context, message Message)
 }

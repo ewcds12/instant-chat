@@ -43,6 +43,24 @@ void main() {
     expect(adapter.data['client_message_id'], message.clientMessageId);
     expect(message.body, 'Hello.');
   });
+
+  test('list sends the reconnect sequence cursor', () async {
+    final adapter = _StubAdapter(
+      statusCode: 200,
+      body: {'messages': <Object>[], 'next_cursor': null},
+    );
+    final gateway = DioMessageGateway(_createDio(adapter));
+
+    await gateway.list(
+      accessToken: 'access-token',
+      conversationId: '11',
+      after: '8',
+      limit: 100,
+    );
+
+    expect(adapter.query['after'], '8');
+    expect(adapter.query['limit'], 100);
+  });
 }
 
 final _message = {

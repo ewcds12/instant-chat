@@ -18,11 +18,12 @@ var clientMessageIDPattern = regexp.MustCompile(`^[a-f0-9]{32}$`)
 // Service implements message validation and cursor pagination.
 type Service struct {
 	repository Repository
+	publisher  Publisher
 }
 
 // NewService creates the message service.
-func NewService(repository Repository) *Service {
-	return &Service{repository: repository}
+func NewService(repository Repository, publisher Publisher) *Service {
+	return &Service{repository: repository, publisher: publisher}
 }
 
 // Send validates and persists a text message.
@@ -45,21 +46,33 @@ func (s *Service) Send(
 			Message: "Message body must contain at most 4,000 Unicode characters.",
 		}
 	}
-	return s.repository.Send(ctx, userID, conversationID, clientMessageID, trimmedBody)
+	message, created, err := s.repository.Send(
+		ctx, userID, conversationID, clientMessageID, trimmedBody,
+	)
+	if err == nil && created {
+		s.publisher.PublishMessage(ctx, message)
+	}
+	return message, created, err
 }
 
 // List returns one ascending history page and an older-page cursor.
 func (s *Service) List(
 	ctx context.Context,
 	userID, conversationID uint64,
-	before *uint64,
+	before, after *uint64,
 	limit int,
 ) (Page, error) {
+	if before != nil && after != nil {
+		return Page{}, &InputError{Message: "Before and after cannot be used together."}
+	}
 	if limit == 0 {
 		limit = defaultPageSize
 	}
 	if limit < 1 || limit > maximumPageSize {
 		return Page{}, &InputError{Message: "Limit must be between 1 and 100."}
+	}
+	if after != nil {
+		return s.listAfter(ctx, userID, conversationID, *after, limit)
 	}
 	messages, err := s.repository.List(ctx, userID, conversationID, before, limit+1)
 	if err != nil {
@@ -73,6 +86,29 @@ func (s *Service) List(
 	var nextCursor *uint64
 	if hasMore {
 		cursor := messages[0].Sequence
+		nextCursor = &cursor
+	}
+	return Page{Messages: messages, NextCursor: nextCursor}, nil
+}
+
+func (s *Service) listAfter(
+	ctx context.Context,
+	userID, conversationID, after uint64,
+	limit int,
+) (Page, error) {
+	messages, err := s.repository.ListAfter(
+		ctx, userID, conversationID, after, limit+1,
+	)
+	if err != nil {
+		return Page{}, err
+	}
+	hasMore := len(messages) > limit
+	if hasMore {
+		messages = messages[:limit]
+	}
+	var nextCursor *uint64
+	if hasMore {
+		cursor := messages[len(messages)-1].Sequence
 		nextCursor = &cursor
 	}
 	return Page{Messages: messages, NextCursor: nextCursor}, nil

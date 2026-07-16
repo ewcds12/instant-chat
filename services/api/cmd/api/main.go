@@ -21,6 +21,7 @@ import (
 	"github.com/ewcds12/instant-chat/services/api/internal/health"
 	"github.com/ewcds12/instant-chat/services/api/internal/httpapi"
 	"github.com/ewcds12/instant-chat/services/api/internal/messages"
+	"github.com/ewcds12/instant-chat/services/api/internal/realtime"
 )
 
 const (
@@ -83,7 +84,13 @@ func run() error {
 	conversationHandler := conversations.NewHandler(conversations.NewService(
 		conversations.NewMySQLRepository(database), contactRepository,
 	))
-	messageHandler := messages.NewHandler(messages.NewService(messages.NewMySQLRepository(database)))
+	realtimeHub := realtime.NewHub(realtime.NewMySQLRepository(database))
+	defer realtimeHub.Close()
+	messageHandler := messages.NewHandler(messages.NewService(
+		messages.NewMySQLRepository(database),
+		realtimeHub,
+	))
+	realtimeHandler := realtime.NewHandler(realtimeHub)
 	messageLimiter := httpapi.NewIPRateLimiter(messageRateLimit, messageRateWindow)
 	protected := func(handler http.HandlerFunc) http.Handler {
 		return authHandler.RequireUser(handler)
@@ -105,6 +112,7 @@ func run() error {
 		"GET /api/v1/conversations/{conversation_id}/messages",
 		protected(messageHandler.List),
 	)
+	mux.Handle("GET /api/v1/realtime", protected(realtimeHandler.Connect))
 
 	server := &http.Server{
 		Addr:              cfg.Address,
@@ -131,6 +139,7 @@ func run() error {
 		}
 		return fmt.Errorf("serve API: %w", err)
 	case <-ctx.Done():
+		realtimeHub.Close()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
 		defer cancel()
 		if err := server.Shutdown(shutdownCtx); err != nil {

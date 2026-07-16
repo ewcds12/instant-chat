@@ -87,3 +87,28 @@ WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence < sqlc.arg(before_sequence)
 ORDER BY message.sequence DESC
 LIMIT ?;
+
+-- name: ListMessagesAfter :many
+SELECT
+  message.id,
+  message.conversation_id,
+  message.sender_id,
+  sender.username AS sender_username,
+  sender.display_name AS sender_display_name,
+  sender.created_at AS sender_created_at,
+  message.client_message_id,
+  message.sequence,
+  message.body,
+  message.created_at
+FROM messages AS message
+JOIN users AS sender ON sender.id = message.sender_id
+WHERE message.conversation_id = sqlc.arg(conversation_id)
+  AND message.sequence > sqlc.arg(after_sequence)
+ORDER BY message.sequence ASC
+LIMIT ?;
+
+-- name: ListConversationMemberIDs :many
+SELECT user_id
+FROM conversation_members
+WHERE conversation_id = ?
+ORDER BY user_id ASC;
