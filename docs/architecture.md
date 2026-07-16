@@ -5,7 +5,7 @@
 ```text
 Flutter macOS client
         |
-        | HTTP /api/v1/health, /api/v1/auth/*, contacts, and conversations
+        | HTTP /api/v1/health, /api/v1/auth/*, contacts, conversations, messages
         v
 Go modular monolith
         |
@@ -25,11 +25,12 @@ The client is located in `apps/macos_client` and currently contains:
 - `app`: application entry point and global theme assembly.
 - `core/config`: compile-time API address configuration.
 - `core/network`: shared Dio lifecycle and connection configuration.
-- `core/theme`: retro UI color, typography, and layout tokens.
+- `core/theme`: native macOS UI color, typography, and layout tokens.
 - `features/auth`: authentication domain contracts, Dio and Keychain adapters, Riverpod session state, and forms.
 - `features/users`: the public account identity shared by contacts and direct conversations.
 - `features/contacts`: exact username search, contact-request workflows, accepted contacts, and Riverpod state.
-- `features/conversations`: direct-conversation creation and list state without message transport.
+- `features/conversations`: direct-conversation creation, list state, and channel selection.
+- `features/messages`: message history, REST sending, idempotent retry state, and channel presentation.
 - `features/system_status`: health domain model, Dio data access, Riverpod state, and presentation.
 
 Widgets do not access Dio or Keychain directly. Presentation observes Riverpod providers, while data adapters validate remote and stored JSON before passing domain objects upward.
@@ -47,6 +48,7 @@ The server is located in `services/api` and currently contains:
 - `internal/users`: shared username normalization rules.
 - `internal/contacts`: exact account search, pending and accepted relationship rules, HTTP handlers, and MySQL persistence.
 - `internal/conversations`: authorized direct-conversation creation, membership transactions, list handlers, and MySQL persistence.
+- `internal/messages`: text validation, idempotent REST sending, cursor history, membership authorization, and MySQL persistence.
 - `internal/config`: environment variable loading and validation.
 - `internal/health`: API and database health checks.
 - `internal/httpapi`: bounded JSON handling, stable errors, request IDs, and IP rate limiting.
@@ -72,7 +74,17 @@ One `contact_relationships` row represents both directions of a user pair. The l
 
 A direct conversation requires an accepted contact relationship when it is created. The ordered user pair is unique at the database layer, so repeated or concurrent create requests return the same conversation. Conversation creation and both membership inserts occur in one transaction.
 
-The current list contains direct-conversation identity and peer information only. It does not contain placeholder message data, unread counts, delivery state, or real-time behavior.
+The conversation list contains direct-conversation identity and peer information. Selecting a conversation opens its persisted text history. The list does not contain unread counts, delivery state, or real-time behavior.
+
+## Messages
+
+Each message carries a 32-character, client-generated hexadecimal ID. A unique database constraint on the conversation, sender, and client ID makes retries idempotent. The first successful send returns HTTP 201; a retry with the same ID returns the existing message with HTTP 200.
+
+Each conversation owns a monotonically increasing sequence. Sending locks the conversation row, allocates its next sequence, creates the message, advances the sequence, and updates the conversation timestamp in one transaction. A unique conversation-and-sequence constraint protects the ordering invariant.
+
+History is returned in ascending sequence order, at most 100 messages per request. The optional `before` cursor requests older sequences, and `next_cursor` is null when no older page remains. Send and history endpoints return the same not-found response when the conversation is missing or the user is not a member. Message sending is limited to 60 attempts per IP address per minute in each API process.
+
+The macOS client loads history when a channel opens, can request older pages, and retains the original client message ID after a failed send so retry cannot create a duplicate. REST is the only message transport in this milestone.
 
 ## Health States
 
@@ -93,4 +105,4 @@ The complete response shape is defined in `api/openapi/openapi.yaml`. The client
 
 ## Not Yet Implemented
 
-The project does not yet include messages, WebSocket, local message caching, Redis, MinIO, password reset, email verification, social sign-in, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.
+The project does not yet include WebSocket delivery, local message caching, read receipts, attachments, Redis, MinIO, password reset, email verification, social sign-in, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.

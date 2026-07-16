@@ -1,117 +1,106 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/conversations/presentation/conversation_list.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
+import 'package:instant_chat/features/messages/presentation/messages_page.dart';
 
-class ConversationsPage extends ConsumerWidget {
-  const ConversationsPage({super.key});
+class ConversationsPage extends ConsumerStatefulWidget {
+  const ConversationsPage({required this.onCompose, super.key});
+
+  final VoidCallback onCompose;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ConversationsPage> createState() => _ConversationsPageState();
+}
+
+class _ConversationsPageState extends ConsumerState<ConversationsPage> {
+  String? _selectedConversationId;
+  var _query = '';
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(conversationsControllerProvider);
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => Center(
         child: FilledButton(
           onPressed: () => ref.invalidate(conversationsControllerProvider),
-          child: const Text('RETRY CONVERSATIONS'),
+          child: const Text('Try again'),
         ),
       ),
-      data: (value) => Padding(
-        padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      data: (value) {
+        final selected = _findSelected(value.conversations);
+        return Row(
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'CONVERSATIONS // ${value.conversations.length}',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Refresh conversations',
-                  onPressed: value.isSubmitting
-                      ? null
-                      : () => ref
-                            .read(conversationsControllerProvider.notifier)
-                            .refresh(),
-                  icon: const Icon(Icons.refresh),
-                ),
-              ],
-            ),
-            const SizedBox(height: RetroMetrics.spaceSmall),
-            const Text(
-              'Direct conversation directory // real-time messaging is not active yet.',
-            ),
-            if (value.errorMessage case final message?) ...[
-              const SizedBox(height: RetroMetrics.spaceSmall),
-              Text(
-                message,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+            SizedBox(
+              key: const Key('conversation-column'),
+              width: 300,
+              child: ConversationList(
+                conversations: value.conversations,
+                selectedId: selected?.id,
+                query: _query,
+                isRefreshing: value.isSubmitting,
+                errorMessage: value.errorMessage,
+                onQueryChanged: (query) => setState(() => _query = query),
+                onCompose: widget.onCompose,
+                onSelect: (conversation) =>
+                    setState(() => _selectedConversationId = conversation.id),
               ),
-            ],
-            const SizedBox(height: RetroMetrics.spaceLarge),
+            ),
+            VerticalDivider(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
             Expanded(
-              child: value.conversations.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'NO CONVERSATIONS // OPEN A CONTACT TO BEGIN',
-                      ),
-                    )
-                  : ListView.separated(
-                      itemCount: value.conversations.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: RetroMetrics.spaceSmall),
-                      itemBuilder: (context, index) => _ConversationRow(
-                        conversation: value.conversations[index],
-                      ),
-                    ),
+              child: selected == null
+                  ? const _NoConversationSelected()
+                  : MessagesPage(conversation: selected),
             ),
           ],
-        ),
-      ),
+        );
+      },
     );
+  }
+
+  Conversation? _findSelected(List<Conversation> conversations) {
+    for (final conversation in conversations) {
+      if (conversation.id == _selectedConversationId) {
+        return conversation;
+      }
+    }
+    return null;
   }
 }
 
-class _ConversationRow extends StatelessWidget {
-  const _ConversationRow({required this.conversation});
-
-  final Conversation conversation;
+class _NoConversationSelected extends StatelessWidget {
+  const _NoConversationSelected();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(RetroMetrics.spaceMedium),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface,
-          width: RetroMetrics.border,
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.forum_outlined),
-          const SizedBox(width: RetroMetrics.spaceMedium),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  conversation.peer.displayName,
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-                const SizedBox(height: RetroMetrics.spaceSmall),
-                Text('@${conversation.peer.username} // NO MESSAGES YET'),
-              ],
+    final colors = Theme.of(context).colorScheme;
+    return ColoredBox(
+      color: colors.surfaceContainerLowest,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: 34,
+              color: colors.outline,
             ),
-          ),
-          Text('DIRECT', style: Theme.of(context).textTheme.labelLarge),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              'Select a conversation',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Choose a chat from the list to view its messages.',
+              style: TextStyle(color: colors.onSurfaceVariant),
+            ),
+          ],
+        ),
       ),
     );
   }

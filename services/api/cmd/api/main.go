@@ -20,6 +20,7 @@ import (
 	"github.com/ewcds12/instant-chat/services/api/internal/conversations"
 	"github.com/ewcds12/instant-chat/services/api/internal/health"
 	"github.com/ewcds12/instant-chat/services/api/internal/httpapi"
+	"github.com/ewcds12/instant-chat/services/api/internal/messages"
 )
 
 const (
@@ -31,6 +32,8 @@ const (
 	connectionMaxAge  = 5 * time.Minute
 	authRateWindow    = time.Minute
 	authRateLimit     = 10
+	messageRateWindow = time.Minute
+	messageRateLimit  = 60
 )
 
 func main() {
@@ -80,6 +83,8 @@ func run() error {
 	conversationHandler := conversations.NewHandler(conversations.NewService(
 		conversations.NewMySQLRepository(database), contactRepository,
 	))
+	messageHandler := messages.NewHandler(messages.NewService(messages.NewMySQLRepository(database)))
+	messageLimiter := httpapi.NewIPRateLimiter(messageRateLimit, messageRateWindow)
 	protected := func(handler http.HandlerFunc) http.Handler {
 		return authHandler.RequireUser(handler)
 	}
@@ -92,6 +97,14 @@ func run() error {
 	mux.Handle("DELETE /api/v1/contacts/{user_id}", protected(contactHandler.RemoveContact))
 	mux.Handle("POST /api/v1/conversations", protected(conversationHandler.CreateDirect))
 	mux.Handle("GET /api/v1/conversations", protected(conversationHandler.List))
+	mux.Handle(
+		"POST /api/v1/conversations/{conversation_id}/messages",
+		authHandler.RequireUser(messageLimiter.Handler(http.HandlerFunc(messageHandler.Send))),
+	)
+	mux.Handle(
+		"GET /api/v1/conversations/{conversation_id}/messages",
+		protected(messageHandler.List),
+	)
 
 	server := &http.Server{
 		Addr:              cfg.Address,

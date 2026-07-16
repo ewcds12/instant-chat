@@ -15,7 +15,7 @@ class RequestsPage extends ConsumerWidget {
       error: (_, _) => Center(
         child: FilledButton(
           onPressed: () => ref.invalidate(contactsControllerProvider),
-          child: const Text('RETRY REQUESTS'),
+          child: const Text('Try again'),
         ),
       ),
       data: (contacts) => Padding(
@@ -23,10 +23,7 @@ class RequestsPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'CONTACT REQUESTS',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            Text('Requests', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: RetroMetrics.spaceSmall),
             const Text('Incoming requests require your approval.'),
             if (contacts.errorMessage case final message?) ...[
@@ -41,12 +38,12 @@ class RequestsPage extends ConsumerWidget {
               child: ListView(
                 children: [
                   _SectionTitle(
-                    label: 'INCOMING',
+                    label: 'Incoming',
                     count: contacts.incoming.length,
                   ),
                   const SizedBox(height: RetroMetrics.spaceSmall),
                   if (contacts.incoming.isEmpty)
-                    const _EmptyRow(label: 'NO INCOMING REQUESTS')
+                    const _EmptyRow(label: 'No incoming requests')
                   else
                     ...contacts.incoming.map(
                       (request) => Padding(
@@ -67,12 +64,12 @@ class RequestsPage extends ConsumerWidget {
                     ),
                   const SizedBox(height: RetroMetrics.spaceLarge),
                   _SectionTitle(
-                    label: 'OUTGOING',
+                    label: 'Outgoing',
                     count: contacts.outgoing.length,
                   ),
                   const SizedBox(height: RetroMetrics.spaceSmall),
                   if (contacts.outgoing.isEmpty)
-                    const _EmptyRow(label: 'NO OUTGOING REQUESTS')
+                    const _EmptyRow(label: 'No outgoing requests')
                   else
                     ...contacts.outgoing.map(
                       (request) => Padding(
@@ -101,7 +98,7 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      '$label // $count',
+      '$label · $count',
       style: Theme.of(context).textTheme.titleMedium,
     );
   }
@@ -127,17 +124,17 @@ class _IncomingRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              '${request.user.displayName} // @${request.user.username}',
+              '${request.user.displayName} · @${request.user.username}',
             ),
           ),
           TextButton(
             onPressed: disabled ? null : onReject,
-            child: const Text('REJECT'),
+            child: const Text('Decline'),
           ),
           const SizedBox(width: RetroMetrics.spaceSmall),
           FilledButton(
             onPressed: disabled ? null : onAccept,
-            child: const Text('ACCEPT'),
+            child: const Text('Accept'),
           ),
         ],
       ),
@@ -157,10 +154,15 @@ class _OutgoingRow extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              '${request.user.displayName} // @${request.user.username}',
+              '${request.user.displayName} · @${request.user.username}',
             ),
           ),
-          Text('PENDING', style: Theme.of(context).textTheme.labelLarge),
+          Text(
+            'Pending',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -190,9 +192,10 @@ class _RequestFrame extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface,
+          color: Theme.of(context).colorScheme.outlineVariant,
           width: RetroMetrics.border,
         ),
+        borderRadius: BorderRadius.circular(RetroMetrics.corner),
       ),
       child: child,
     );

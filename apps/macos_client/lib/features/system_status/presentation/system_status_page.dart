@@ -5,76 +5,63 @@ import 'package:instant_chat/features/system_status/domain/service_health.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_provider.dart';
 
 class SystemStatusPage extends ConsumerWidget {
-  const SystemStatusPage({super.key});
+  const SystemStatusPage({required this.onSignOut, super.key});
+
+  final Future<void> Function() onSignOut;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final health = ref.watch(serviceHealthProvider);
     final colors = Theme.of(context).colorScheme;
-
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: RetroMetrics.maxPanelWidth,
-              ),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  border: Border.all(
-                    color: colors.onSurface,
-                    width: RetroMetrics.border,
+    return ColoredBox(
+      color: colors.surfaceContainerLow,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Align(
+          alignment: Alignment.topLeft,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxWidth: RetroMetrics.maxPanelWidth,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'System',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: RetroMetrics.spaceSmall),
+                Text(
+                  'Connection status for the Instant Chat service.',
+                  style: TextStyle(color: colors.onSurfaceVariant),
+                ),
+                const SizedBox(height: RetroMetrics.spaceLarge),
+                health.when(
+                  loading: () => _StatusCard.loading(colors),
+                  error: (_, _) => _StatusCard.offline(colors),
+                  data: (value) => _StatusCard.fromHealth(colors, value),
+                ),
+                const SizedBox(height: RetroMetrics.spaceMedium),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Wrap(
+                    spacing: RetroMetrics.spaceSmall,
+                    runSpacing: RetroMetrics.spaceSmall,
+                    children: [
+                      FilledButton.icon(
+                        onPressed: () => ref.invalidate(serviceHealthProvider),
+                        icon: const Icon(Icons.refresh_rounded, size: 19),
+                        label: const Text('Check again'),
+                      ),
+                      TextButton.icon(
+                        onPressed: onSignOut,
+                        icon: const Icon(Icons.logout_rounded, size: 19),
+                        label: const Text('Sign out'),
+                      ),
+                    ],
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.onSurface,
-                      offset: const Offset(
-                        RetroMetrics.spaceSmall,
-                        RetroMetrics.spaceSmall,
-                      ),
-                    ),
-                  ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _TitleBar(colors: colors),
-                    Padding(
-                      padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'CONNECTION TERMINAL',
-                            style: Theme.of(context).textTheme.headlineSmall,
-                          ),
-                          const SizedBox(height: RetroMetrics.spaceSmall),
-                          const Text(
-                            'Instant Chat macOS client // local development link',
-                          ),
-                          const SizedBox(height: RetroMetrics.spaceLarge),
-                          health.when(
-                            loading: () => _StatusPanel.loading(colors),
-                            error: (_, _) => _StatusPanel.offline(colors),
-                            data: (value) =>
-                                _StatusPanel.fromHealth(colors, value),
-                          ),
-                          const SizedBox(height: RetroMetrics.spaceLarge),
-                          FilledButton.icon(
-                            onPressed: () =>
-                                ref.invalidate(serviceHealthProvider),
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('RETRY CONNECTION'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ),
           ),
         ),
@@ -83,71 +70,48 @@ class SystemStatusPage extends ConsumerWidget {
   }
 }
 
-class _TitleBar extends StatelessWidget {
-  const _TitleBar({required this.colors});
-
-  final ColorScheme colors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: colors.onSurface,
-      padding: const EdgeInsets.symmetric(
-        horizontal: RetroMetrics.spaceMedium,
-        vertical: RetroMetrics.spaceSmall,
-      ),
-      child: Text(
-        'INSTANT CHAT // SYSTEM STATUS',
-        style: Theme.of(
-          context,
-        ).textTheme.titleMedium?.copyWith(color: colors.surface),
-      ),
-    );
-  }
-}
-
-class _StatusPanel extends StatelessWidget {
-  const _StatusPanel({
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
     required this.label,
     required this.detail,
     required this.color,
     required this.icon,
   });
 
-  factory _StatusPanel.loading(ColorScheme colors) {
-    return _StatusPanel(
-      label: 'DIALING...',
-      detail: 'Connecting to the local API',
-      color: colors.secondary,
-      icon: Icons.hourglass_top,
+  factory _StatusCard.loading(ColorScheme colors) {
+    return _StatusCard(
+      label: 'Connecting',
+      detail: 'Checking the local API and database.',
+      color: colors.primary,
+      icon: Icons.sync_rounded,
     );
   }
 
-  factory _StatusPanel.offline(ColorScheme colors) {
-    return _StatusPanel(
-      label: 'OFFLINE',
+  factory _StatusCard.offline(ColorScheme colors) {
+    return _StatusCard(
+      label: 'Offline',
       detail:
-          'Could not reach the local API. Make sure the service is running.',
+          'The local API could not be reached. Make sure the service is running.',
       color: colors.error,
-      icon: Icons.link_off,
+      icon: Icons.cloud_off_outlined,
     );
   }
 
-  factory _StatusPanel.fromHealth(ColorScheme colors, ServiceHealth health) {
+  factory _StatusCard.fromHealth(ColorScheme colors, ServiceHealth health) {
     if (!health.isHealthy) {
-      return _StatusPanel(
-        label: 'DEGRADED',
-        detail: 'The API is online, but the database is unavailable.',
-        color: colors.secondary,
-        icon: Icons.warning_amber,
+      return _StatusCard(
+        label: 'Service degraded',
+        detail: 'The API is available, but the database is unavailable.',
+        color: colors.error,
+        icon: Icons.warning_amber_rounded,
       );
     }
-    return _StatusPanel(
-      label: 'ONLINE',
+    return _StatusCard(
+      label: 'Online',
       detail:
-          'API and MySQL are operational // ${health.checkedAt.toUtc().toIso8601String()}',
+          'The API and MySQL are operational. Last checked ${_time(health.checkedAt)}.',
       color: colors.primary,
-      icon: Icons.link,
+      icon: Icons.check_circle_outline_rounded,
     );
   }
 
@@ -158,18 +122,34 @@ class _StatusPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Semantics(
       container: true,
       liveRegion: true,
       label: 'API status $label',
       child: Container(
-        padding: const EdgeInsets.all(RetroMetrics.spaceMedium),
+        padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
         decoration: BoxDecoration(
-          border: Border.all(color: color, width: RetroMetrics.border),
+          color: colors.surface,
+          border: Border.all(color: colors.outlineVariant),
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: RetroMetrics.statusIconSize),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(RetroMetrics.corner),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: RetroMetrics.statusIconSize,
+              ),
+            ),
             const SizedBox(width: RetroMetrics.spaceMedium),
             Expanded(
               child: Column(
@@ -181,8 +161,11 @@ class _StatusPanel extends StatelessWidget {
                       context,
                     ).textTheme.titleMedium?.copyWith(color: color),
                   ),
-                  const SizedBox(height: RetroMetrics.spaceSmall),
-                  Text(detail),
+                  const SizedBox(height: 6),
+                  Text(
+                    detail,
+                    style: TextStyle(color: colors.onSurfaceVariant),
+                  ),
                 ],
               ),
             ),
@@ -191,4 +174,11 @@ class _StatusPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+String _time(DateTime value) {
+  final local = value.toLocal();
+  final hour = local.hour.toString().padLeft(2, '0');
+  final minute = local.minute.toString().padLeft(2, '0');
+  return '$hour:$minute';
 }

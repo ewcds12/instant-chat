@@ -36,12 +36,23 @@ type Conversation struct {
 	CreatedByUserID    uint64    `db:"created_by_user_id"`
 	CreatedAt          time.Time `db:"created_at"`
 	UpdatedAt          time.Time `db:"updated_at"`
+	NextSequence       uint64    `db:"next_sequence"`
 }
 
 type ConversationMember struct {
 	ConversationID uint64    `db:"conversation_id"`
 	UserID         uint64    `db:"user_id"`
 	JoinedAt       time.Time `db:"joined_at"`
+}
+
+type Message struct {
+	ID              uint64    `db:"id"`
+	ConversationID  uint64    `db:"conversation_id"`
+	SenderID        uint64    `db:"sender_id"`
+	ClientMessageID string    `db:"client_message_id"`
+	Sequence        uint64    `db:"sequence"`
+	Body            string    `db:"body"`
+	CreatedAt       time.Time `db:"created_at"`
 }
 
 type RefreshToken struct {

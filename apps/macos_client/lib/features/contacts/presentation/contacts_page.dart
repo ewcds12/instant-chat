@@ -35,10 +35,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'CONTACT DIRECTORY',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            Text('Contacts', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: RetroMetrics.spaceSmall),
             const Text(
               'Search by exact username. Email addresses stay private.',
@@ -49,7 +46,10 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                 Expanded(
                   child: TextField(
                     controller: _usernameController,
-                    decoration: const InputDecoration(labelText: 'USERNAME'),
+                    decoration: const InputDecoration(
+                      hintText: 'Search by username',
+                      prefixIcon: Icon(Icons.search_rounded, size: 20),
+                    ),
                     autocorrect: false,
                     textCapitalization: TextCapitalization.none,
                     onSubmitted: (_) => _search(contacts.isSubmitting),
@@ -60,7 +60,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                   onPressed: contacts.isSubmitting
                       ? null
                       : () => _search(false),
-                  child: const Text('SEARCH'),
+                  child: const Text('Search'),
                 ),
               ],
             ),
@@ -86,7 +86,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
             Row(
               children: [
                 Text(
-                  'CONTACTS // ${contacts.contacts.length}',
+                  '${contacts.contacts.length} contacts',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const Spacer(),
@@ -104,9 +104,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
             const SizedBox(height: RetroMetrics.spaceSmall),
             Expanded(
               child: contacts.contacts.isEmpty
-                  ? const Center(
-                      child: Text('NO CONTACTS // SEARCH FOR A USER TO BEGIN'),
-                    )
+                  ? const Center(child: Text('No contacts yet'))
                   : ListView.separated(
                       itemCount: contacts.contacts.length,
                       separatorBuilder: (_, _) =>
@@ -157,10 +155,10 @@ class _SearchResult extends StatelessWidget {
     return _BorderedRow(
       child: Row(
         children: [
-          Expanded(child: Text('$displayName // @$username')),
+          Expanded(child: Text('$displayName · @$username')),
           FilledButton(
             onPressed: disabled ? null : onSend,
-            child: const Text('ADD CONTACT'),
+            child: const Text('Add contact'),
           ),
         ],
       ),
@@ -195,12 +193,12 @@ class _ContactRow extends StatelessWidget {
           ),
           TextButton(
             onPressed: disabled ? null : onRemove,
-            child: const Text('REMOVE'),
+            child: const Text('Remove'),
           ),
           const SizedBox(width: RetroMetrics.spaceSmall),
           FilledButton(
             onPressed: disabled ? null : onMessage,
-            child: const Text('OPEN'),
+            child: const Text('Message'),
           ),
         ],
       ),
@@ -220,9 +218,10 @@ class _BorderedRow extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         border: Border.all(
-          color: Theme.of(context).colorScheme.onSurface,
+          color: Theme.of(context).colorScheme.outlineVariant,
           width: RetroMetrics.border,
         ),
+        borderRadius: BorderRadius.circular(RetroMetrics.corner),
       ),
       child: child,
     );
@@ -237,10 +236,7 @@ class _LoadFailure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: FilledButton(
-        onPressed: onRetry,
-        child: const Text('RETRY CONTACTS'),
-      ),
+      child: FilledButton(onPressed: onRetry, child: const Text('Try again')),
     );
   }
 }

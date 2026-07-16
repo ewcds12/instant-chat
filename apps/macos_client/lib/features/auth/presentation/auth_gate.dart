@@ -63,13 +63,13 @@ class _SessionErrorPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'SECURE SESSION UNAVAILABLE',
+                'Unable to restore your session',
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: RetroMetrics.spaceMedium),
               const Text('The saved session could not be loaded.'),
               const SizedBox(height: RetroMetrics.spaceLarge),
-              FilledButton(onPressed: onRetry, child: const Text('RETRY')),
+              FilledButton(onPressed: onRetry, child: const Text('Try again')),
             ],
           ),
         ),

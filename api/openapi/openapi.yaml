@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.3.0
+  version: 0.4.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -349,6 +349,79 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalError"
+  /conversations/{conversation_id}/messages:
+    get:
+      operationId: listMessages
+      summary: List a page of direct-conversation messages
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+        - name: before
+          in: query
+          required: false
+          description: Return messages with a sequence lower than this cursor
+          schema:
+            $ref: "#/components/schemas/Sequence"
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        "200":
+          description: Message history in ascending sequence order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessagePage"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: sendMessage
+      summary: Persist one direct text message
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "200":
+          description: Idempotent retry returned the existing message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "201":
+          description: Message created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
 components:
   securitySchemes:
     bearerAuth:
@@ -363,6 +436,12 @@ components:
         $ref: "#/components/schemas/ResourceID"
     UserID:
       name: user_id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ResourceID"
+    ConversationID:
+      name: conversation_id
       in: path
       required: true
       schema:
@@ -648,6 +727,70 @@ components:
           maxItems: 200
           items:
             $ref: "#/components/schemas/Conversation"
+    ClientMessageID:
+      type: string
+      pattern: "^[a-f0-9]{32}$"
+    Sequence:
+      type: string
+      pattern: "^[1-9][0-9]*$"
+    SendMessageRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - client_message_id
+        - body
+      properties:
+        client_message_id:
+          $ref: "#/components/schemas/ClientMessageID"
+        body:
+          type: string
+          minLength: 1
+          maxLength: 4000
+    Message:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - conversation_id
+        - sender
+        - client_message_id
+        - sequence
+        - body
+        - created_at
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        conversation_id:
+          $ref: "#/components/schemas/ResourceID"
+        sender:
+          $ref: "#/components/schemas/PublicUser"
+        client_message_id:
+          $ref: "#/components/schemas/ClientMessageID"
+        sequence:
+          $ref: "#/components/schemas/Sequence"
+        body:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        created_at:
+          type: string
+          format: date-time
+    MessagePage:
+      type: object
+      additionalProperties: false
+      required:
+        - messages
+        - next_cursor
+      properties:
+        messages:
+          type: array
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/Message"
+        next_cursor:
+          oneOf:
+            - $ref: "#/components/schemas/Sequence"
+            - type: "null"
     Session:
       type: object
       additionalProperties: false

@@ -1,12 +1,11 @@
 import Cocoa
 import FlutterMacOS
 import XCTest
+@testable import Instant_Chat
 
 class RunnerTests: XCTestCase {
-
-  func testExample() {
-    // If you add code to the Runner application, consider adding tests here.
-    // See https://developer.apple.com/documentation/xctest for more information about using XCTest.
+  func testInitialWindowSizeMatchesDesignReference() {
+    XCTAssertEqual(MainFlutterWindow.initialFrameSize.width, 1180)
+    XCTAssertEqual(MainFlutterWindow.initialFrameSize.height, 660)
   }
-
 }

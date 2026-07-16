@@ -44,16 +44,15 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 decoration: BoxDecoration(
                   color: colors.surface,
                   border: Border.all(
-                    color: colors.onSurface,
+                    color: colors.outlineVariant,
                     width: RetroMetrics.border,
                   ),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: colors.onSurface,
-                      offset: const Offset(
-                        RetroMetrics.spaceSmall,
-                        RetroMetrics.spaceSmall,
-                      ),
+                      color: colors.shadow,
+                      blurRadius: 28,
+                      offset: const Offset(0, 12),
                     ),
                   ],
                 ),
@@ -64,18 +63,37 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        CircleAvatar(
+                          radius: 24,
+                          backgroundColor: colors.primary,
+                          foregroundColor: colors.onPrimary,
+                          child: const Icon(
+                            Icons.chat_bubble_rounded,
+                            size: 22,
+                          ),
+                        ),
+                        const SizedBox(height: RetroMetrics.spaceMedium),
                         Text(
-                          'INSTANT CHAT // ${_isRegistration ? 'REGISTER' : 'SIGN IN'}',
+                          _isRegistration
+                              ? 'Create an account'
+                              : 'Welcome back',
+                          textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: RetroMetrics.spaceSmall),
-                        const Text('SECURE MACOS COMMUNICATION TERMINAL'),
+                        Text(
+                          _isRegistration
+                              ? 'Join Instant Chat to start a conversation.'
+                              : 'Sign in to continue to Instant Chat.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: colors.onSurfaceVariant),
+                        ),
                         const SizedBox(height: RetroMetrics.spaceLarge),
                         if (_isRegistration) ...[
                           TextFormField(
                             controller: _usernameController,
                             decoration: const InputDecoration(
-                              labelText: 'USERNAME',
+                              labelText: 'Username',
                             ),
                             autocorrect: false,
                             textCapitalization: TextCapitalization.none,
@@ -86,7 +104,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           TextFormField(
                             controller: _displayNameController,
                             decoration: const InputDecoration(
-                              labelText: 'DISPLAY NAME',
+                              labelText: 'Display name',
                             ),
                             textInputAction: TextInputAction.next,
                             validator: _validateDisplayName,
@@ -96,7 +114,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         TextFormField(
                           controller: _emailController,
                           decoration: const InputDecoration(
-                            labelText: 'EMAIL ADDRESS',
+                            labelText: 'Email address',
                           ),
                           keyboardType: TextInputType.emailAddress,
                           textInputAction: TextInputAction.next,
@@ -106,7 +124,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         TextFormField(
                           controller: _passwordController,
                           decoration: const InputDecoration(
-                            labelText: 'PASSWORD',
+                            labelText: 'Password',
                           ),
                           obscureText: true,
                           onFieldSubmitted: (_) => _submit(auth?.isSubmitting),
@@ -122,10 +140,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                               : () => _submit(false),
                           child: Text(
                             auth?.isSubmitting == true
-                                ? 'TRANSMITTING...'
+                                ? 'Please wait…'
                                 : _isRegistration
-                                ? 'CREATE ACCOUNT'
-                                : 'SIGN IN',
+                                ? 'Create account'
+                                : 'Sign in',
                           ),
                         ),
                         const SizedBox(height: RetroMetrics.spaceSmall),
@@ -135,8 +153,8 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                               : _toggleMode,
                           child: Text(
                             _isRegistration
-                                ? 'USE AN EXISTING ACCOUNT'
-                                : 'CREATE A NEW ACCOUNT',
+                                ? 'Already have an account? Sign in'
+                                : 'New to Instant Chat? Create an account',
                           ),
                         ),
                       ],

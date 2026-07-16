@@ -6,7 +6,7 @@
 
 ## 1. Project Goal and Fixed Technology Stack
 
-Instant Chat is a retro-style macOS instant messaging client.
+Instant Chat is a modern, native-feeling macOS instant messaging client.
 
 The fixed technology stack is:
 
@@ -253,9 +253,9 @@ Mandatory rules:
 - Every outgoing message uses `client_message_id` for retry idempotency.
 - Incremental synchronization uses the server-assigned conversation `sequence`, not the client's local clock.
 
-## 10. Retro UI Standards
+## 10. macOS UI Standards
 
-Retro styling must not compromise usability, performance, or accessibility.
+The interface must follow a restrained, native macOS visual language without compromising usability, performance, or accessibility.
 
 - Colors, spacing, borders, corner radii, shadows, typography, and animation timing come from theme tokens.
 - Do not scatter literal colors, font sizes, or dimensions throughout feature widgets.
