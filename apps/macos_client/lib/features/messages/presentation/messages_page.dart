@@ -18,11 +18,24 @@ class MessagesPage extends ConsumerStatefulWidget {
 
 class _MessagesPageState extends ConsumerState<MessagesPage> {
   final _composer = TextEditingController();
+  final _composerFocus = FocusNode();
+  final _historyScroll = ScrollController();
+  String? _latestMessageKey;
 
   @override
   void dispose() {
     _composer.dispose();
+    _composerFocus.dispose();
+    _historyScroll.dispose();
     super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(covariant MessagesPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.conversation.id != widget.conversation.id) {
+      _latestMessageKey = null;
+    }
   }
 
   @override
@@ -43,16 +56,20 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, _) =>
                 _LoadFailure(onRetry: () => ref.invalidate(provider)),
-            data: (value) => MessageHistory(
-              value: value,
-              currentUserId: ref
-                  .read(authControllerProvider)
-                  .requireValue
-                  .session!
-                  .user
-                  .id,
-              onLoadOlder: () => ref.read(provider.notifier).loadOlder(),
-            ),
+            data: (value) {
+              _scheduleScrollForLatestMessage(value);
+              return MessageHistory(
+                value: value,
+                scrollController: _historyScroll,
+                currentUserId: ref
+                    .read(authControllerProvider)
+                    .requireValue
+                    .session!
+                    .user
+                    .id,
+                onLoadOlder: () => ref.read(provider.notifier).loadOlder(),
+              );
+            },
           ),
         ),
         if (state.value case final value?) ...[
@@ -65,6 +82,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             ),
           MessageComposer(
             controller: _composer,
+            focusNode: _composerFocus,
             disabled: value.isSending,
             recipientName: widget.conversation.peer.displayName,
             onSend: () => _send(provider),
@@ -79,7 +97,59 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   ) async {
     if (await ref.read(provider.notifier).send(_composer.text)) {
       _composer.clear();
+      _focusComposer();
     }
+  }
+
+  void _scheduleScrollForLatestMessage(MessagesState value) {
+    final messages = value.messages;
+    if (messages.isEmpty) {
+      _latestMessageKey = null;
+      return;
+    }
+    final latest = messages.last;
+    final latestKey = '${latest.sequence}:${latest.id}';
+    if (_latestMessageKey == latestKey) {
+      return;
+    }
+    _latestMessageKey = latestKey;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  void _scrollToBottom() {
+    if (!mounted || !_historyScroll.hasClients) {
+      return;
+    }
+    _historyScroll
+        .animateTo(
+          _historyScroll.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+        )
+        .then((_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _snapToBottomIfNeeded();
+          });
+        });
+  }
+
+  void _snapToBottomIfNeeded() {
+    if (!mounted || !_historyScroll.hasClients) {
+      return;
+    }
+    final position = _historyScroll.position;
+    if ((position.maxScrollExtent - position.pixels).abs() > 1) {
+      _historyScroll.jumpTo(position.maxScrollExtent);
+    }
+  }
+
+  void _focusComposer() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      _composerFocus.requestFocus();
+    });
   }
 }
 

@@ -4,6 +4,7 @@ import 'package:instant_chat/core/theme/retro_theme.dart';
 class MessageComposer extends StatelessWidget {
   const MessageComposer({
     required this.controller,
+    required this.focusNode,
     required this.disabled,
     required this.recipientName,
     required this.onSend,
@@ -11,6 +12,7 @@ class MessageComposer extends StatelessWidget {
   });
 
   final TextEditingController controller;
+  final FocusNode focusNode;
   final bool disabled;
   final String recipientName;
   final VoidCallback onSend;
@@ -48,6 +50,7 @@ class MessageComposer extends StatelessWidget {
             child: TextField(
               key: const Key('message-composer'),
               controller: controller,
+              focusNode: focusNode,
               enabled: !disabled,
               minLines: 1,
               maxLines: 5,

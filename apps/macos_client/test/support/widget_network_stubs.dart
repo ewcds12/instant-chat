@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/domain/message_gateway.dart';
@@ -6,9 +8,10 @@ import 'package:instant_chat/features/realtime/domain/realtime_connection.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 class StubMessageGateway implements MessageGateway {
-  StubMessageGateway(this.sender);
+  StubMessageGateway(this.sender, {this.initialMessages = const []});
 
   final AuthUser sender;
+  final List<Message> initialMessages;
   String? sentBody;
 
   @override
@@ -19,7 +22,7 @@ class StubMessageGateway implements MessageGateway {
     String? after,
     int limit = 50,
   }) async {
-    return const MessagePage(messages: [], nextCursor: null);
+    return MessagePage(messages: initialMessages, nextCursor: null);
   }
 
   @override
@@ -56,4 +59,24 @@ class StubRealtimeConnection implements RealtimeConnection {
 
   @override
   Future<void> close() async {}
+}
+
+class StreamRealtimeConnection implements RealtimeConnection {
+  final _messages = StreamController<Message>.broadcast();
+
+  @override
+  Stream<int> get connections => const Stream.empty();
+
+  @override
+  Stream<Message> get messages => _messages.stream;
+
+  @override
+  void start() {}
+
+  void emit(Message message) => _messages.add(message);
+
+  @override
+  Future<void> close() async {
+    await _messages.close();
+  }
 }

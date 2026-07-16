@@ -5,12 +5,14 @@ import 'package:instant_chat/features/messages/presentation/messages_controller.
 class MessageHistory extends StatelessWidget {
   const MessageHistory({
     required this.value,
+    required this.scrollController,
     required this.currentUserId,
     required this.onLoadOlder,
     super.key,
   });
 
   final MessagesState value;
+  final ScrollController scrollController;
   final String currentUserId;
   final VoidCallback onLoadOlder;
 
@@ -58,6 +60,8 @@ class MessageHistory extends StatelessWidget {
             ),
           Expanded(
             child: ListView.separated(
+              key: const Key('message-history-list'),
+              controller: scrollController,
               padding: const EdgeInsets.fromLTRB(30, 88, 30, 24),
               itemCount: value.messages.length + 1,
               separatorBuilder: (_, _) => const SizedBox(height: 10),
