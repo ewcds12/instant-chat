@@ -6,18 +6,21 @@ The product and repository use American English (`en-US`) exclusively.
 
 ## Current Status
 
-The authentication foundation is in place:
+The authentication, contacts, and initial conversation-list foundations are in place:
 
 - The Flutter macOS client provides retro registration and sign-in forms.
+- Registration assigns a unique lowercase username for exact account search.
 - The client restores sessions from macOS Keychain and rotates expired access tokens.
-- The authenticated client displays API and database connectivity and supports sign-out.
+- The authenticated client provides conversations, contacts, requests, and system-status workspaces.
+- Users can search by exact username, send contact requests, accept or reject incoming requests, remove contacts, and open a direct conversation.
 - The Go API provides health, registration, sign-in, refresh, sign-out, and current-user endpoints.
+- The Go API enforces unique bilateral contact relationships and unique direct conversations.
 - The health check verifies the MySQL connection with `PingContext`.
-- MySQL migrations and sqlc queries define users and opaque session tokens.
+- MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, and conversation members.
 - Docker Compose provides a pinned MySQL 8.4 development environment.
 - OpenAPI defines the complete implemented HTTP contract.
 
-Contacts, conversations, messages, WebSocket, Drift, Redis, and file uploads have not been implemented.
+Message persistence, message history, WebSocket, Drift, Redis, and file uploads have not been implemented.
 
 ## Technology Stack
 
@@ -36,7 +39,6 @@ Future features will add go_router, WebSocket, Drift, SQLite, Redis, and MinIO o
 - Go 1.26 or a compatible version.
 - Docker Engine and Docker Compose v2.
 - Xcode with the macOS desktop development tools.
-- golang-migrate 4.19 or a compatible version with MySQL support.
 
 If the development machine uses an HTTP proxy, make sure `NO_PROXY` includes at least `localhost,127.0.0.1,::1`. Otherwise, the Flutter test process may be unable to connect to its local WebSocket.
 
@@ -50,42 +52,48 @@ cp .env.example .env
 
 Replace the example passwords in `.env` before starting the services. Git ignores `.env`; never commit real credentials.
 
-## Start MySQL
+## Start Development
 
-Run from the repository root:
+Start the complete development environment from the repository root:
+
+```bash
+make dev
+```
+
+This command starts MySQL, waits for its health check, applies pending migrations, builds and starts the Go API, and opens the Flutter macOS client. Close the client or press `Ctrl+C` to stop the API. MySQL stays available for faster restarts.
+
+Stop MySQL and the Docker development network when they are no longer needed:
+
+```bash
+make stop
+```
+
+Other development commands:
+
+```bash
+make migrate
+make check
+```
+
+`make migrate` applies pending migrations. `make check` validates Docker Compose and SQL sources, then runs Go formatting checks, vet, race tests, the Go build, Dart formatting checks, Flutter analysis, Flutter tests, and the macOS debug build.
+
+## Manual Startup and Troubleshooting
+
+Start MySQL:
 
 ```bash
 docker compose --env-file .env -f deploy/docker/compose.yaml up -d mysql
 ```
 
-Check its status:
+Apply migrations with the pinned tool version:
 
 ```bash
-docker compose --env-file .env -f deploy/docker/compose.yaml ps
-```
-
-## Apply Database Migrations
-
-Install the pinned migration CLI once:
-
-```bash
-go install -tags mysql github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
-```
-
-Load the local configuration and apply all migrations from the repository root:
-
-```bash
-set -a
-source .env
-set +a
-migrate -path db/migrations -database "$MIGRATION_DATABASE_URL" up
+./scripts/migrate.sh
 ```
 
 Run this step after MySQL is healthy and before starting the API. Migration filenames are append-only after they reach a shared branch.
 
-## Start the Go API
-
-Run from the repository root:
+Start the API:
 
 ```bash
 set -a
@@ -104,11 +112,18 @@ POST /api/v1/auth/login
 POST /api/v1/auth/refresh
 POST /api/v1/auth/logout
 GET  /api/v1/auth/me
+GET  /api/v1/users/search?username={username}
+POST /api/v1/contact-requests
+GET  /api/v1/contact-requests
+POST /api/v1/contact-requests/{request_id}/accept
+POST /api/v1/contact-requests/{request_id}/reject
+GET  /api/v1/contacts
+DELETE /api/v1/contacts/{user_id}
+POST /api/v1/conversations
+GET  /api/v1/conversations
 ```
 
-## Start the macOS Client
-
-Open another terminal window and run:
+Start the client in another terminal:
 
 ```bash
 cd apps/macos_client
@@ -123,24 +138,8 @@ flutter run -d macos --dart-define=API_BASE_URL=http://127.0.0.1:8080
 
 ## Verification
 
-Go:
-
 ```bash
-cd services/api
-gofmt -l .
-go vet ./...
-go test -race ./...
-go build -o /tmp/instant-chat-api ./cmd/api
-```
-
-Flutter:
-
-```bash
-cd apps/macos_client
-dart format --output=none --set-exit-if-changed .
-flutter analyze
-flutter test
-flutter build macos --debug
+make check
 ```
 
 ## Project Standards
@@ -151,4 +150,4 @@ Architecture boundaries are documented in `docs/architecture.md`. The REST contr
 
 ## Next Milestone
 
-Implement contacts and the initial conversation list without adding real-time messaging yet.
+Implement persisted direct messages with REST send and cursor-based history before adding WebSocket delivery.
