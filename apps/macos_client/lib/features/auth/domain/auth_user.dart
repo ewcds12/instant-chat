@@ -2,14 +2,12 @@ class AuthUser {
   const AuthUser({
     required this.id,
     required this.username,
-    required this.email,
     required this.displayName,
     required this.createdAt,
   });
 
   final String id;
   final String username;
-  final String email;
   final String displayName;
   final DateTime createdAt;
 
@@ -17,7 +15,6 @@ class AuthUser {
     return AuthUser(
       id: _requiredString(json, 'id'),
       username: _requiredString(json, 'username'),
-      email: _requiredString(json, 'email'),
       displayName: _requiredString(json, 'display_name'),
       createdAt: _requiredDateTime(json, 'created_at'),
     );
@@ -26,7 +23,6 @@ class AuthUser {
   Map<String, Object?> toJson() => {
     'id': id,
     'username': username,
-    'email': email,
     'display_name': displayName,
     'created_at': createdAt.toUtc().toIso8601String(),
   };

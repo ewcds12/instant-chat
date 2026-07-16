@@ -28,7 +28,7 @@ func (f fakeMemberRepository) ListConversationMemberIDs(
 
 type stubAuthService struct{}
 
-func (stubAuthService) Register(context.Context, string, string, string, string) (auth.Session, error) {
+func (stubAuthService) Register(context.Context, string, string, string) (auth.Session, error) {
 	return auth.Session{}, nil
 }
 func (stubAuthService) Login(context.Context, string, string) (auth.Session, error) {

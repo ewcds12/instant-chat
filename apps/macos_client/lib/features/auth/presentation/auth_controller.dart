@@ -74,21 +74,22 @@ class AuthController extends AsyncNotifier<AuthState> {
     }
   }
 
-  Future<void> login({required String email, required String password}) {
+  Future<void> login({required String username, required String password}) {
     return _submit(
-      () => _gateway.login(email: email.trim(), password: password),
+      () => _gateway.login(
+        username: username.trim().toLowerCase(),
+        password: password,
+      ),
     );
   }
 
   Future<void> register({
-    required String email,
     required String username,
     required String displayName,
     required String password,
   }) {
     return _submit(
       () => _gateway.register(
-        email: email.trim(),
         username: username.trim().toLowerCase(),
         displayName: displayName.trim(),
         password: password,

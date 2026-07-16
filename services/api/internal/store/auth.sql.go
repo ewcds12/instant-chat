@@ -44,24 +44,18 @@ func (q *Queries) CreateRefreshToken(ctx context.Context, arg CreateRefreshToken
 }
 
 const createUser = `-- name: CreateUser :execresult
-INSERT INTO users (username, email, display_name, password_hash)
-VALUES (?, ?, ?, ?)
+INSERT INTO users (username, display_name, password_hash)
+VALUES (?, ?, ?)
 `
 
 type CreateUserParams struct {
 	Username     string `db:"username"`
-	Email        string `db:"email"`
 	DisplayName  string `db:"display_name"`
 	PasswordHash string `db:"password_hash"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, createUser,
-		arg.Username,
-		arg.Email,
-		arg.DisplayName,
-		arg.PasswordHash,
-	)
+	return q.db.ExecContext(ctx, createUser, arg.Username, arg.DisplayName, arg.PasswordHash)
 }
 
 const getRefreshSessionForUpdate = `-- name: GetRefreshSessionForUpdate :one
@@ -69,7 +63,6 @@ SELECT
   refresh.id AS refresh_token_id,
   u.id AS user_id,
   u.username,
-  u.email,
   u.display_name,
   u.created_at,
   u.updated_at
@@ -91,7 +84,6 @@ type GetRefreshSessionForUpdateRow struct {
 	RefreshTokenID uint64    `db:"refresh_token_id"`
 	UserID         uint64    `db:"user_id"`
 	Username       string    `db:"username"`
-	Email          string    `db:"email"`
 	DisplayName    string    `db:"display_name"`
 	CreatedAt      time.Time `db:"created_at"`
 	UpdatedAt      time.Time `db:"updated_at"`
@@ -104,7 +96,6 @@ func (q *Queries) GetRefreshSessionForUpdate(ctx context.Context, arg GetRefresh
 		&i.RefreshTokenID,
 		&i.UserID,
 		&i.Username,
-		&i.Email,
 		&i.DisplayName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -116,7 +107,6 @@ const getUserByAccessToken = `-- name: GetUserByAccessToken :one
 SELECT
   u.id AS user_id,
   u.username,
-  u.email,
   u.display_name,
   u.created_at,
   u.updated_at
@@ -136,7 +126,6 @@ type GetUserByAccessTokenParams struct {
 type GetUserByAccessTokenRow struct {
 	UserID      uint64    `db:"user_id"`
 	Username    string    `db:"username"`
-	Email       string    `db:"email"`
 	DisplayName string    `db:"display_name"`
 	CreatedAt   time.Time `db:"created_at"`
 	UpdatedAt   time.Time `db:"updated_at"`
@@ -148,7 +137,6 @@ func (q *Queries) GetUserByAccessToken(ctx context.Context, arg GetUserByAccessT
 	err := row.Scan(
 		&i.UserID,
 		&i.Username,
-		&i.Email,
 		&i.DisplayName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -156,30 +144,28 @@ func (q *Queries) GetUserByAccessToken(ctx context.Context, arg GetUserByAccessT
 	return i, err
 }
 
-const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, username, email, display_name, password_hash, created_at, updated_at
+const getUserByUsername = `-- name: GetUserByUsername :one
+SELECT id, username, display_name, password_hash, created_at, updated_at
 FROM users
-WHERE email = ?
+WHERE username = ?
 LIMIT 1
 `
 
-type GetUserByEmailRow struct {
+type GetUserByUsernameRow struct {
 	ID           uint64    `db:"id"`
 	Username     string    `db:"username"`
-	Email        string    `db:"email"`
 	DisplayName  string    `db:"display_name"`
 	PasswordHash string    `db:"password_hash"`
 	CreatedAt    time.Time `db:"created_at"`
 	UpdatedAt    time.Time `db:"updated_at"`
 }
 
-func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
-	var i GetUserByEmailRow
+func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByUsername, username)
+	var i GetUserByUsernameRow
 	err := row.Scan(
 		&i.ID,
 		&i.Username,
-		&i.Email,
 		&i.DisplayName,
 		&i.PasswordHash,
 		&i.CreatedAt,

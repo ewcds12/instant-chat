@@ -19,7 +19,7 @@ type stubAuthService struct {
 	accessSeen string
 }
 
-func (s *stubAuthService) Register(context.Context, string, string, string, string) (Session, error) {
+func (s *stubAuthService) Register(context.Context, string, string, string) (Session, error) {
 	return s.session, nil
 }
 
@@ -46,13 +46,13 @@ func (s *stubAuthService) Logout(context.Context, string, string) error {
 func TestHandlerRegisterReturnsSession(t *testing.T) {
 	createdAt := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
 	service := &stubAuthService{session: Session{
-		User:        User{ID: 7, Username: "retro_user", Email: "user@example.com", DisplayName: "Retro User", CreatedAt: createdAt},
+		User:        User{ID: 7, Username: "retro_user", DisplayName: "Retro User", CreatedAt: createdAt},
 		AccessToken: "access", AccessExpiresAt: createdAt.Add(accessTokenTTL),
 		RefreshToken: "refresh", RefreshExpiresAt: createdAt.Add(refreshTokenTTL),
 	}}
 	handler := NewHandler(service)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(
-		`{"email":"user@example.com","username":"retro_user","display_name":"Retro User","password":"a secure password"}`,
+		`{"username":"retro_user","display_name":"Retro User","password":"pw"}`,
 	))
 	recorder := httptest.NewRecorder()
 
@@ -74,7 +74,7 @@ func TestHandlerLoginReturnsStableCredentialError(t *testing.T) {
 	service := &stubAuthService{loginError: ErrInvalidCredentials}
 	handler := NewHandler(service)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(
-		`{"email":"user@example.com","password":"incorrect password"}`,
+		`{"username":"retro_user","password":"incorrect password"}`,
 	))
 	recorder := httptest.NewRecorder()
 
@@ -111,7 +111,7 @@ func TestHandlerCurrentUserRequiresBearerToken(t *testing.T) {
 func TestHandlerRejectsUnknownJSONField(t *testing.T) {
 	handler := NewHandler(&stubAuthService{loginError: errors.New("must not be called")})
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/login", strings.NewReader(
-		`{"email":"user@example.com","password":"a secure password","extra":true}`,
+		`{"username":"retro_user","password":"password","extra":true}`,
 	))
 	recorder := httptest.NewRecorder()
 

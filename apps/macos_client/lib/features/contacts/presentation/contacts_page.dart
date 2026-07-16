@@ -37,9 +37,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
           children: [
             Text('Contacts', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: RetroMetrics.spaceSmall),
-            const Text(
-              'Search by exact username. Email addresses stay private.',
-            ),
+            const Text('Search by exact username.'),
             const SizedBox(height: RetroMetrics.spaceMedium),
             Row(
               children: [

@@ -47,7 +47,6 @@ final _session = AuthSession(
   user: AuthUser(
     id: '7',
     username: 'retro_user',
-    email: 'retro@example.com',
     displayName: 'Retro User',
     createdAt: DateTime.utc(2026, 7, 16),
   ),

@@ -60,7 +60,7 @@ The API uses the standard library's `net/http` package and the zero-dependency I
 
 ## Authentication
 
-Passwords are hashed with Argon2id using one centralized configuration. Login failures do not reveal whether an account exists, and registration and login are limited to 10 attempts per IP address per minute in each API process.
+Passwords are hashed with Argon2id using one centralized configuration. Account registration and login use the username as the credential identifier and do not require email addresses. Login failures do not reveal whether an account exists, and registration and login are limited to 10 attempts per IP address per minute in each API process.
 
 Access tokens are cryptographically random opaque values valid for 15 minutes. Refresh tokens are cryptographically random opaque values valid for 30 days and are rotated in a database transaction. MySQL stores only SHA-256 token digests, never the bearer values returned to the client.
 
@@ -68,7 +68,7 @@ The authentication tables and changes are owned by `db/migrations`. Source queri
 
 ## Contacts
 
-Usernames are normalized to lowercase and contain 3 to 32 ASCII letters, numbers, or underscores, starting with a letter. Exact username search returns only public identity fields and never exposes the account email address.
+Usernames are normalized to lowercase and contain 3 to 32 ASCII letters, numbers, or underscores, starting with a letter. Exact username search returns only public identity fields.
 
 One `contact_relationships` row represents both directions of a user pair. The lower and higher user IDs have a unique constraint, which prevents duplicate or opposing requests. The requester is retained while the relationship is pending. Acceptance changes the row to `accepted`; rejection and contact removal delete the row so a future request can be sent.
 
@@ -109,4 +109,4 @@ The complete response shape is defined in `api/openapi/openapi.yaml`. The client
 
 ## Not Yet Implemented
 
-The project does not yet include local message caching, unread counts, read receipts, attachments, Redis, MinIO, password reset, email verification, social sign-in, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.
+The project does not yet include local message caching, unread counts, read receipts, attachments, Redis, MinIO, password reset, social sign-in, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.

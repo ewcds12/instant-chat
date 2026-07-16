@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/mail"
 	"strings"
 	"time"
 	"unicode"
@@ -14,10 +13,8 @@ import (
 )
 
 const (
-	minimumPasswordRunes = 12
-	maximumPasswordRunes = 128
-	minimumDisplayRunes  = 2
-	maximumDisplayRunes  = 80
+	minimumDisplayRunes = 2
+	maximumDisplayRunes = 80
 )
 
 // Service implements authentication business rules.
@@ -43,8 +40,8 @@ func NewService(repository Repository, passwords *PasswordHasher) (*Service, err
 }
 
 // Register creates a user and initial token pair.
-func (s *Service) Register(ctx context.Context, email, username, displayName, password string) (Session, error) {
-	normalizedEmail, normalizedUsername, err := validateRegistration(email, username, displayName, password)
+func (s *Service) Register(ctx context.Context, username, displayName, password string) (Session, error) {
+	normalizedUsername, err := validateRegistration(username, displayName)
 	if err != nil {
 		return Session{}, err
 	}
@@ -58,7 +55,7 @@ func (s *Service) Register(ctx context.Context, email, username, displayName, pa
 		return Session{}, err
 	}
 	user, err := s.repository.CreateAccount(
-		ctx, normalizedUsername, normalizedEmail, strings.TrimSpace(displayName), passwordHash,
+		ctx, normalizedUsername, strings.TrimSpace(displayName), passwordHash,
 		tokens.access, tokens.refresh,
 	)
 	if err != nil {
@@ -68,13 +65,13 @@ func (s *Service) Register(ctx context.Context, email, username, displayName, pa
 }
 
 // Login verifies credentials and issues a new token pair.
-func (s *Service) Login(ctx context.Context, email, password string) (Session, error) {
-	normalizedEmail, valid := normalizeEmail(email)
+func (s *Service) Login(ctx context.Context, username, password string) (Session, error) {
+	normalizedUsername, valid := users.NormalizeUsername(username)
 	if !valid {
 		s.consumePasswordTime(password)
 		return Session{}, ErrInvalidCredentials
 	}
-	record, err := s.repository.FindUserByEmail(ctx, normalizedEmail)
+	record, err := s.repository.FindUserByUsername(ctx, normalizedUsername)
 	if err != nil {
 		if errors.Is(err, ErrInvalidCredentials) {
 			s.consumePasswordTime(password)
@@ -138,37 +135,20 @@ func (s *Service) consumePasswordTime(password string) {
 	_, _ = s.passwords.Verify(s.dummyHash, password)
 }
 
-func validateRegistration(email, username, displayName, password string) (string, string, error) {
-	normalizedEmail, valid := normalizeEmail(email)
-	if !valid {
-		return "", "", &InputError{Message: "Enter a valid email address."}
-	}
+func validateRegistration(username, displayName string) (string, error) {
 	normalizedUsername, valid := users.NormalizeUsername(username)
 	if !valid {
-		return "", "", &InputError{Message: "Username must be 3 to 32 characters, start with a letter, and use only lowercase letters, numbers, or underscores."}
+		return "", &InputError{Message: "Username must be 3 to 32 characters, start with a letter, and use only lowercase letters, numbers, or underscores."}
 	}
 	trimmedName := strings.TrimSpace(displayName)
 	nameLength := utf8.RuneCountInString(trimmedName)
 	if nameLength < minimumDisplayRunes || nameLength > maximumDisplayRunes {
-		return "", "", &InputError{Message: "Display name must be between 2 and 80 characters."}
+		return "", &InputError{Message: "Display name must be between 2 and 80 characters."}
 	}
 	for _, value := range trimmedName {
 		if unicode.IsControl(value) {
-			return "", "", &InputError{Message: "Display name contains an unsupported character."}
+			return "", &InputError{Message: "Display name contains an unsupported character."}
 		}
 	}
-	passwordLength := utf8.RuneCountInString(password)
-	if !utf8.ValidString(password) || passwordLength < minimumPasswordRunes || passwordLength > maximumPasswordRunes {
-		return "", "", &InputError{Message: "Password must be between 12 and 128 characters."}
-	}
-	return normalizedEmail, normalizedUsername, nil
-}
-
-func normalizeEmail(value string) (string, bool) {
-	normalized := strings.ToLower(strings.TrimSpace(value))
-	if normalized == "" || len(normalized) > 254 {
-		return "", false
-	}
-	address, err := mail.ParseAddress(normalized)
-	return normalized, err == nil && address.Address == normalized
+	return normalizedUsername, nil
 }

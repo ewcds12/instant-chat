@@ -11,10 +11,7 @@ void main() {
     final adapter = _StubAdapter(statusCode: 200, body: _sessionBody);
     final gateway = DioAuthGateway(_createDio(adapter));
 
-    final session = await gateway.login(
-      email: 'operator@example.com',
-      password: 'long-password',
-    );
+    final session = await gateway.login(username: 'operator', password: 'pw');
 
     expect(adapter.requestedPath, '/api/v1/auth/login');
     expect(session.user.displayName, 'Operator');
@@ -30,7 +27,7 @@ void main() {
           body: {
             'error': {
               'code': 'invalid_credentials',
-              'message': 'Email or password is incorrect.',
+              'message': 'Username or password is incorrect.',
               'request_id': 'request-1',
             },
           },
@@ -39,17 +36,14 @@ void main() {
     );
 
     await expectLater(
-      gateway.login(
-        email: 'operator@example.com',
-        password: 'incorrect-password',
-      ),
+      gateway.login(username: 'operator', password: 'incorrect-password'),
       throwsA(
         isA<AuthFailure>()
             .having((failure) => failure.code, 'code', 'invalid_credentials')
             .having(
               (failure) => failure.message,
               'message',
-              'Email or password is incorrect.',
+              'Username or password is incorrect.',
             ),
       ),
     );
@@ -60,7 +54,6 @@ final _sessionBody = {
   'user': {
     'id': '42',
     'username': 'operator',
-    'email': 'operator@example.com',
     'display_name': 'Operator',
     'created_at': '2026-07-15T12:00:00Z',
   },

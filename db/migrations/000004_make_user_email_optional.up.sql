@@ -1,0 +1,3 @@
+ALTER TABLE users
+  DROP INDEX uq_users_email,
+  MODIFY COLUMN email VARCHAR(254) NULL;

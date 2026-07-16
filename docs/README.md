@@ -9,7 +9,7 @@ The product and repository use American English (`en-US`) exclusively.
 The authentication, contacts, direct conversations, and persisted text-message foundations are in place:
 
 - The Flutter macOS client provides modern registration and sign-in forms.
-- Registration assigns a unique lowercase username for exact account search.
+- Registration uses a unique lowercase username and password, with no email address required.
 - The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
 - The authenticated client provides modern chats, contacts, requests, and system-status workspaces.
 - The chat workspace provides real conversation filtering and a persistent desktop master-detail layout.

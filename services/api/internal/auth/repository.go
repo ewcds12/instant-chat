@@ -25,14 +25,14 @@ func NewMySQLRepository(database *sql.DB) *MySQLRepository {
 }
 
 // CreateAccount creates a user and initial session atomically.
-func (r *MySQLRepository) CreateAccount(ctx context.Context, username, email, displayName, passwordHash string, access, refresh StoredToken) (User, error) {
+func (r *MySQLRepository) CreateAccount(ctx context.Context, username, displayName, passwordHash string, access, refresh StoredToken) (User, error) {
 	tx, err := r.database.BeginTx(ctx, nil)
 	if err != nil {
 		return User{}, fmt.Errorf("begin account transaction: %w", err)
 	}
 	queries := r.queries.WithTx(tx)
 	result, err := queries.CreateUser(ctx, store.CreateUserParams{
-		Username: username, Email: email, DisplayName: displayName, PasswordHash: passwordHash,
+		Username: username, DisplayName: displayName, PasswordHash: passwordHash,
 	})
 	if err != nil {
 		return User{}, rollback(tx, mapCreateUserError(err))
@@ -47,7 +47,7 @@ func (r *MySQLRepository) CreateAccount(ctx context.Context, username, email, di
 	if err := createTokens(ctx, queries, uint64(userID), access, refresh); err != nil {
 		return User{}, rollback(tx, err)
 	}
-	created, err := queries.GetUserByEmail(ctx, email)
+	created, err := queries.GetUserByUsername(ctx, username)
 	if err != nil {
 		return User{}, rollback(tx, fmt.Errorf("read new user: %w", err))
 	}
@@ -57,14 +57,14 @@ func (r *MySQLRepository) CreateAccount(ctx context.Context, username, email, di
 	return userFromStore(created), nil
 }
 
-// FindUserByEmail returns the private record used to verify credentials.
-func (r *MySQLRepository) FindUserByEmail(ctx context.Context, email string) (UserRecord, error) {
-	user, err := r.queries.GetUserByEmail(ctx, email)
+// FindUserByUsername returns the private record used to verify credentials.
+func (r *MySQLRepository) FindUserByUsername(ctx context.Context, username string) (UserRecord, error) {
+	user, err := r.queries.GetUserByUsername(ctx, username)
 	if errors.Is(err, sql.ErrNoRows) {
 		return UserRecord{}, ErrInvalidCredentials
 	}
 	if err != nil {
-		return UserRecord{}, fmt.Errorf("find user by email: %w", err)
+		return UserRecord{}, fmt.Errorf("find user by username: %w", err)
 	}
 	return UserRecord{User: userFromStore(user), PasswordHash: user.PasswordHash}, nil
 }
@@ -112,7 +112,7 @@ func (r *MySQLRepository) RotateSession(ctx context.Context, oldRefreshHash []by
 		return User{}, fmt.Errorf("commit refresh transaction: %w", err)
 	}
 	return User{
-		ID: session.UserID, Username: session.Username, Email: session.Email, DisplayName: session.DisplayName,
+		ID: session.UserID, Username: session.Username, DisplayName: session.DisplayName,
 		CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt,
 	}, nil
 }
@@ -129,7 +129,7 @@ func (r *MySQLRepository) FindUserByAccessToken(ctx context.Context, tokenHash [
 		return User{}, fmt.Errorf("find access token: %w", err)
 	}
 	return User{
-		ID: user.UserID, Username: user.Username, Email: user.Email, DisplayName: user.DisplayName,
+		ID: user.UserID, Username: user.Username, DisplayName: user.DisplayName,
 		CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
 	}, nil
 }
@@ -172,9 +172,9 @@ func createTokens(ctx context.Context, queries *store.Queries, userID uint64, ac
 	return nil
 }
 
-func userFromStore(user store.GetUserByEmailRow) User {
+func userFromStore(user store.GetUserByUsernameRow) User {
 	return User{
-		ID: user.ID, Username: user.Username, Email: user.Email, DisplayName: user.DisplayName,
+		ID: user.ID, Username: user.Username, DisplayName: user.DisplayName,
 		CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
 	}
 }
@@ -185,7 +185,6 @@ func mapCreateUserError(err error) error {
 		if strings.Contains(mysqlError.Message, "uq_users_username") {
 			return ErrUsernameTaken
 		}
-		return ErrEmailTaken
 	}
 	return fmt.Errorf("create user: %w", err)
 }

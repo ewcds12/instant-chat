@@ -97,7 +97,9 @@ void main() {
         overrides: [
           authControllerProvider.overrideWith(
             () => _StubAuthController(
-              const AuthState(errorMessage: 'Email or password is incorrect.'),
+              const AuthState(
+                errorMessage: 'Username or password is incorrect.',
+              ),
             ),
           ),
         ],
@@ -107,9 +109,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('Email address'), findsOneWidget);
+    expect(find.text('Username'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
-    expect(find.text('Email or password is incorrect.'), findsOneWidget);
+    expect(find.text('Username or password is incorrect.'), findsOneWidget);
 
     await tester.tap(find.text('New to Instant Chat? Create an account'));
     await tester.pumpAndSettle();
@@ -118,7 +120,7 @@ void main() {
     expect(find.text('Username'), findsOneWidget);
     expect(find.text('Display name'), findsOneWidget);
     expect(find.text('Create account'), findsOneWidget);
-    expect(find.text('Email or password is incorrect.'), findsNothing);
+    expect(find.text('Username or password is incorrect.'), findsNothing);
   });
 
   testWidgets('shows the modern navigation and filters conversations', (
@@ -224,7 +226,6 @@ final _session = AuthSession(
   user: AuthUser(
     id: '42',
     username: 'operator',
-    email: 'operator@example.com',
     displayName: 'Operator',
     createdAt: DateTime.utc(2026, 7, 15),
   ),

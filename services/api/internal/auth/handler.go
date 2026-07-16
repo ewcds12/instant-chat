@@ -13,8 +13,8 @@ import (
 )
 
 type authService interface {
-	Register(ctx context.Context, email, username, displayName, password string) (Session, error)
-	Login(ctx context.Context, email, password string) (Session, error)
+	Register(ctx context.Context, username, displayName, password string) (Session, error)
+	Login(ctx context.Context, username, password string) (Session, error)
 	Refresh(ctx context.Context, refreshToken string) (Session, error)
 	CurrentUser(ctx context.Context, accessToken string) (User, error)
 	Logout(ctx context.Context, accessToken, refreshToken string) error
@@ -31,14 +31,13 @@ func NewHandler(service authService) *Handler {
 }
 
 type registerRequest struct {
-	Email       string `json:"email"`
 	Username    string `json:"username"`
 	DisplayName string `json:"display_name"`
 	Password    string `json:"password"`
 }
 
 type loginRequest struct {
-	Email    string `json:"email"`
+	Username string `json:"username"`
 	Password string `json:"password"`
 }
 
@@ -49,7 +48,6 @@ type refreshRequest struct {
 type userResponse struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
-	Email       string    `json:"email"`
 	DisplayName string    `json:"display_name"`
 	CreatedAt   time.Time `json:"created_at"`
 }
@@ -69,7 +67,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		writeInvalidJSON(w, r)
 		return
 	}
-	session, err := h.service.Register(r.Context(), request.Email, request.Username, request.DisplayName, request.Password)
+	session, err := h.service.Register(r.Context(), request.Username, request.DisplayName, request.Password)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
@@ -84,7 +82,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		writeInvalidJSON(w, r)
 		return
 	}
-	session, err := h.service.Login(r.Context(), request.Email, request.Password)
+	session, err := h.service.Login(r.Context(), request.Username, request.Password)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
@@ -155,12 +153,10 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 	switch {
 	case errors.As(err, &inputError):
 		httpapi.WriteError(w, http.StatusBadRequest, "invalid_argument", inputError.Message, requestID)
-	case errors.Is(err, ErrEmailTaken):
-		httpapi.WriteError(w, http.StatusConflict, "email_taken", "An account already uses that email address.", requestID)
 	case errors.Is(err, ErrUsernameTaken):
 		httpapi.WriteError(w, http.StatusConflict, "username_taken", "An account already uses that username.", requestID)
 	case errors.Is(err, ErrInvalidCredentials):
-		httpapi.WriteError(w, http.StatusUnauthorized, "invalid_credentials", "Email or password is incorrect.", requestID)
+		httpapi.WriteError(w, http.StatusUnauthorized, "invalid_credentials", "Username or password is incorrect.", requestID)
 	case errors.Is(err, ErrInvalidToken):
 		httpapi.WriteError(w, http.StatusUnauthorized, "invalid_token", "The session is missing, expired, or revoked.", requestID)
 	default:
@@ -179,7 +175,7 @@ func responseFromSession(session Session) sessionResponse {
 
 func responseFromUser(user User) userResponse {
 	return userResponse{
-		ID: strconv.FormatUint(user.ID, 10), Username: user.Username, Email: user.Email,
+		ID: strconv.FormatUint(user.ID, 10), Username: user.Username,
 		DisplayName: user.DisplayName, CreatedAt: user.CreatedAt.UTC(),
 	}
 }

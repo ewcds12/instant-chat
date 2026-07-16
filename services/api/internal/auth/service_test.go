@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"errors"
-	"strings"
 	"testing"
 	"time"
 )
@@ -13,7 +12,6 @@ var serviceTestTime = time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
 
 type fakeRepository struct {
 	createdUsername     string
-	createdEmail        string
 	createdDisplayName  string
 	createdPasswordHash string
 	userRecord          UserRecord
@@ -21,15 +19,14 @@ type fakeRepository struct {
 	rotatedHash         []byte
 }
 
-func (f *fakeRepository) CreateAccount(_ context.Context, username, email, displayName, passwordHash string, _, _ StoredToken) (User, error) {
+func (f *fakeRepository) CreateAccount(_ context.Context, username, displayName, passwordHash string, _, _ StoredToken) (User, error) {
 	f.createdUsername = username
-	f.createdEmail = email
 	f.createdDisplayName = displayName
 	f.createdPasswordHash = passwordHash
-	return User{ID: 7, Username: username, Email: email, DisplayName: displayName, CreatedAt: serviceTestTime}, nil
+	return User{ID: 7, Username: username, DisplayName: displayName, CreatedAt: serviceTestTime}, nil
 }
 
-func (f *fakeRepository) FindUserByEmail(context.Context, string) (UserRecord, error) {
+func (f *fakeRepository) FindUserByUsername(context.Context, string) (UserRecord, error) {
 	return f.userRecord, f.findUserError
 }
 
@@ -39,7 +36,7 @@ func (f *fakeRepository) CreateSession(context.Context, uint64, StoredToken, Sto
 
 func (f *fakeRepository) RotateSession(_ context.Context, oldRefreshHash []byte, _ time.Time, _, _ StoredToken) (User, error) {
 	f.rotatedHash = bytes.Clone(oldRefreshHash)
-	return User{ID: 7, Username: "retro_user", Email: "user@example.com", DisplayName: "Retro User"}, nil
+	return User{ID: 7, Username: "retro_user", DisplayName: "Retro User"}, nil
 }
 
 func (f *fakeRepository) FindUserByAccessToken(context.Context, []byte, time.Time) (User, error) {
@@ -55,22 +52,19 @@ func TestServiceRegisterNormalizesInputAndIssuesSession(t *testing.T) {
 	service := newTestService(t, repository)
 
 	session, err := service.Register(
-		context.Background(), "  USER@Example.com ", "  RETRO_USER ", "  Retro User  ", "a secure password",
+		context.Background(), "  RETRO_USER ", "  Retro User  ", "pw",
 	)
 	if err != nil {
 		t.Fatalf("Register() error = %v", err)
 	}
 
-	if repository.createdEmail != "user@example.com" {
-		t.Fatalf("created email = %q, want normalized email", repository.createdEmail)
-	}
 	if repository.createdUsername != "retro_user" {
 		t.Fatalf("created username = %q, want normalized username", repository.createdUsername)
 	}
 	if repository.createdDisplayName != "Retro User" {
 		t.Fatalf("created display name = %q, want trimmed name", repository.createdDisplayName)
 	}
-	if repository.createdPasswordHash == "a secure password" {
+	if repository.createdPasswordHash == "pw" {
 		t.Fatal("password was stored without hashing")
 	}
 	if session.AccessToken == "" || session.RefreshToken == "" {
@@ -81,22 +75,12 @@ func TestServiceRegisterNormalizesInputAndIssuesSession(t *testing.T) {
 	}
 }
 
-func TestServiceRegisterRejectsShortPassword(t *testing.T) {
-	service := newTestService(t, &fakeRepository{})
-
-	_, err := service.Register(context.Background(), "user@example.com", "retro_user", "Retro User", "too short")
-	var inputError *InputError
-	if !errors.As(err, &inputError) {
-		t.Fatalf("Register() error = %v, want InputError", err)
-	}
-}
-
-func TestServiceRegisterCountsUnicodePasswordCharacters(t *testing.T) {
+func TestServiceRegisterDoesNotEnforcePasswordLength(t *testing.T) {
 	repository := &fakeRepository{}
 	service := newTestService(t, repository)
 
 	_, err := service.Register(
-		context.Background(), "user@example.com", "retro_user", "Retro User", strings.Repeat("\u00e9", 12),
+		context.Background(), "retro_user", "Retro User", "",
 	)
 	if err != nil {
 		t.Fatalf("Register() error = %v", err)
@@ -106,7 +90,7 @@ func TestServiceRegisterCountsUnicodePasswordCharacters(t *testing.T) {
 func TestServiceRegisterRejectsInvalidUsername(t *testing.T) {
 	service := newTestService(t, &fakeRepository{})
 
-	_, err := service.Register(context.Background(), "user@example.com", "2invalid", "Retro User", "a secure password")
+	_, err := service.Register(context.Background(), "2invalid", "Retro User", "password")
 	var inputError *InputError
 	if !errors.As(err, &inputError) {
 		t.Fatalf("Register() error = %v, want InputError", err)
@@ -120,14 +104,14 @@ func TestServiceLoginRejectsIncorrectPassword(t *testing.T) {
 		t.Fatalf("Hash() error = %v", err)
 	}
 	repository := &fakeRepository{userRecord: UserRecord{
-		User: User{ID: 7, Email: "user@example.com"}, PasswordHash: passwordHash,
+		User: User{ID: 7, Username: "retro_user"}, PasswordHash: passwordHash,
 	}}
 	service, err := NewService(repository, hasher)
 	if err != nil {
 		t.Fatalf("NewService() error = %v", err)
 	}
 
-	_, err = service.Login(context.Background(), "user@example.com", "incorrect password")
+	_, err = service.Login(context.Background(), "retro_user", "incorrect password")
 	if !errors.Is(err, ErrInvalidCredentials) {
 		t.Fatalf("Login() error = %v, want ErrInvalidCredentials", err)
 	}

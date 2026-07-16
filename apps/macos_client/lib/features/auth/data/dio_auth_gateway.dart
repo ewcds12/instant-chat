@@ -11,13 +11,11 @@ class DioAuthGateway implements AuthGateway {
 
   @override
   Future<AuthSession> register({
-    required String email,
     required String username,
     required String displayName,
     required String password,
   }) async {
     final response = await _post('/api/v1/auth/register', {
-      'email': email,
       'username': username,
       'display_name': displayName,
       'password': password,
@@ -27,11 +25,11 @@ class DioAuthGateway implements AuthGateway {
 
   @override
   Future<AuthSession> login({
-    required String email,
+    required String username,
     required String password,
   }) async {
     final response = await _post('/api/v1/auth/login', {
-      'email': email,
+      'username': username,
       'password': password,
     });
     return _sessionResponse(response, 200);

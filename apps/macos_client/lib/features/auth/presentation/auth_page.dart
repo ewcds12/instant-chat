@@ -12,7 +12,6 @@ class AuthPage extends ConsumerStatefulWidget {
 
 class _AuthPageState extends ConsumerState<AuthPage> {
   final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
   final _usernameController = TextEditingController();
   final _displayNameController = TextEditingController();
   final _passwordController = TextEditingController();
@@ -20,7 +19,6 @@ class _AuthPageState extends ConsumerState<AuthPage> {
 
   @override
   void dispose() {
-    _emailController.dispose();
     _usernameController.dispose();
     _displayNameController.dispose();
     _passwordController.dispose();
@@ -89,18 +87,18 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           style: TextStyle(color: colors.onSurfaceVariant),
                         ),
                         const SizedBox(height: RetroMetrics.spaceLarge),
-                        if (_isRegistration) ...[
-                          TextFormField(
-                            controller: _usernameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Username',
-                            ),
-                            autocorrect: false,
-                            textCapitalization: TextCapitalization.none,
-                            textInputAction: TextInputAction.next,
-                            validator: _validateUsername,
+                        TextFormField(
+                          controller: _usernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Username',
                           ),
-                          const SizedBox(height: RetroMetrics.spaceMedium),
+                          autocorrect: false,
+                          textCapitalization: TextCapitalization.none,
+                          textInputAction: TextInputAction.next,
+                          validator: _validateUsername,
+                        ),
+                        const SizedBox(height: RetroMetrics.spaceMedium),
+                        if (_isRegistration) ...[
                           TextFormField(
                             controller: _displayNameController,
                             decoration: const InputDecoration(
@@ -112,23 +110,12 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           const SizedBox(height: RetroMetrics.spaceMedium),
                         ],
                         TextFormField(
-                          controller: _emailController,
-                          decoration: const InputDecoration(
-                            labelText: 'Email address',
-                          ),
-                          keyboardType: TextInputType.emailAddress,
-                          textInputAction: TextInputAction.next,
-                          validator: _validateEmail,
-                        ),
-                        const SizedBox(height: RetroMetrics.spaceMedium),
-                        TextFormField(
                           controller: _passwordController,
                           decoration: const InputDecoration(
                             labelText: 'Password',
                           ),
                           obscureText: true,
                           onFieldSubmitted: (_) => _submit(auth?.isSubmitting),
-                          validator: _validatePassword,
                         ),
                         const SizedBox(height: RetroMetrics.spaceMedium),
                         if (auth?.errorMessage case final message?)
@@ -182,7 +169,6 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final controller = ref.read(authControllerProvider.notifier);
     if (_isRegistration) {
       await controller.register(
-        email: _emailController.text,
         username: _usernameController.text,
         displayName: _displayNameController.text,
         password: _passwordController.text,
@@ -190,7 +176,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       return;
     }
     await controller.login(
-      email: _emailController.text,
+      username: _usernameController.text,
       password: _passwordController.text,
     );
   }
@@ -207,22 +193,6 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final username = value?.trim().toLowerCase() ?? '';
     if (!RegExp(r'^[a-z][a-z0-9_]{2,31}$').hasMatch(username)) {
       return 'Use 3 to 32 lowercase letters, numbers, or underscores.';
-    }
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    final email = value?.trim() ?? '';
-    if (!email.contains('@') || email.length > 254) {
-      return 'Enter a valid email address.';
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    final length = value?.length ?? 0;
-    if (length < 12 || length > 128) {
-      return 'Use 12 to 128 characters.';
     }
     return null;
   }

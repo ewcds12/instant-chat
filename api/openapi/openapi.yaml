@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.5.0
+  version: 0.6.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -43,7 +43,7 @@ paths:
         "400":
           $ref: "#/components/responses/InvalidArgument"
         "409":
-          description: An account already uses the email address or username
+          description: An account already uses the username
           content:
             application/json:
               schema:
@@ -55,7 +55,7 @@ paths:
   /auth/login:
     post:
       operationId: login
-      summary: Authenticate with an email address and password
+      summary: Authenticate with a username and password
       requestBody:
         required: true
         content:
@@ -550,15 +550,10 @@ components:
       type: object
       additionalProperties: false
       required:
-        - email
         - username
         - display_name
         - password
       properties:
-        email:
-          type: string
-          format: email
-          maxLength: 254
         username:
           $ref: "#/components/schemas/Username"
         display_name:
@@ -568,19 +563,15 @@ components:
         password:
           type: string
           format: password
-          minLength: 12
-          maxLength: 128
     LoginRequest:
       type: object
       additionalProperties: false
       required:
-        - email
+        - username
         - password
       properties:
-        email:
-          type: string
-          format: email
-          maxLength: 254
+        username:
+          $ref: "#/components/schemas/Username"
         password:
           type: string
           format: password
@@ -599,7 +590,6 @@ components:
       required:
         - id
         - username
-        - email
         - display_name
         - created_at
       properties:
@@ -607,9 +597,6 @@ components:
           $ref: "#/components/schemas/ResourceID"
         username:
           $ref: "#/components/schemas/Username"
-        email:
-          type: string
-          format: email
         display_name:
           type: string
         created_at:

@@ -19,13 +19,18 @@ void main() {
 
     await container
         .read(authControllerProvider.notifier)
-        .login(email: ' Operator@Example.com ', password: 'long-password');
+        .login(username: ' Operator ', password: 'pw');
 
-    expect(gateway.loginEmail, 'Operator@Example.com');
+    expect(gateway.loginUsername, 'operator');
     expect(store.session?.accessToken, 'new-access');
     expect(
-      container.read(authControllerProvider).requireValue.session?.user.email,
-      'operator@example.com',
+      container
+          .read(authControllerProvider)
+          .requireValue
+          .session
+          ?.user
+          .username,
+      'operator',
     );
   });
 
@@ -161,7 +166,6 @@ AuthSession _futureSession({
     user: AuthUser(
       id: '42',
       username: 'operator',
-      email: 'operator@example.com',
       displayName: 'Operator',
       createdAt: now,
     ),
@@ -197,7 +201,7 @@ class _FakeAuthGateway implements AuthGateway {
   final AuthSession session;
   final AuthFailure? refreshFailure;
   final Completer<void>? refreshBlock;
-  String? loginEmail;
+  String? loginUsername;
   String? refreshToken;
   var refreshCalls = 0;
 
@@ -206,10 +210,10 @@ class _FakeAuthGateway implements AuthGateway {
 
   @override
   Future<AuthSession> login({
-    required String email,
+    required String username,
     required String password,
   }) async {
-    loginEmail = email;
+    loginUsername = username;
     return session;
   }
 
@@ -232,7 +236,6 @@ class _FakeAuthGateway implements AuthGateway {
 
   @override
   Future<AuthSession> register({
-    required String email,
     required String username,
     required String displayName,
     required String password,
