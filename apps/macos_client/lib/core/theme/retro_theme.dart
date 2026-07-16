@@ -6,6 +6,7 @@ abstract final class RetroMetrics {
   static const spaceSmall = 8.0;
   static const spaceMedium = 16.0;
   static const spaceLarge = 24.0;
+  static const maxAuthPanelWidth = 460.0;
   static const maxPanelWidth = 680.0;
   static const statusIconSize = 18.0;
 }
@@ -45,6 +46,25 @@ abstract final class RetroTheme {
         foregroundColor: _panel,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(RetroMetrics.corner)),
+        ),
+      ),
+    ),
+    inputDecorationTheme: const InputDecorationTheme(
+      filled: true,
+      fillColor: _panel,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(RetroMetrics.corner)),
+        borderSide: BorderSide(color: _ink, width: RetroMetrics.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(RetroMetrics.corner)),
+        borderSide: BorderSide(color: _ink, width: RetroMetrics.border),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.all(Radius.circular(RetroMetrics.corner)),
+        borderSide: BorderSide(
+          color: _terminalGreen,
+          width: RetroMetrics.border,
         ),
       ),
     ),

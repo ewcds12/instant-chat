@@ -2,6 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 import 'package:instant_chat/app/instant_chat_app.dart';
+import 'package:instant_chat/features/auth/domain/auth_session.dart';
+import 'package:instant_chat/features/auth/domain/auth_user.dart';
+import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/system_status/domain/service_health.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_provider.dart';
 
@@ -10,6 +13,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
           serviceHealthProvider.overrideWith(
             (ref) async => ServiceHealth(
               status: 'healthy',
@@ -37,6 +43,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
           serviceHealthProvider.overrideWith(
             (ref) => Future<ServiceHealth>.error(StateError('offline')),
           ),
@@ -49,4 +58,55 @@ void main() {
     expect(find.text('OFFLINE'), findsOneWidget);
     expect(find.text('RETRY CONNECTION'), findsOneWidget);
   });
+
+  testWidgets('shows the en-US sign-in and registration forms', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(
+              const AuthState(errorMessage: 'Email or password is incorrect.'),
+            ),
+          ),
+        ],
+        child: const InstantChatApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('INSTANT CHAT // SIGN IN'), findsOneWidget);
+    expect(find.text('EMAIL ADDRESS'), findsOneWidget);
+    expect(find.text('PASSWORD'), findsOneWidget);
+    expect(find.text('Email or password is incorrect.'), findsOneWidget);
+
+    await tester.tap(find.text('CREATE A NEW ACCOUNT'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('INSTANT CHAT // REGISTER'), findsOneWidget);
+    expect(find.text('DISPLAY NAME'), findsOneWidget);
+    expect(find.text('CREATE ACCOUNT'), findsOneWidget);
+    expect(find.text('Email or password is incorrect.'), findsNothing);
+  });
+}
+
+final _session = AuthSession(
+  user: AuthUser(
+    id: '42',
+    email: 'operator@example.com',
+    displayName: 'Operator',
+    createdAt: DateTime.utc(2026, 7, 15),
+  ),
+  accessToken: 'access-token',
+  accessExpiresAt: DateTime.utc(2026, 7, 15, 13),
+  refreshToken: 'refresh-token',
+  refreshExpiresAt: DateTime.utc(2026, 8, 15),
+);
+
+class _StubAuthController extends AuthController {
+  _StubAuthController(this.authState);
+
+  final AuthState authState;
+
+  @override
+  Future<AuthState> build() async => authState;
 }

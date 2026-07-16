@@ -1,0 +1,12 @@
+version: "2"
+sql:
+  - engine: mysql
+    schema: migrations
+    queries: queries
+    gen:
+      go:
+        package: store
+        out: ../services/api/internal/store
+        sql_package: database/sql
+        emit_db_tags: true
+        emit_empty_slices: true

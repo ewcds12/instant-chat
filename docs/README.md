@@ -6,25 +6,29 @@ The product and repository use American English (`en-US`) exclusively.
 
 ## Current Status
 
-The minimum end-to-end foundation is in place:
+The authentication foundation is in place:
 
-- The Flutter macOS client displays API and database connectivity.
-- The Go API provides `GET /api/v1/health`.
+- The Flutter macOS client provides retro registration and sign-in forms.
+- The client restores sessions from macOS Keychain and rotates expired access tokens.
+- The authenticated client displays API and database connectivity and supports sign-out.
+- The Go API provides health, registration, sign-in, refresh, sign-out, and current-user endpoints.
 - The health check verifies the MySQL connection with `PingContext`.
+- MySQL migrations and sqlc queries define users and opaque session tokens.
 - Docker Compose provides a pinned MySQL 8.4 development environment.
-- OpenAPI defines successful and degraded health responses.
+- OpenAPI defines the complete implemented HTTP contract.
 
-Sign-in, contacts, messages, WebSocket, Drift, Redis, and file uploads have not been implemented.
+Contacts, conversations, messages, WebSocket, Drift, Redis, and file uploads have not been implemented.
 
 ## Technology Stack
 
-- macOS client: Flutter, Dart, Riverpod, and Dio.
-- Server: Go, REST, and `database/sql`.
+- macOS client: Flutter, Dart, Riverpod, Dio, and macOS Keychain.
+- Server: Go, REST, `database/sql`, and sqlc.
 - Database: MySQL 8.4 LTS.
 - Local infrastructure: Docker Compose.
 - API contract: OpenAPI 3.1.
+- Database migrations: golang-migrate.
 
-Future features will add go_router, WebSocket, Drift, SQLite, sqlc, Redis, and MinIO only when they are needed.
+Future features will add go_router, WebSocket, Drift, SQLite, Redis, and MinIO only when they are needed.
 
 ## Requirements
 
@@ -32,6 +36,7 @@ Future features will add go_router, WebSocket, Drift, SQLite, sqlc, Redis, and M
 - Go 1.26 or a compatible version.
 - Docker Engine and Docker Compose v2.
 - Xcode with the macOS desktop development tools.
+- golang-migrate 4.19 or a compatible version with MySQL support.
 
 If the development machine uses an HTTP proxy, make sure `NO_PROXY` includes at least `localhost,127.0.0.1,::1`. Otherwise, the Flutter test process may be unable to connect to its local WebSocket.
 
@@ -59,6 +64,25 @@ Check its status:
 docker compose --env-file .env -f deploy/docker/compose.yaml ps
 ```
 
+## Apply Database Migrations
+
+Install the pinned migration CLI once:
+
+```bash
+go install -tags mysql github.com/golang-migrate/migrate/v4/cmd/migrate@v4.19.1
+```
+
+Load the local configuration and apply all migrations from the repository root:
+
+```bash
+set -a
+source .env
+set +a
+migrate -path db/migrations -database "$MIGRATION_DATABASE_URL" up
+```
+
+Run this step after MySQL is healthy and before starting the API. Migration filenames are append-only after they reach a shared branch.
+
 ## Start the Go API
 
 Run from the repository root:
@@ -71,10 +95,15 @@ cd services/api
 go run ./cmd/api
 ```
 
-The API listens on `http://127.0.0.1:8080` by default. Its health endpoint is:
+The API listens on `http://127.0.0.1:8080` by default. Implemented endpoints are:
 
 ```text
-http://127.0.0.1:8080/api/v1/health
+GET  /api/v1/health
+POST /api/v1/auth/register
+POST /api/v1/auth/login
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
 ```
 
 ## Start the macOS Client
@@ -122,4 +151,4 @@ Architecture boundaries are documented in `docs/architecture.md`. The REST contr
 
 ## Next Milestone
 
-Implement registration and sign-in, including server-side authentication, database migrations, client forms, and macOS Keychain token storage.
+Implement contacts and the initial conversation list without adding real-time messaging yet.

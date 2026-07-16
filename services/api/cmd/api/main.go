@@ -14,8 +14,10 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
+	"github.com/ewcds12/instant-chat/services/api/internal/auth"
 	"github.com/ewcds12/instant-chat/services/api/internal/config"
 	"github.com/ewcds12/instant-chat/services/api/internal/health"
+	"github.com/ewcds12/instant-chat/services/api/internal/httpapi"
 )
 
 const (
@@ -25,6 +27,8 @@ const (
 	idleTimeout       = 60 * time.Second
 	shutdownTimeout   = 10 * time.Second
 	connectionMaxAge  = 5 * time.Minute
+	authRateWindow    = time.Minute
+	authRateLimit     = 10
 )
 
 func main() {
@@ -53,9 +57,25 @@ func run() error {
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/v1/health", health.NewHandler(database))
 
+	authService, err := auth.NewService(
+		auth.NewMySQLRepository(database),
+		auth.NewPasswordHasher(),
+	)
+	if err != nil {
+		return fmt.Errorf("initialize authentication: %w", err)
+	}
+	authHandler := auth.NewHandler(authService)
+	registerLimiter := httpapi.NewIPRateLimiter(authRateLimit, authRateWindow)
+	loginLimiter := httpapi.NewIPRateLimiter(authRateLimit, authRateWindow)
+	mux.Handle("POST /api/v1/auth/register", registerLimiter.Handler(http.HandlerFunc(authHandler.Register)))
+	mux.Handle("POST /api/v1/auth/login", loginLimiter.Handler(http.HandlerFunc(authHandler.Login)))
+	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
+	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
+	mux.HandleFunc("GET /api/v1/auth/me", authHandler.CurrentUser)
+
 	server := &http.Server{
 		Addr:              cfg.Address,
-		Handler:           mux,
+		Handler:           httpapi.RequestIDMiddleware(mux),
 		ReadHeaderTimeout: readHeaderTimeout,
 		ReadTimeout:       readTimeout,
 		WriteTimeout:      writeTimeout,

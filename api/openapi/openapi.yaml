@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.1.0
+  version: 0.2.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -23,7 +23,162 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Health"
+  /auth/register:
+    post:
+      operationId: register
+      summary: Create an account and initial session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "409":
+          description: An account already uses the email address
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /auth/login:
+    post:
+      operationId: login
+      summary: Authenticate with an email address and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Authentication succeeded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /auth/refresh:
+    post:
+      operationId: refreshSession
+      summary: Rotate a refresh token and issue a new session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "200":
+          description: Session rotated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Session"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /auth/logout:
+    post:
+      operationId: logout
+      summary: Revoke an access and refresh token pair
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+      responses:
+        "204":
+          description: Session revoked
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      summary: Get the user for the current access token
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: false
+                required:
+                  - user
+                properties:
+                  user:
+                    $ref: "#/components/schemas/User"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    InvalidArgument:
+      description: The request body or fields are invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Unauthorized:
+      description: Credentials or a session token are invalid
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    RateLimited:
+      description: Too many requests from this IP address
+      headers:
+        Retry-After:
+          schema:
+            type: integer
+          description: Seconds before another attempt should be made
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InternalError:
+      description: The request could not be completed
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
   schemas:
     Health:
       type: object
@@ -50,3 +205,109 @@ components:
         checked_at:
           type: string
           format: date-time
+    RegisterRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - display_name
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        display_name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        password:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        password:
+          type: string
+          format: password
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          minLength: 1
+    User:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - email
+        - display_name
+        - created_at
+      properties:
+        id:
+          type: string
+          pattern: "^[1-9][0-9]*$"
+        email:
+          type: string
+          format: email
+        display_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+    Session:
+      type: object
+      additionalProperties: false
+      required:
+        - user
+        - access_token
+        - access_expires_at
+        - refresh_token
+        - refresh_expires_at
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        access_token:
+          type: string
+        access_expires_at:
+          type: string
+          format: date-time
+        refresh_token:
+          type: string
+        refresh_expires_at:
+          type: string
+          format: date-time
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required:
+            - code
+            - message
+            - request_id
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            request_id:
+              type: string
