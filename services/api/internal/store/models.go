@@ -46,13 +46,24 @@ type ConversationMember struct {
 }
 
 type Message struct {
-	ID              uint64    `db:"id"`
-	ConversationID  uint64    `db:"conversation_id"`
-	SenderID        uint64    `db:"sender_id"`
-	ClientMessageID string    `db:"client_message_id"`
-	Sequence        uint64    `db:"sequence"`
-	Body            string    `db:"body"`
-	CreatedAt       time.Time `db:"created_at"`
+	ID              uint64        `db:"id"`
+	ConversationID  uint64        `db:"conversation_id"`
+	SenderID        uint64        `db:"sender_id"`
+	ClientMessageID string        `db:"client_message_id"`
+	Sequence        uint64        `db:"sequence"`
+	Body            string        `db:"body"`
+	CreatedAt       time.Time     `db:"created_at"`
+	Kind            string        `db:"kind"`
+	ImageID         sql.NullInt64 `db:"image_id"`
+}
+
+type MessageImage struct {
+	ID          uint64    `db:"id"`
+	UploaderID  uint64    `db:"uploader_id"`
+	ContentType string    `db:"content_type"`
+	ByteSize    uint32    `db:"byte_size"`
+	Data        []byte    `db:"data"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 type RefreshToken struct {

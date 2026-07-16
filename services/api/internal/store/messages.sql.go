@@ -29,17 +29,21 @@ INSERT INTO messages (
   sender_id,
   client_message_id,
   sequence,
-  body
+  kind,
+  body,
+  image_id
 )
-VALUES (?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateMessageParams struct {
-	ConversationID  uint64 `db:"conversation_id"`
-	SenderID        uint64 `db:"sender_id"`
-	ClientMessageID string `db:"client_message_id"`
-	Sequence        uint64 `db:"sequence"`
-	Body            string `db:"body"`
+	ConversationID  uint64        `db:"conversation_id"`
+	SenderID        uint64        `db:"sender_id"`
+	ClientMessageID string        `db:"client_message_id"`
+	Sequence        uint64        `db:"sequence"`
+	Kind            string        `db:"kind"`
+	Body            string        `db:"body"`
+	ImageID         sql.NullInt64 `db:"image_id"`
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (sql.Result, error) {
@@ -48,7 +52,35 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (s
 		arg.SenderID,
 		arg.ClientMessageID,
 		arg.Sequence,
+		arg.Kind,
 		arg.Body,
+		arg.ImageID,
+	)
+}
+
+const createMessageImage = `-- name: CreateMessageImage :execresult
+INSERT INTO message_images (
+  uploader_id,
+  content_type,
+  byte_size,
+  data
+)
+VALUES (?, ?, ?, ?)
+`
+
+type CreateMessageImageParams struct {
+	UploaderID  uint64 `db:"uploader_id"`
+	ContentType string `db:"content_type"`
+	ByteSize    uint32 `db:"byte_size"`
+	Data        []byte `db:"data"`
+}
+
+func (q *Queries) CreateMessageImage(ctx context.Context, arg CreateMessageImageParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createMessageImage,
+		arg.UploaderID,
+		arg.ContentType,
+		arg.ByteSize,
+		arg.Data,
 	)
 }
 
@@ -62,10 +94,15 @@ SELECT
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
+  message.kind,
   message.body,
+  message.image_id,
+  image.content_type AS image_content_type,
+  image.byte_size AS image_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
+LEFT JOIN message_images AS image ON image.id = message.image_id
 WHERE message.conversation_id = ?
   AND message.sender_id = ?
   AND message.client_message_id = ?
@@ -79,16 +116,20 @@ type GetMessageByClientIDParams struct {
 }
 
 type GetMessageByClientIDRow struct {
-	ID                uint64    `db:"id"`
-	ConversationID    uint64    `db:"conversation_id"`
-	SenderID          uint64    `db:"sender_id"`
-	SenderUsername    string    `db:"sender_username"`
-	SenderDisplayName string    `db:"sender_display_name"`
-	SenderCreatedAt   time.Time `db:"sender_created_at"`
-	ClientMessageID   string    `db:"client_message_id"`
-	Sequence          uint64    `db:"sequence"`
-	Body              string    `db:"body"`
-	CreatedAt         time.Time `db:"created_at"`
+	ID                uint64         `db:"id"`
+	ConversationID    uint64         `db:"conversation_id"`
+	SenderID          uint64         `db:"sender_id"`
+	SenderUsername    string         `db:"sender_username"`
+	SenderDisplayName string         `db:"sender_display_name"`
+	SenderCreatedAt   time.Time      `db:"sender_created_at"`
+	ClientMessageID   string         `db:"client_message_id"`
+	Sequence          uint64         `db:"sequence"`
+	Kind              string         `db:"kind"`
+	Body              string         `db:"body"`
+	ImageID           sql.NullInt64  `db:"image_id"`
+	ImageContentType  sql.NullString `db:"image_content_type"`
+	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
+	CreatedAt         time.Time      `db:"created_at"`
 }
 
 func (q *Queries) GetMessageByClientID(ctx context.Context, arg GetMessageByClientIDParams) (GetMessageByClientIDRow, error) {
@@ -103,9 +144,45 @@ func (q *Queries) GetMessageByClientID(ctx context.Context, arg GetMessageByClie
 		&i.SenderCreatedAt,
 		&i.ClientMessageID,
 		&i.Sequence,
+		&i.Kind,
 		&i.Body,
+		&i.ImageID,
+		&i.ImageContentType,
+		&i.ImageByteSize,
 		&i.CreatedAt,
 	)
+	return i, err
+}
+
+const getMessageImageForMember = `-- name: GetMessageImageForMember :one
+SELECT
+  image.content_type,
+  image.byte_size,
+  image.data
+FROM message_images AS image
+JOIN messages AS message ON message.image_id = image.id
+JOIN conversation_members AS membership
+  ON membership.conversation_id = message.conversation_id
+WHERE image.id = ?
+  AND membership.user_id = ?
+LIMIT 1
+`
+
+type GetMessageImageForMemberParams struct {
+	ImageID uint64 `db:"image_id"`
+	UserID  uint64 `db:"user_id"`
+}
+
+type GetMessageImageForMemberRow struct {
+	ContentType string `db:"content_type"`
+	ByteSize    uint32 `db:"byte_size"`
+	Data        []byte `db:"data"`
+}
+
+func (q *Queries) GetMessageImageForMember(ctx context.Context, arg GetMessageImageForMemberParams) (GetMessageImageForMemberRow, error) {
+	row := q.db.QueryRowContext(ctx, getMessageImageForMember, arg.ImageID, arg.UserID)
+	var i GetMessageImageForMemberRow
+	err := row.Scan(&i.ContentType, &i.ByteSize, &i.Data)
 	return i, err
 }
 
@@ -170,10 +247,15 @@ SELECT
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
+  message.kind,
   message.body,
+  message.image_id,
+  image.content_type AS image_content_type,
+  image.byte_size AS image_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
+LEFT JOIN message_images AS image ON image.id = message.image_id
 WHERE message.conversation_id = ?
 ORDER BY message.sequence DESC
 LIMIT ?
@@ -185,16 +267,20 @@ type ListLatestMessagesParams struct {
 }
 
 type ListLatestMessagesRow struct {
-	ID                uint64    `db:"id"`
-	ConversationID    uint64    `db:"conversation_id"`
-	SenderID          uint64    `db:"sender_id"`
-	SenderUsername    string    `db:"sender_username"`
-	SenderDisplayName string    `db:"sender_display_name"`
-	SenderCreatedAt   time.Time `db:"sender_created_at"`
-	ClientMessageID   string    `db:"client_message_id"`
-	Sequence          uint64    `db:"sequence"`
-	Body              string    `db:"body"`
-	CreatedAt         time.Time `db:"created_at"`
+	ID                uint64         `db:"id"`
+	ConversationID    uint64         `db:"conversation_id"`
+	SenderID          uint64         `db:"sender_id"`
+	SenderUsername    string         `db:"sender_username"`
+	SenderDisplayName string         `db:"sender_display_name"`
+	SenderCreatedAt   time.Time      `db:"sender_created_at"`
+	ClientMessageID   string         `db:"client_message_id"`
+	Sequence          uint64         `db:"sequence"`
+	Kind              string         `db:"kind"`
+	Body              string         `db:"body"`
+	ImageID           sql.NullInt64  `db:"image_id"`
+	ImageContentType  sql.NullString `db:"image_content_type"`
+	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
+	CreatedAt         time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessagesParams) ([]ListLatestMessagesRow, error) {
@@ -215,7 +301,11 @@ func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessages
 			&i.SenderCreatedAt,
 			&i.ClientMessageID,
 			&i.Sequence,
+			&i.Kind,
 			&i.Body,
+			&i.ImageID,
+			&i.ImageContentType,
+			&i.ImageByteSize,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -241,10 +331,15 @@ SELECT
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
+  message.kind,
   message.body,
+  message.image_id,
+  image.content_type AS image_content_type,
+  image.byte_size AS image_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
+LEFT JOIN message_images AS image ON image.id = message.image_id
 WHERE message.conversation_id = ?
   AND message.sequence > ?
 ORDER BY message.sequence ASC
@@ -258,16 +353,20 @@ type ListMessagesAfterParams struct {
 }
 
 type ListMessagesAfterRow struct {
-	ID                uint64    `db:"id"`
-	ConversationID    uint64    `db:"conversation_id"`
-	SenderID          uint64    `db:"sender_id"`
-	SenderUsername    string    `db:"sender_username"`
-	SenderDisplayName string    `db:"sender_display_name"`
-	SenderCreatedAt   time.Time `db:"sender_created_at"`
-	ClientMessageID   string    `db:"client_message_id"`
-	Sequence          uint64    `db:"sequence"`
-	Body              string    `db:"body"`
-	CreatedAt         time.Time `db:"created_at"`
+	ID                uint64         `db:"id"`
+	ConversationID    uint64         `db:"conversation_id"`
+	SenderID          uint64         `db:"sender_id"`
+	SenderUsername    string         `db:"sender_username"`
+	SenderDisplayName string         `db:"sender_display_name"`
+	SenderCreatedAt   time.Time      `db:"sender_created_at"`
+	ClientMessageID   string         `db:"client_message_id"`
+	Sequence          uint64         `db:"sequence"`
+	Kind              string         `db:"kind"`
+	Body              string         `db:"body"`
+	ImageID           sql.NullInt64  `db:"image_id"`
+	ImageContentType  sql.NullString `db:"image_content_type"`
+	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
+	CreatedAt         time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterParams) ([]ListMessagesAfterRow, error) {
@@ -288,7 +387,11 @@ func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterPa
 			&i.SenderCreatedAt,
 			&i.ClientMessageID,
 			&i.Sequence,
+			&i.Kind,
 			&i.Body,
+			&i.ImageID,
+			&i.ImageContentType,
+			&i.ImageByteSize,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -314,10 +417,15 @@ SELECT
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
+  message.kind,
   message.body,
+  message.image_id,
+  image.content_type AS image_content_type,
+  image.byte_size AS image_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
+LEFT JOIN message_images AS image ON image.id = message.image_id
 WHERE message.conversation_id = ?
   AND message.sequence < ?
 ORDER BY message.sequence DESC
@@ -331,16 +439,20 @@ type ListMessagesBeforeParams struct {
 }
 
 type ListMessagesBeforeRow struct {
-	ID                uint64    `db:"id"`
-	ConversationID    uint64    `db:"conversation_id"`
-	SenderID          uint64    `db:"sender_id"`
-	SenderUsername    string    `db:"sender_username"`
-	SenderDisplayName string    `db:"sender_display_name"`
-	SenderCreatedAt   time.Time `db:"sender_created_at"`
-	ClientMessageID   string    `db:"client_message_id"`
-	Sequence          uint64    `db:"sequence"`
-	Body              string    `db:"body"`
-	CreatedAt         time.Time `db:"created_at"`
+	ID                uint64         `db:"id"`
+	ConversationID    uint64         `db:"conversation_id"`
+	SenderID          uint64         `db:"sender_id"`
+	SenderUsername    string         `db:"sender_username"`
+	SenderDisplayName string         `db:"sender_display_name"`
+	SenderCreatedAt   time.Time      `db:"sender_created_at"`
+	ClientMessageID   string         `db:"client_message_id"`
+	Sequence          uint64         `db:"sequence"`
+	Kind              string         `db:"kind"`
+	Body              string         `db:"body"`
+	ImageID           sql.NullInt64  `db:"image_id"`
+	ImageContentType  sql.NullString `db:"image_content_type"`
+	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
+	CreatedAt         time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error) {
@@ -361,7 +473,11 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.SenderCreatedAt,
 			&i.ClientMessageID,
 			&i.Sequence,
+			&i.Kind,
 			&i.Body,
+			&i.ImageID,
+			&i.ImageContentType,
+			&i.ImageByteSize,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

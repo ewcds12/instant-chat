@@ -6,7 +6,7 @@ The product and repository use American English (`en-US`) exclusively.
 
 ## Current Status
 
-The authentication, contacts, direct conversations, and persisted text-message foundations are in place:
+The authentication, contacts, direct conversations, and persisted message foundations are in place:
 
 - The Flutter macOS client provides modern registration and sign-in forms.
 - Registration uses a unique lowercase username and password, with no email address required.
@@ -15,7 +15,8 @@ The authentication, contacts, direct conversations, and persisted text-message f
 - The chat workspace provides real conversation filtering and a persistent desktop master-detail layout.
 - The resizable macOS window opens at 1,180 by 660 points.
 - Users can search by exact username, send contact requests, accept or reject incoming requests, remove contacts, and open a direct conversation.
-- Direct channels load cursor-paginated history, receive realtime messages, recover sequence gaps after reconnecting, and can send or retry text messages without creating duplicates.
+- Direct channels load cursor-paginated history, receive realtime messages, recover sequence gaps after reconnecting, and can send or retry text and image messages without creating duplicates.
+- Image messages support PNG, JPEG, GIF, and WebP files up to 15 MB. Image bytes are stored behind authenticated API endpoints and are available only to conversation members.
 - The Go API provides health, registration, sign-in, refresh, sign-out, and current-user endpoints.
 - The Go API enforces unique bilateral contact relationships and unique direct conversations.
 - The health check verifies the MySQL connection with `PingContext`.
@@ -23,7 +24,7 @@ The authentication, contacts, direct conversations, and persisted text-message f
 - Docker Compose provides a pinned MySQL 8.4 development environment.
 - OpenAPI defines the implemented HTTP and WebSocket event contracts.
 
-Local Drift storage, read receipts, Redis, and file uploads have not been implemented.
+Local Drift storage, read receipts, Redis, MinIO, and generic file attachments have not been implemented.
 
 ## Technology Stack
 
@@ -125,8 +126,10 @@ DELETE /api/v1/contacts/{user_id}
 POST /api/v1/conversations
 GET  /api/v1/conversations
 POST /api/v1/conversations/{conversation_id}/messages
+POST /api/v1/conversations/{conversation_id}/messages/images
 GET  /api/v1/conversations/{conversation_id}/messages?before={sequence}&limit={count}
 GET  /api/v1/conversations/{conversation_id}/messages?after={sequence}&limit={count}
+GET  /api/v1/message-images/{image_id}
 GET  /api/v1/realtime  (WebSocket upgrade)
 ```
 

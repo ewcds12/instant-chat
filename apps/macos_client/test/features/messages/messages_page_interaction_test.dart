@@ -88,6 +88,22 @@ void main() {
       moreOrLessEquals(position.maxScrollExtent, epsilon: 1),
     );
   });
+
+  testWidgets('renders image messages without a chat bubble', (tester) async {
+    final gateway = StubMessageGateway(
+      _session.user,
+      initialMessages: [_imageMessage('image-1', sequence: '1')],
+    );
+    final container = await _container(gateway: gateway);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(tester, find.byKey(const Key('message-image-image-1')));
+    await tester.pump();
+
+    expect(find.byKey(const Key('message-image-image-1')), findsOneWidget);
+    expect(find.byKey(const Key('message-bubble-image-1')), findsNothing);
+  });
 }
 
 Future<ProviderContainer> _container({
@@ -126,7 +142,28 @@ Message _message(String id, String body, {required String sequence}) {
     sender: _conversation.peer,
     clientMessageId: 'client-$id',
     sequence: sequence,
+    kind: MessageKind.text,
     body: body,
+    image: null,
+    createdAt: DateTime.utc(2026, 7, 15, 13),
+  );
+}
+
+Message _imageMessage(String id, {required String sequence}) {
+  return Message(
+    id: id,
+    conversationId: _conversation.id,
+    sender: _conversation.peer,
+    clientMessageId: 'client-$id',
+    sequence: sequence,
+    kind: MessageKind.image,
+    body: '',
+    image: const MessageImage(
+      id: '5',
+      url: '/api/v1/message-images/5',
+      contentType: 'image/png',
+      byteSize: 3,
+    ),
     createdAt: DateTime.utc(2026, 7, 15, 13),
   );
 }

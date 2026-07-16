@@ -109,9 +109,14 @@ func run() error {
 		authHandler.RequireUser(messageLimiter.Handler(http.HandlerFunc(messageHandler.Send))),
 	)
 	mux.Handle(
+		"POST /api/v1/conversations/{conversation_id}/messages/images",
+		authHandler.RequireUser(messageLimiter.Handler(http.HandlerFunc(messageHandler.SendImage))),
+	)
+	mux.Handle(
 		"GET /api/v1/conversations/{conversation_id}/messages",
 		protected(messageHandler.List),
 	)
+	mux.Handle("GET /api/v1/message-images/{image_id}", protected(messageHandler.Image))
 	mux.Handle("GET /api/v1/realtime", protected(realtimeHandler.Connect))
 
 	server := &http.Server{

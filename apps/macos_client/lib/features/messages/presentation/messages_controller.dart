@@ -9,6 +9,7 @@ import 'package:instant_chat/features/messages/data/dio_message_gateway.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/domain/message_gateway.dart';
 import 'package:instant_chat/features/messages/presentation/message_reconciliation.dart';
+import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 
 final messageGatewayProvider = Provider<MessageGateway>((ref) {
@@ -17,52 +18,6 @@ final messageGatewayProvider = Provider<MessageGateway>((ref) {
 
 final messagesControllerProvider = AsyncNotifierProvider.autoDispose
     .family<MessagesController, MessagesState, String>(MessagesController.new);
-
-class FailedMessage {
-  const FailedMessage({required this.clientMessageId, required this.body});
-
-  final String clientMessageId;
-  final String body;
-}
-
-class MessagesState {
-  const MessagesState({
-    required this.messages,
-    this.nextCursor,
-    this.isLoadingOlder = false,
-    this.isSending = false,
-    this.failedMessage,
-    this.errorMessage,
-  });
-
-  final List<Message> messages;
-  final String? nextCursor;
-  final bool isLoadingOlder;
-  final bool isSending;
-  final FailedMessage? failedMessage;
-  final String? errorMessage;
-
-  MessagesState copyWith({
-    List<Message>? messages,
-    String? nextCursor,
-    bool clearCursor = false,
-    bool? isLoadingOlder,
-    bool? isSending,
-    FailedMessage? failedMessage,
-    bool clearFailure = false,
-    String? errorMessage,
-    bool clearError = false,
-  }) {
-    return MessagesState(
-      messages: messages ?? this.messages,
-      nextCursor: clearCursor ? null : nextCursor ?? this.nextCursor,
-      isLoadingOlder: isLoadingOlder ?? this.isLoadingOlder,
-      isSending: isSending ?? this.isSending,
-      failedMessage: clearFailure ? null : failedMessage ?? this.failedMessage,
-      errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
-    );
-  }
-}
 
 class MessagesController extends AsyncNotifier<MessagesState> {
   MessagesController(this.conversationId);
@@ -114,7 +69,21 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     if (trimmed.isEmpty) {
       return Future.value(false);
     }
-    return _send(FailedMessage(clientMessageId: _newClientID(), body: trimmed));
+    return _send(
+      FailedMessage.text(clientMessageId: _newClientID(), body: trimmed),
+    );
+  }
+
+  Future<bool> sendImage(String imagePath) {
+    if (imagePath.trim().isEmpty) {
+      return Future.value(false);
+    }
+    return _send(
+      FailedMessage.image(
+        clientMessageId: _newClientID(),
+        imagePath: imagePath,
+      ),
+    );
   }
 
   Future<bool> retry() async {
@@ -165,12 +134,7 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       current.copyWith(isSending: true, clearFailure: true, clearError: true),
     );
     try {
-      final message = await _gateway.send(
-        accessToken: _accessToken,
-        conversationId: conversationId,
-        clientMessageId: pending.clientMessageId,
-        body: pending.body,
-      );
+      final message = await _sendPendingMessage(pending);
       final latest = state.requireValue;
       state = AsyncData(
         latest.copyWith(
@@ -191,6 +155,24 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       );
     }
     return false;
+  }
+
+  Future<Message> _sendPendingMessage(FailedMessage pending) {
+    final imagePath = pending.imagePath;
+    if (imagePath != null) {
+      return _gateway.sendImage(
+        accessToken: _accessToken,
+        conversationId: conversationId,
+        clientMessageId: pending.clientMessageId,
+        imagePath: imagePath,
+      );
+    }
+    return _gateway.send(
+      accessToken: _accessToken,
+      conversationId: conversationId,
+      clientMessageId: pending.clientMessageId,
+      body: pending.body,
+    );
   }
 
   void _activateRealtime() {

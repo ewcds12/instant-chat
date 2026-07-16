@@ -8,7 +8,9 @@ class Message {
     required this.sender,
     required this.clientMessageId,
     required this.sequence,
+    required this.kind,
     required this.body,
+    required this.image,
     required this.createdAt,
   });
 
@@ -17,7 +19,9 @@ class Message {
   final PublicUser sender;
   final String clientMessageId;
   final String sequence;
+  final MessageKind kind;
   final String body;
+  final MessageImage? image;
   final DateTime createdAt;
 
   factory Message.fromJson(Map<String, Object?> json) {
@@ -31,10 +35,77 @@ class Message {
       sender: PublicUser.fromJson(_stringKeyed(senderValue)),
       clientMessageId: requiredString(json, 'client_message_id'),
       sequence: requiredString(json, 'sequence'),
-      body: requiredString(json, 'body'),
+      kind: MessageKind.fromWire(json['kind']),
+      body: _requiredBody(json),
+      image: MessageImage.fromJsonOrNull(json['image']),
       createdAt: requiredDateTime(json, 'created_at'),
     );
   }
+}
+
+enum MessageKind {
+  text('text'),
+  image('image');
+
+  const MessageKind(this.wireName);
+
+  final String wireName;
+
+  static MessageKind fromWire(Object? value) {
+    if (value == null) {
+      return MessageKind.text;
+    }
+    if (value is! String) {
+      throw const FormatException('kind must be a string');
+    }
+    return switch (value) {
+      'text' => MessageKind.text,
+      'image' => MessageKind.image,
+      _ => throw const FormatException('kind is not supported'),
+    };
+  }
+}
+
+class MessageImage {
+  const MessageImage({
+    required this.id,
+    required this.url,
+    required this.contentType,
+    required this.byteSize,
+  });
+
+  final String id;
+  final String url;
+  final String contentType;
+  final int byteSize;
+
+  static MessageImage? fromJsonOrNull(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is! Map<Object?, Object?>) {
+      throw const FormatException('image must be a JSON object or null');
+    }
+    final json = _stringKeyed(value);
+    final byteSize = json['byte_size'];
+    if (byteSize is! int) {
+      throw const FormatException('byte_size must be an integer');
+    }
+    return MessageImage(
+      id: requiredString(json, 'id'),
+      url: requiredString(json, 'url'),
+      contentType: requiredString(json, 'content_type'),
+      byteSize: byteSize,
+    );
+  }
+}
+
+String _requiredBody(Map<String, Object?> json) {
+  final value = json['body'];
+  if (value is! String) {
+    throw const FormatException('body must be a string');
+  }
+  return value;
 }
 
 Map<String, Object?> _stringKeyed(Map<Object?, Object?> value) {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/platform/macos_image_picker.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/messages/presentation/message_composer.dart';
@@ -7,6 +8,7 @@ import 'package:instant_chat/features/messages/presentation/message_header.dart'
 import 'package:instant_chat/features/messages/presentation/message_history.dart';
 import 'package:instant_chat/features/messages/presentation/message_search.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
+import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 
 class MessagesPage extends ConsumerStatefulWidget {
   const MessagesPage({required this.conversation, super.key});
@@ -43,6 +45,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   Widget build(BuildContext context) {
     final provider = messagesControllerProvider(widget.conversation.id);
     final state = ref.watch(provider);
+    final session = ref.read(authControllerProvider).requireValue.session!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -62,12 +65,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
               return MessageHistory(
                 value: value,
                 scrollController: _historyScroll,
-                currentUserId: ref
-                    .read(authControllerProvider)
-                    .requireValue
-                    .session!
-                    .user
-                    .id,
+                accessToken: session.accessToken,
+                currentUserId: session.user.id,
                 onLoadOlder: () => ref.read(provider.notifier).loadOlder(),
               );
             },
@@ -87,6 +86,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             disabled: value.isSending,
             recipientName: widget.conversation.peer.displayName,
             onSend: () => _send(provider),
+            onPickImage: () => _pickAndSendImage(provider),
           ),
         ],
       ],
@@ -98,6 +98,18 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   ) async {
     if (await ref.read(provider.notifier).send(_composer.text)) {
       _composer.clear();
+      _focusComposer();
+    }
+  }
+
+  Future<void> _pickAndSendImage(
+    AsyncNotifierProvider<MessagesController, MessagesState> provider,
+  ) async {
+    final imagePath = await ref.read(localImagePickerProvider).pickImagePath();
+    if (!mounted || imagePath == null) {
+      return;
+    }
+    if (await ref.read(provider.notifier).sendImage(imagePath)) {
       _focusComposer();
     }
   }

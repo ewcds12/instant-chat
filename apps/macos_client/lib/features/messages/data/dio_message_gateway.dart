@@ -54,8 +54,35 @@ class DioMessageGateway implements MessageGateway {
     return Message.fromJson(responseObject(response.data));
   }
 
+  @override
+  Future<Message> sendImage({
+    required String accessToken,
+    required String conversationId,
+    required String clientMessageId,
+    required String imagePath,
+  }) async {
+    final response = await apiRequest(
+      () async => _dio.post<Object?>(
+        '/api/v1/conversations/$conversationId/messages/images',
+        data: FormData.fromMap({
+          'client_message_id': clientMessageId,
+          'image': await MultipartFile.fromFile(imagePath),
+        }),
+        options: _uploadOptions(accessToken),
+      ),
+    );
+    expectStatus(response, {200, 201});
+    return Message.fromJson(responseObject(response.data));
+  }
+
   Options _options(String token) =>
       Options(headers: bearerAuthorization(token));
+
+  Options _uploadOptions(String token) => Options(
+    headers: bearerAuthorization(token),
+    sendTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
+  );
 }
 
 Map<String, Object?> _requiredObject(Object? value) {

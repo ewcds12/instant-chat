@@ -1,4 +1,4 @@
-// Package messages manages persisted direct text messages.
+// Package messages manages persisted direct conversation messages.
 package messages
 
 import (
@@ -10,6 +10,15 @@ import (
 var (
 	// ErrConversationNotFound hides whether a conversation exists from non-members.
 	ErrConversationNotFound = errors.New("conversation not found")
+	// ErrImageNotFound hides whether an image exists from non-members.
+	ErrImageNotFound = errors.New("message image not found")
+)
+
+const (
+	// KindText identifies a regular text message.
+	KindText = "text"
+	// KindImage identifies a message with one image attachment.
+	KindImage = "image"
 )
 
 // InputError describes one invalid message request field.
@@ -36,8 +45,30 @@ type Message struct {
 	Sender          Sender
 	ClientMessageID string
 	Sequence        uint64
+	Kind            string
 	Body            string
+	Image           *ImageAttachment
 	CreatedAt       time.Time
+}
+
+// ImageAttachment is the public metadata for one image message attachment.
+type ImageAttachment struct {
+	ID          uint64
+	ContentType string
+	ByteSize    uint32
+}
+
+// ImageUpload is a validated image upload candidate.
+type ImageUpload struct {
+	ContentType string
+	Data        []byte
+}
+
+// ImageFile is one authorized image download.
+type ImageFile struct {
+	ContentType string
+	ByteSize    uint32
+	Data        []byte
 }
 
 // Page is one ascending message-history page.
@@ -53,6 +84,13 @@ type Repository interface {
 		userID, conversationID uint64,
 		clientMessageID, body string,
 	) (Message, bool, error)
+	SendImage(
+		ctx context.Context,
+		userID, conversationID uint64,
+		clientMessageID string,
+		upload ImageUpload,
+	) (Message, bool, error)
+	Image(ctx context.Context, userID, imageID uint64) (ImageFile, error)
 	List(
 		ctx context.Context,
 		userID, conversationID uint64,

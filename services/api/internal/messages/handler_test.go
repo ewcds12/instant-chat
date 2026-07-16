@@ -17,6 +17,7 @@ type stubMessageService struct {
 	conversationID uint64
 	clientID       string
 	body           string
+	image          ImageUpload
 }
 
 func (s *stubMessageService) Send(
@@ -29,6 +30,27 @@ func (s *stubMessageService) Send(
 	s.clientID = clientID
 	s.body = body
 	return testMessage(), true, nil
+}
+
+func (s *stubMessageService) SendImage(
+	_ context.Context,
+	userID, conversationID uint64,
+	clientID string,
+	image ImageUpload,
+) (Message, bool, error) {
+	s.userID = userID
+	s.conversationID = conversationID
+	s.clientID = clientID
+	s.image = image
+	message := testMessage()
+	message.Kind = KindImage
+	message.Body = ""
+	message.Image = &ImageAttachment{ID: 5, ContentType: image.ContentType, ByteSize: uint32(len(image.Data))}
+	return message, true, nil
+}
+
+func (s *stubMessageService) Image(context.Context, uint64, uint64) (ImageFile, error) {
+	return ImageFile{ContentType: "image/png", ByteSize: 3, Data: []byte{1, 2, 3}}, nil
 }
 
 func (s *stubMessageService) List(
@@ -103,6 +125,53 @@ func TestHandlerSendReturnsCreatedMessage(t *testing.T) {
 	}
 }
 
+func TestHandlerSendImageReturnsCreatedMessage(t *testing.T) {
+	service := &stubMessageService{}
+	handler := authenticated(http.HandlerFunc(NewHandler(service).SendImage))
+	body := strings.NewReader(
+		"--instant\r\n" +
+			"Content-Disposition: form-data; name=\"client_message_id\"\r\n\r\n" +
+			"0123456789abcdef0123456789abcdef\r\n" +
+			"--instant\r\n" +
+			"Content-Disposition: form-data; name=\"image\"; filename=\"image.png\"\r\n" +
+			"Content-Type: image/png\r\n\r\n" +
+			"\x89PNG\r\n\x1a\nimage\r\n" +
+			"--instant--\r\n",
+	)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/conversations/11/messages/images",
+		body,
+	)
+	request.Header.Set("Content-Type", "multipart/form-data; boundary=instant")
+	request.SetPathValue("conversation_id", "11")
+	request.Header.Set("Authorization", "Bearer access")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusCreated || service.image.ContentType != "image/png" {
+		t.Fatalf(
+			"status = %d, image content type = %q",
+			recorder.Code, service.image.ContentType,
+		)
+	}
+}
+
+func TestHandlerImageReturnsBytes(t *testing.T) {
+	handler := authenticated(http.HandlerFunc(NewHandler(&stubMessageService{}).Image))
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/message-images/5", nil)
+	request.SetPathValue("image_id", "5")
+	request.Header.Set("Authorization", "Bearer access")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK || recorder.Header().Get("Content-Type") != "image/png" {
+		t.Fatalf("status = %d, content type = %q", recorder.Code, recorder.Header().Get("Content-Type"))
+	}
+}
+
 func TestHandlerListRejectsInvalidCursor(t *testing.T) {
 	handler := authenticated(http.HandlerFunc(NewHandler(&stubMessageService{}).List))
 	request := httptest.NewRequest(
@@ -136,6 +205,7 @@ func testMessage() Message {
 		},
 		ClientMessageID: "0123456789abcdef0123456789abcdef",
 		Sequence:        4,
+		Kind:            KindText,
 		Body:            "Hello.",
 		CreatedAt:       time.Date(2026, 7, 16, 13, 0, 0, 0, time.UTC),
 	}

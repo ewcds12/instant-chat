@@ -18,10 +18,15 @@ SELECT
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
+  message.kind,
   message.body,
+  message.image_id,
+  image.content_type AS image_content_type,
+  image.byte_size AS image_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
+LEFT JOIN message_images AS image ON image.id = message.image_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sender_id = sqlc.arg(sender_id)
   AND message.client_message_id = sqlc.arg(client_message_id)
@@ -33,9 +38,20 @@ INSERT INTO messages (
   sender_id,
   client_message_id,
   sequence,
-  body
+  kind,
+  body,
+  image_id
 )
-VALUES (?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?);
+
+-- name: CreateMessageImage :execresult
+INSERT INTO message_images (
+  uploader_id,
+  content_type,
+  byte_size,
+  data
+)
+VALUES (?, ?, ?, ?);
 
 -- name: AdvanceConversationSequence :exec
 UPDATE conversations
@@ -61,10 +77,15 @@ SELECT
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
+  message.kind,
   message.body,
+  message.image_id,
+  image.content_type AS image_content_type,
+  image.byte_size AS image_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
+LEFT JOIN message_images AS image ON image.id = message.image_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
 ORDER BY message.sequence DESC
 LIMIT ?;
@@ -79,10 +100,15 @@ SELECT
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
+  message.kind,
   message.body,
+  message.image_id,
+  image.content_type AS image_content_type,
+  image.byte_size AS image_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
+LEFT JOIN message_images AS image ON image.id = message.image_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence < sqlc.arg(before_sequence)
 ORDER BY message.sequence DESC
@@ -98,10 +124,15 @@ SELECT
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
+  message.kind,
   message.body,
+  message.image_id,
+  image.content_type AS image_content_type,
+  image.byte_size AS image_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
+LEFT JOIN message_images AS image ON image.id = message.image_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence > sqlc.arg(after_sequence)
 ORDER BY message.sequence ASC
@@ -112,3 +143,16 @@ SELECT user_id
 FROM conversation_members
 WHERE conversation_id = ?
 ORDER BY user_id ASC;
+
+-- name: GetMessageImageForMember :one
+SELECT
+  image.content_type,
+  image.byte_size,
+  image.data
+FROM message_images AS image
+JOIN messages AS message ON message.image_id = image.id
+JOIN conversation_members AS membership
+  ON membership.conversation_id = message.conversation_id
+WHERE image.id = sqlc.arg(image_id)
+  AND membership.user_id = sqlc.arg(user_id)
+LIMIT 1;

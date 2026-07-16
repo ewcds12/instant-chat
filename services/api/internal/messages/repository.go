@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/ewcds12/instant-chat/services/api/internal/store"
 )
@@ -26,6 +25,44 @@ func (r *MySQLRepository) Send(
 	ctx context.Context,
 	userID, conversationID uint64,
 	clientMessageID, body string,
+) (Message, bool, error) {
+	return r.send(ctx, userID, conversationID, clientMessageID, KindText, body, nil)
+}
+
+// SendImage allocates a sequence and creates one image message atomically.
+func (r *MySQLRepository) SendImage(
+	ctx context.Context,
+	userID, conversationID uint64,
+	clientMessageID string,
+	upload ImageUpload,
+) (Message, bool, error) {
+	return r.send(ctx, userID, conversationID, clientMessageID, KindImage, "", &upload)
+}
+
+// Image returns one image if the requester belongs to its conversation.
+func (r *MySQLRepository) Image(ctx context.Context, userID, imageID uint64) (ImageFile, error) {
+	row, err := r.queries.GetMessageImageForMember(ctx, store.GetMessageImageForMemberParams{
+		ImageID: imageID,
+		UserID:  userID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return ImageFile{}, ErrImageNotFound
+	}
+	if err != nil {
+		return ImageFile{}, fmt.Errorf("read message image: %w", err)
+	}
+	return ImageFile{
+		ContentType: row.ContentType,
+		ByteSize:    row.ByteSize,
+		Data:        row.Data,
+	}, nil
+}
+
+func (r *MySQLRepository) send(
+	ctx context.Context,
+	userID, conversationID uint64,
+	clientMessageID, kind, body string,
+	upload *ImageUpload,
 ) (Message, bool, error) {
 	tx, err := r.database.BeginTx(ctx, nil)
 	if err != nil {
@@ -56,7 +93,14 @@ func (r *MySQLRepository) Send(
 	if !errors.Is(err, sql.ErrNoRows) {
 		return Message{}, false, rollback(tx, fmt.Errorf("read idempotent message: %w", err))
 	}
-	if err := createMessage(ctx, queries, conversationID, userID, clientMessageID, sequence, body); err != nil {
+	imageID, err := createImage(ctx, queries, userID, upload)
+	if err != nil {
+		return Message{}, false, rollback(tx, err)
+	}
+	if err := createMessage(
+		ctx, queries, conversationID, userID, clientMessageID,
+		sequence, kind, body, imageID,
+	); err != nil {
 		return Message{}, false, rollback(tx, err)
 	}
 	created, err := queries.GetMessageByClientID(ctx, store.GetMessageByClientIDParams{
@@ -133,14 +177,18 @@ func createMessage(
 	conversationID, userID uint64,
 	clientMessageID string,
 	sequence uint64,
+	kind string,
 	body string,
+	imageID sql.NullInt64,
 ) error {
 	_, err := queries.CreateMessage(ctx, store.CreateMessageParams{
 		ConversationID:  conversationID,
 		SenderID:        userID,
 		ClientMessageID: clientMessageID,
 		Sequence:        sequence,
+		Kind:            kind,
 		Body:            body,
+		ImageID:         imageID,
 	})
 	if err != nil {
 		return fmt.Errorf("create message: %w", err)
@@ -149,6 +197,31 @@ func createMessage(
 		return fmt.Errorf("advance conversation sequence: %w", err)
 	}
 	return nil
+}
+
+func createImage(
+	ctx context.Context,
+	queries *store.Queries,
+	userID uint64,
+	upload *ImageUpload,
+) (sql.NullInt64, error) {
+	if upload == nil {
+		return sql.NullInt64{}, nil
+	}
+	result, err := queries.CreateMessageImage(ctx, store.CreateMessageImageParams{
+		UploaderID:  userID,
+		ContentType: upload.ContentType,
+		ByteSize:    uint32(len(upload.Data)),
+		Data:        upload.Data,
+	})
+	if err != nil {
+		return sql.NullInt64{}, fmt.Errorf("create message image: %w", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return sql.NullInt64{}, fmt.Errorf("read created image id: %w", err)
+	}
+	return sql.NullInt64{Int64: id, Valid: true}, nil
 }
 
 func (r *MySQLRepository) listLatest(ctx context.Context, conversationID uint64, limit int) ([]Message, error) {
@@ -191,58 +264,4 @@ func rollback(tx *sql.Tx, cause error) error {
 		return errors.Join(cause, fmt.Errorf("roll back transaction: %w", err))
 	}
 	return cause
-}
-
-func messageFromClientRow(row store.GetMessageByClientIDRow) Message {
-	return newMessage(
-		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
-		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
-		row.Sequence, row.Body, row.CreatedAt,
-	)
-}
-
-func messageFromLatestRow(row store.ListLatestMessagesRow) Message {
-	return newMessage(
-		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
-		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
-		row.Sequence, row.Body, row.CreatedAt,
-	)
-}
-
-func messageFromBeforeRow(row store.ListMessagesBeforeRow) Message {
-	return newMessage(
-		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
-		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
-		row.Sequence, row.Body, row.CreatedAt,
-	)
-}
-
-func messageFromAfterRow(row store.ListMessagesAfterRow) Message {
-	return newMessage(
-		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
-		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
-		row.Sequence, row.Body, row.CreatedAt,
-	)
-}
-
-func newMessage(
-	id, conversationID, senderID uint64,
-	username, displayName string,
-	senderCreatedAt time.Time,
-	clientMessageID string,
-	sequence uint64,
-	body string,
-	createdAt time.Time,
-) Message {
-	return Message{
-		ID:             id,
-		ConversationID: conversationID,
-		Sender: Sender{
-			ID: senderID, Username: username, DisplayName: displayName, CreatedAt: senderCreatedAt,
-		},
-		ClientMessageID: clientMessageID,
-		Sequence:        sequence,
-		Body:            body,
-		CreatedAt:       createdAt,
-	}
 }

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.6.0
+  version: 0.7.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -430,6 +430,83 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/InternalError"
+  /conversations/{conversation_id}/messages/images:
+    post:
+      operationId: sendImageMessage
+      summary: Persist one direct image message
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/SendImageMessageRequest"
+      responses:
+        "200":
+          description: Idempotent retry returned the existing message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "201":
+          description: Message created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /message-images/{image_id}:
+    get:
+      operationId: getMessageImage
+      summary: Return one authorized message image
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: image_id
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ResourceID"
+      responses:
+        "200":
+          description: Image bytes
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /realtime:
     get:
       operationId: connectRealtime
@@ -759,6 +836,43 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+    SendImageMessageRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - client_message_id
+        - image
+      properties:
+        client_message_id:
+          $ref: "#/components/schemas/ClientMessageID"
+        image:
+          type: string
+          format: binary
+          description: PNG, JPEG, GIF, or WebP image up to 15 MB.
+    MessageImage:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - url
+        - content_type
+        - byte_size
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        url:
+          type: string
+        content_type:
+          type: string
+          enum:
+            - image/gif
+            - image/jpeg
+            - image/png
+            - image/webp
+        byte_size:
+          type: integer
+          minimum: 1
+          maximum: 15728640
     Message:
       type: object
       additionalProperties: false
@@ -768,7 +882,9 @@ components:
         - sender
         - client_message_id
         - sequence
+        - kind
         - body
+        - image
         - created_at
       properties:
         id:
@@ -781,10 +897,18 @@ components:
           $ref: "#/components/schemas/ClientMessageID"
         sequence:
           $ref: "#/components/schemas/Sequence"
+        kind:
+          type: string
+          enum:
+            - text
+            - image
         body:
           type: string
-          minLength: 1
           maxLength: 4000
+        image:
+          oneOf:
+            - $ref: "#/components/schemas/MessageImage"
+            - type: "null"
         created_at:
           type: string
           format: date-time

@@ -8,12 +8,20 @@ import (
 )
 
 const (
-	defaultPageSize  = 50
-	maximumPageSize  = 100
-	maximumBodyRunes = 4000
+	defaultPageSize   = 50
+	maximumPageSize   = 100
+	maximumBodyRunes  = 4000
+	maximumImageBytes = 15 * 1024 * 1024
 )
 
 var clientMessageIDPattern = regexp.MustCompile(`^[a-f0-9]{32}$`)
+
+var allowedImageContentTypes = map[string]struct{}{
+	"image/gif":  {},
+	"image/jpeg": {},
+	"image/png":  {},
+	"image/webp": {},
+}
 
 // Service implements message validation and cursor pagination.
 type Service struct {
@@ -53,6 +61,46 @@ func (s *Service) Send(
 		s.publisher.PublishMessage(ctx, message)
 	}
 	return message, created, err
+}
+
+// SendImage validates and persists one image message.
+func (s *Service) SendImage(
+	ctx context.Context,
+	userID, conversationID uint64,
+	clientMessageID string,
+	upload ImageUpload,
+) (Message, bool, error) {
+	if !clientMessageIDPattern.MatchString(clientMessageID) {
+		return Message{}, false, &InputError{
+			Message: "Client message ID must be 32 lowercase hexadecimal characters.",
+		}
+	}
+	if len(upload.Data) == 0 {
+		return Message{}, false, &InputError{Message: "Image must not be empty."}
+	}
+	if len(upload.Data) > maximumImageBytes {
+		return Message{}, false, &InputError{Message: "Image must be 15 MB or smaller."}
+	}
+	if _, ok := allowedImageContentTypes[upload.ContentType]; !ok {
+		return Message{}, false, &InputError{
+			Message: "Image must be PNG, JPEG, GIF, or WebP.",
+		}
+	}
+	message, created, err := s.repository.SendImage(
+		ctx, userID, conversationID, clientMessageID, upload,
+	)
+	if err == nil && created {
+		s.publisher.PublishMessage(ctx, message)
+	}
+	return message, created, err
+}
+
+// Image returns one authorized image attachment.
+func (s *Service) Image(ctx context.Context, userID, imageID uint64) (ImageFile, error) {
+	if imageID == 0 {
+		return ImageFile{}, &InputError{Message: "Image ID must be a positive integer string."}
+	}
+	return s.repository.Image(ctx, userID, imageID)
 }
 
 // List returns one ascending history page and an older-page cursor.

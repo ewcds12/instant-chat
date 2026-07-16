@@ -9,6 +9,7 @@ import (
 type fakeRepository struct {
 	sentClientID string
 	sentBody     string
+	imageUpload  *ImageUpload
 	listedLimit  int
 	messages     []Message
 	idempotent   bool
@@ -23,6 +24,26 @@ func (f *fakeRepository) Send(
 	f.sentClientID = clientMessageID
 	f.sentBody = body
 	return Message{ID: 9, ClientMessageID: clientMessageID, Body: body}, !f.idempotent, f.err
+}
+
+func (f *fakeRepository) SendImage(
+	_ context.Context,
+	_, _ uint64,
+	clientMessageID string,
+	upload ImageUpload,
+) (Message, bool, error) {
+	f.sentClientID = clientMessageID
+	f.imageUpload = &upload
+	return Message{
+		ID:              9,
+		ClientMessageID: clientMessageID,
+		Kind:            KindImage,
+		Image:           &ImageAttachment{ID: 3, ContentType: upload.ContentType, ByteSize: uint32(len(upload.Data))},
+	}, !f.idempotent, f.err
+}
+
+func (f *fakeRepository) Image(context.Context, uint64, uint64) (ImageFile, error) {
+	return ImageFile{}, f.err
 }
 
 func (f *fakeRepository) List(
@@ -98,6 +119,64 @@ func TestServiceSendDoesNotRepublishIdempotentMessage(t *testing.T) {
 			"Send() error = %v, created = %t, published = %d",
 			err, created, len(publisher.messages),
 		)
+	}
+}
+
+func TestServiceSendImageValidatesAndPublishes(t *testing.T) {
+	repository := &fakeRepository{}
+	publisher := &fakePublisher{}
+	service := NewService(repository, publisher)
+
+	message, created, err := service.SendImage(
+		context.Background(), 7, 11,
+		"0123456789abcdef0123456789abcdef",
+		ImageUpload{ContentType: "image/png", Data: []byte{1, 2, 3}},
+	)
+
+	if err != nil {
+		t.Fatalf("SendImage() error = %v", err)
+	}
+	if !created || message.Kind != KindImage || repository.imageUpload == nil {
+		t.Fatalf("message = %+v, created = %t", message, created)
+	}
+	if len(publisher.messages) != 1 {
+		t.Fatalf("published messages = %d, want 1", len(publisher.messages))
+	}
+}
+
+func TestServiceSendImageRejectsUnsupportedContentType(t *testing.T) {
+	service := NewService(&fakeRepository{}, &fakePublisher{})
+
+	_, _, err := service.SendImage(
+		context.Background(), 7, 11,
+		"0123456789abcdef0123456789abcdef",
+		ImageUpload{ContentType: "text/plain", Data: []byte("nope")},
+	)
+
+	var inputError *InputError
+	if !errors.As(err, &inputError) {
+		t.Fatalf("SendImage() error = %v, want InputError", err)
+	}
+}
+
+func TestServiceSendImageRejectsOversizedImage(t *testing.T) {
+	service := NewService(&fakeRepository{}, &fakePublisher{})
+
+	_, _, err := service.SendImage(
+		context.Background(), 7, 11,
+		"0123456789abcdef0123456789abcdef",
+		ImageUpload{
+			ContentType: "image/png",
+			Data:        make([]byte, maximumImageBytes+1),
+		},
+	)
+
+	var inputError *InputError
+	if !errors.As(err, &inputError) {
+		t.Fatalf("SendImage() error = %v, want InputError", err)
+	}
+	if inputError.Message != "Image must be 15 MB or smaller." {
+		t.Fatalf("InputError.Message = %q", inputError.Message)
 	}
 }
 

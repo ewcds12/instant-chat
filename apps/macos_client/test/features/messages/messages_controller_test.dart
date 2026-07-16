@@ -87,6 +87,37 @@ void main() {
     expect(container.read(provider).requireValue.nextCursor, isNull);
   });
 
+  test('sendImage appends an image message', () async {
+    final gateway = _FakeMessageGateway();
+    final realtime = _FakeRealtimeConnection();
+    final container = ProviderContainer(
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => _StubAuthController(AuthState(session: _session)),
+        ),
+        messageGatewayProvider.overrideWithValue(gateway),
+        realtimeConnectionProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(realtime.close);
+    await container.read(authControllerProvider.future);
+    final provider = messagesControllerProvider('11');
+    final subscription = container.listen(provider, (_, _) {});
+    addTearDown(subscription.close);
+    await container.read(provider.future);
+
+    final sent = await container
+        .read(provider.notifier)
+        .sendImage('/tmp/instant-chat-image.png');
+
+    final message = container.read(provider).requireValue.messages.single;
+    expect(sent, isTrue);
+    expect(gateway.sentImagePath, '/tmp/instant-chat-image.png');
+    expect(message.kind, MessageKind.image);
+    expect(message.image?.url, '/api/v1/message-images/6');
+  });
+
   test(
     'reconnect catches up, deduplicates, and restores sequence order',
     () async {
@@ -197,7 +228,9 @@ Message _message(String sequence) {
     ),
     clientMessageId: sequence.padLeft(32, '0'),
     sequence: sequence,
+    kind: MessageKind.text,
     body: 'Message $sequence',
+    image: null,
     createdAt: DateTime.utc(2026, 7, 16, 13),
   );
 }
@@ -209,6 +242,7 @@ class _FakeMessageGateway implements MessageGateway {
   final List<MessagePage> pages;
   final List<String> clientIDs = [];
   final List<String> afterCursors = [];
+  String? sentImagePath;
   var listIndex = 0;
   var failNextSend = false;
 
@@ -244,7 +278,36 @@ class _FakeMessageGateway implements MessageGateway {
       sender: _message('1').sender,
       clientMessageId: clientMessageId,
       sequence: '5',
+      kind: MessageKind.text,
       body: body,
+      image: null,
+      createdAt: DateTime.utc(2026, 7, 16, 13),
+    );
+  }
+
+  @override
+  Future<Message> sendImage({
+    required String accessToken,
+    required String conversationId,
+    required String clientMessageId,
+    required String imagePath,
+  }) async {
+    clientIDs.add(clientMessageId);
+    sentImagePath = imagePath;
+    return Message(
+      id: '22',
+      conversationId: conversationId,
+      sender: _message('1').sender,
+      clientMessageId: clientMessageId,
+      sequence: '5',
+      kind: MessageKind.image,
+      body: '',
+      image: const MessageImage(
+        id: '6',
+        url: '/api/v1/message-images/6',
+        contentType: 'image/png',
+        byteSize: 4,
+      ),
       createdAt: DateTime.utc(2026, 7, 16, 13),
     );
   }

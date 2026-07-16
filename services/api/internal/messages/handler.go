@@ -14,6 +14,8 @@ import (
 
 type messageService interface {
 	Send(context.Context, uint64, uint64, string, string) (Message, bool, error)
+	SendImage(context.Context, uint64, uint64, string, ImageUpload) (Message, bool, error)
+	Image(context.Context, uint64, uint64) (ImageFile, error)
 	List(context.Context, uint64, uint64, *uint64, *uint64, int) (Page, error)
 }
 
@@ -45,8 +47,17 @@ type messageResponse struct {
 	Sender          senderResponse `json:"sender"`
 	ClientMessageID string         `json:"client_message_id"`
 	Sequence        string         `json:"sequence"`
+	Kind            string         `json:"kind"`
 	Body            string         `json:"body"`
+	Image           *imageResponse `json:"image"`
 	CreatedAt       time.Time      `json:"created_at"`
+}
+
+type imageResponse struct {
+	ID          string `json:"id"`
+	URL         string `json:"url"`
+	ContentType string `json:"content_type"`
+	ByteSize    uint32 `json:"byte_size"`
 }
 
 // Send persists one direct text message.
@@ -72,6 +83,51 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 		status = http.StatusCreated
 	}
 	httpapi.WriteJSON(w, status, responseFromMessage(message))
+}
+
+// SendImage persists one direct image message.
+func (h *Handler) SendImage(w http.ResponseWriter, r *http.Request) {
+	conversationID, ok := conversationID(w, r)
+	if !ok {
+		return
+	}
+	upload, clientMessageID, ok := imageUpload(w, r)
+	if !ok {
+		return
+	}
+	message, created, err := h.service.SendImage(
+		r.Context(), currentUserID(r), conversationID, clientMessageID, upload,
+	)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	status := http.StatusOK
+	if created {
+		status = http.StatusCreated
+	}
+	httpapi.WriteJSON(w, status, responseFromMessage(message))
+}
+
+// Image returns one image attachment for an authorized conversation member.
+func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
+	imageID, ok := positivePathID(w, r, "image_id", "Image ID")
+	if !ok {
+		return
+	}
+	image, err := h.service.Image(r.Context(), currentUserID(r), imageID)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "private, max-age=60")
+	w.Header().Set("Content-Disposition", "inline")
+	w.Header().Set("Content-Length", strconv.FormatUint(uint64(image.ByteSize), 10))
+	w.Header().Set("Content-Type", image.ContentType)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if _, err := w.Write(image.Data); err != nil {
+		slog.Debug("write message image failed", "request_id", httpapi.RequestID(r.Context()), "error", err)
+	}
 }
 
 // List returns one cursor-paginated message-history page.
@@ -132,9 +188,13 @@ func optionalSequence(w http.ResponseWriter, r *http.Request, name string) (*uin
 }
 
 func conversationID(w http.ResponseWriter, r *http.Request) (uint64, bool) {
-	value, err := strconv.ParseUint(r.PathValue("conversation_id"), 10, 64)
+	return positivePathID(w, r, "conversation_id", "Conversation ID")
+}
+
+func positivePathID(w http.ResponseWriter, r *http.Request, name, label string) (uint64, bool) {
+	value, err := strconv.ParseUint(r.PathValue(name), 10, 64)
 	if err != nil || value == 0 {
-		writeInvalidArgument(w, r, "Conversation ID must be a positive integer string.")
+		writeInvalidArgument(w, r, label+" must be a positive integer string.")
 		return 0, false
 	}
 	return value, true
@@ -179,6 +239,8 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 		httpapi.WriteError(w, http.StatusBadRequest, "invalid_argument", inputError.Message, requestID)
 	case errors.Is(err, ErrConversationNotFound):
 		httpapi.WriteError(w, http.StatusNotFound, "conversation_not_found", "Conversation was not found.", requestID)
+	case errors.Is(err, ErrImageNotFound):
+		httpapi.WriteError(w, http.StatusNotFound, "image_not_found", "Image was not found.", requestID)
 	default:
 		slog.Error("message request failed", "request_id", requestID, "error", err)
 		httpapi.WriteError(
@@ -193,7 +255,7 @@ func writeInvalidArgument(w http.ResponseWriter, r *http.Request, message string
 }
 
 func responseFromMessage(message Message) messageResponse {
-	return messageResponse{
+	response := messageResponse{
 		ID:             strconv.FormatUint(message.ID, 10),
 		ConversationID: strconv.FormatUint(message.ConversationID, 10),
 		Sender: senderResponse{
@@ -204,7 +266,21 @@ func responseFromMessage(message Message) messageResponse {
 		},
 		ClientMessageID: message.ClientMessageID,
 		Sequence:        strconv.FormatUint(message.Sequence, 10),
+		Kind:            message.Kind,
 		Body:            message.Body,
 		CreatedAt:       message.CreatedAt.UTC(),
 	}
+	if response.Kind == "" {
+		response.Kind = KindText
+	}
+	if message.Image != nil {
+		imageID := strconv.FormatUint(message.Image.ID, 10)
+		response.Image = &imageResponse{
+			ID:          imageID,
+			URL:         "/api/v1/message-images/" + imageID,
+			ContentType: message.Image.ContentType,
+			ByteSize:    message.Image.ByteSize,
+		}
+	}
+	return response
 }

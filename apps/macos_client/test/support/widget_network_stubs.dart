@@ -13,6 +13,7 @@ class StubMessageGateway implements MessageGateway {
   final AuthUser sender;
   final List<Message> initialMessages;
   String? sentBody;
+  String? sentImagePath;
 
   @override
   Future<MessagePage> list({
@@ -39,7 +40,35 @@ class StubMessageGateway implements MessageGateway {
       sender: PublicUser.fromAuthUser(sender),
       clientMessageId: clientMessageId,
       sequence: '1',
+      kind: MessageKind.text,
       body: body,
+      image: null,
+      createdAt: DateTime.utc(2026, 7, 15, 13),
+    );
+  }
+
+  @override
+  Future<Message> sendImage({
+    required String accessToken,
+    required String conversationId,
+    required String clientMessageId,
+    required String imagePath,
+  }) async {
+    sentImagePath = imagePath;
+    return Message(
+      id: '22',
+      conversationId: conversationId,
+      sender: PublicUser.fromAuthUser(sender),
+      clientMessageId: clientMessageId,
+      sequence: '2',
+      kind: MessageKind.image,
+      body: '',
+      image: const MessageImage(
+        id: '5',
+        url: '/api/v1/message-images/5',
+        contentType: 'image/png',
+        byteSize: 3,
+      ),
       createdAt: DateTime.utc(2026, 7, 15, 13),
     );
   }

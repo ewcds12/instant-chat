@@ -25,12 +25,13 @@ The client is located in `apps/macos_client` and currently contains:
 - `app`: application entry point and global theme assembly.
 - `core/config`: compile-time API address configuration.
 - `core/network`: shared Dio lifecycle and connection configuration.
+- `core/platform`: macOS-specific platform adapters, including the native image file picker.
 - `core/theme`: native macOS UI color, typography, and layout tokens.
 - `features/auth`: authentication domain contracts, Dio and Keychain adapters, Riverpod session state, and forms.
 - `features/users`: the public account identity shared by contacts and direct conversations.
 - `features/contacts`: exact username search, contact-request workflows, accepted contacts, and Riverpod state.
 - `features/conversations`: direct-conversation creation, list state, and channel selection.
-- `features/messages`: message history, REST sending, realtime reconciliation, idempotent retry state, and channel presentation.
+- `features/messages`: message history, text and image REST sending, realtime reconciliation, idempotent retry state, and channel presentation.
 - `features/realtime`: authenticated WebSocket lifecycle, heartbeat, reconnect backoff, and event parsing.
 - `features/system_status`: health domain model, Dio data access, Riverpod state, and presentation.
 
@@ -49,7 +50,7 @@ The server is located in `services/api` and currently contains:
 - `internal/users`: shared username normalization rules.
 - `internal/contacts`: exact account search, pending and accepted relationship rules, HTTP handlers, and MySQL persistence.
 - `internal/conversations`: authorized direct-conversation creation, membership transactions, list handlers, and MySQL persistence.
-- `internal/messages`: text validation, idempotent REST sending, cursor history, membership authorization, and MySQL persistence.
+- `internal/messages`: text and image validation, idempotent REST sending, cursor history, membership authorization, and MySQL persistence.
 - `internal/realtime`: authenticated WebSocket connections, member-targeted delivery, heartbeat, and graceful shutdown.
 - `internal/config`: environment variable loading and validation.
 - `internal/health`: API and database health checks.
@@ -86,6 +87,8 @@ Each conversation owns a monotonically increasing sequence. Sending locks the co
 
 History is returned in ascending sequence order, at most 100 messages per request. The optional `before` cursor requests older sequences. The mutually exclusive `after` cursor requests newer sequences for reconnect recovery. `next_cursor` continues in the requested direction and is null when that direction is complete. Send and history endpoints return the same not-found response when the conversation is missing or the user is not a member. Message sending is limited to 60 attempts per IP address per minute in each API process.
 
+Messages have a `kind` of `text` or `image`. Text messages store a validated body. Image messages store one PNG, JPEG, GIF, or WebP attachment up to 15 MB in MySQL for the first implementation. Image bytes are returned only through an authenticated API endpoint that verifies the requester is a member of the image's conversation. The client uses the native macOS file picker for selecting images and sends uploads through the API, never by connecting directly to storage.
+
 After a new message commits, the realtime hub looks up the conversation members and sends a versioned `message.created` event to every connected window for those users. A failed realtime lookup or disconnected client does not change the successful REST result because persisted history remains the source of truth.
 
 The macOS client opens one authenticated WebSocket per signed-in session, sends heartbeat pings, reconnects with bounded exponential backoff, replaces the connection after session rotation, and closes the connection on sign-out. Active channels merge REST responses and realtime events by sender and client message ID, sort by server sequence, and request every sequence after the latest local message after a connection is restored.
@@ -109,4 +112,4 @@ The complete response shape is defined in `api/openapi/openapi.yaml`. The client
 
 ## Not Yet Implemented
 
-The project does not yet include local message caching, unread counts, read receipts, attachments, Redis, MinIO, password reset, social sign-in, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.
+The project does not yet include local message caching, unread counts, read receipts, generic attachments, Redis, MinIO, password reset, social sign-in, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.

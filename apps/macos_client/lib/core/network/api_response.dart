@@ -9,9 +9,12 @@ Future<Response<Object?>> apiRequest(
   } on DioException catch (error) {
     throw ApiFailure(
       code: 'network_error',
-      message: error.type == DioExceptionType.connectionTimeout
-          ? 'The server connection timed out.'
-          : 'The server could not be reached.',
+      message: switch (error.type) {
+        DioExceptionType.connectionTimeout ||
+        DioExceptionType.sendTimeout ||
+        DioExceptionType.receiveTimeout => 'The server connection timed out.',
+        _ => 'The server could not be reached.',
+      },
     );
   }
 }

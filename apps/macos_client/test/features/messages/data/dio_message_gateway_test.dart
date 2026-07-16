@@ -1,9 +1,11 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/features/messages/data/dio_message_gateway.dart';
+import 'package:instant_chat/features/messages/domain/message.dart';
 
 void main() {
   test('list parses messages and the older-page cursor', () async {
@@ -44,6 +46,28 @@ void main() {
     expect(message.body, 'Hello.');
   });
 
+  test('sendImage posts a multipart image message', () async {
+    final image = File('${Directory.systemTemp.path}/instant-chat-test.png');
+    await image.writeAsBytes([1, 2, 3]);
+    addTearDown(() => image.deleteSync());
+    final adapter = _StubAdapter(statusCode: 201, body: _imageMessage);
+    final gateway = DioMessageGateway(_createDio(adapter));
+
+    final message = await gateway.sendImage(
+      accessToken: 'access-token',
+      conversationId: '11',
+      clientMessageId: '0123456789abcdef0123456789abcdef',
+      imagePath: image.path,
+    );
+
+    expect(adapter.method, 'POST');
+    expect(adapter.path, '/api/v1/conversations/11/messages/images');
+    expect(adapter.formFields['client_message_id'], message.clientMessageId);
+    expect(adapter.formFileKeys, ['image']);
+    expect(message.kind, MessageKind.image);
+    expect(message.image?.contentType, 'image/png');
+  });
+
   test('list sends the reconnect sequence cursor', () async {
     final adapter = _StubAdapter(
       statusCode: 200,
@@ -74,8 +98,24 @@ final _message = {
   },
   'client_message_id': '0123456789abcdef0123456789abcdef',
   'sequence': '5',
+  'kind': 'text',
   'body': 'Hello.',
+  'image': null,
   'created_at': '2026-07-16T13:00:00Z',
+};
+
+final _imageMessage = {
+  ..._message,
+  'id': '22',
+  'sequence': '6',
+  'kind': 'image',
+  'body': '',
+  'image': {
+    'id': '5',
+    'url': '/api/v1/message-images/5',
+    'content_type': 'image/png',
+    'byte_size': 3,
+  },
 };
 
 Dio _createDio(HttpClientAdapter adapter) {
@@ -98,6 +138,8 @@ class _StubAdapter implements HttpClientAdapter {
   String? method;
   Map<String, dynamic> query = {};
   Map<String, dynamic> data = {};
+  Map<String, String> formFields = {};
+  List<String> formFileKeys = [];
 
   @override
   Future<ResponseBody> fetch(
@@ -110,6 +152,12 @@ class _StubAdapter implements HttpClientAdapter {
     query = options.queryParameters;
     if (options.data case final Map<String, dynamic> requestData) {
       data = requestData;
+    }
+    if (options.data case final FormData formData) {
+      formFields = {
+        for (final field in formData.fields) field.key: field.value,
+      };
+      formFileKeys = [for (final file in formData.files) file.key];
     }
     return ResponseBody.fromString(
       jsonEncode(body),

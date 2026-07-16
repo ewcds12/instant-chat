@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
-import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
+import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
+import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 
 class MessageHistory extends StatelessWidget {
   const MessageHistory({
     required this.value,
     required this.scrollController,
+    required this.accessToken,
     required this.currentUserId,
     required this.onLoadOlder,
     super.key,
@@ -15,6 +17,7 @@ class MessageHistory extends StatelessWidget {
 
   final MessagesState value;
   final ScrollController scrollController;
+  final String accessToken;
   final String currentUserId;
   final VoidCallback onLoadOlder;
 
@@ -73,6 +76,7 @@ class MessageHistory extends StatelessWidget {
                 return _MessageBubble(
                   message: message,
                   isMine: message.sender.id == currentUserId,
+                  accessToken: accessToken,
                 );
               },
             ),
@@ -84,14 +88,20 @@ class MessageHistory extends StatelessWidget {
 }
 
 class _MessageBubble extends StatelessWidget {
-  const _MessageBubble({required this.message, required this.isMine});
+  const _MessageBubble({
+    required this.message,
+    required this.isMine,
+    required this.accessToken,
+  });
 
   final Message message;
   final bool isMine;
+  final String accessToken;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final image = message.kind == MessageKind.image ? message.image : null;
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
@@ -99,45 +109,54 @@ class _MessageBubble extends StatelessWidget {
             ? CrossAxisAlignment.end
             : CrossAxisAlignment.start,
         children: [
-          Container(
-            key: ValueKey('message-bubble-${message.id}'),
-            constraints: const BoxConstraints(maxWidth: 520),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            decoration: BoxDecoration(
-              color: isMine ? null : RetroColors.glassStrong,
-              gradient: isMine
-                  ? const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF3C7BF0), RetroColors.primary],
-                    )
-                  : null,
-              border: isMine ? null : Border.all(color: colors.outlineVariant),
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(20),
-                topRight: const Radius.circular(20),
-                bottomLeft: Radius.circular(isMine ? 20 : 4),
-                bottomRight: Radius.circular(isMine ? 4 : 20),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: isMine
-                      ? colors.primary.withValues(alpha: 0.2)
-                      : const Color(0x120F172A),
-                  blurRadius: 18,
-                  offset: const Offset(0, 8),
+          if (image == null)
+            Container(
+              key: ValueKey('message-bubble-${message.id}'),
+              constraints: const BoxConstraints(maxWidth: 520),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              decoration: BoxDecoration(
+                color: isMine ? null : RetroColors.glassStrong,
+                gradient: isMine
+                    ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF3C7BF0), RetroColors.primary],
+                      )
+                    : null,
+                border: isMine
+                    ? null
+                    : Border.all(color: colors.outlineVariant),
+                borderRadius: BorderRadius.only(
+                  topLeft: const Radius.circular(20),
+                  topRight: const Radius.circular(20),
+                  bottomLeft: Radius.circular(isMine ? 20 : 4),
+                  bottomRight: Radius.circular(isMine ? 4 : 20),
                 ),
-              ],
-            ),
-            child: SelectableText(
-              message.body,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: isMine ? colors.onPrimary : colors.onSurface,
-                fontSize: 14,
-                height: 1.28,
+                boxShadow: [
+                  BoxShadow(
+                    color: isMine
+                        ? colors.primary.withValues(alpha: 0.2)
+                        : const Color(0x120F172A),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
+              child: SelectableText(
+                message.body,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: isMine ? colors.onPrimary : colors.onSurface,
+                  fontSize: 14,
+                  height: 1.28,
+                ),
+              ),
+            )
+          else
+            MessageImageView(
+              key: ValueKey('message-image-${message.id}'),
+              image: image,
+              accessToken: accessToken,
             ),
-          ),
           const SizedBox(height: 4),
           Text(
             _messageTime(message.createdAt),
