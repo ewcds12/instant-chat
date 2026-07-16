@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
@@ -7,6 +8,8 @@ import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
+import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
+import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_page.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
@@ -104,6 +107,27 @@ void main() {
     expect(find.byKey(const Key('message-image-image-1')), findsOneWidget);
     expect(find.byKey(const Key('message-bubble-image-1')), findsNothing);
   });
+
+  testWidgets('opens image preview and switches images with arrow keys', (
+    tester,
+  ) async {
+    final images = [_messageImage('5'), _messageImage('6')];
+
+    await tester.pumpWidget(_imagePreviewHarness(images));
+
+    await tester.tap(find.byKey(const Key('message-image-open-test')));
+    await _pumpUntil(tester, find.byKey(const Key('message-image-preview')));
+
+    expect(find.text('1 of 2'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump(const Duration(milliseconds: 220));
+    expect(find.text('2 of 2'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
+    await tester.pump(const Duration(milliseconds: 220));
+    expect(find.text('1 of 2'), findsOneWidget);
+  });
 }
 
 Future<ProviderContainer> _container({
@@ -135,6 +159,29 @@ Widget _messagesPage(ProviderContainer container) {
   );
 }
 
+Widget _imagePreviewHarness(List<MessageImage> images) {
+  return MaterialApp(
+    theme: RetroTheme.data,
+    home: Scaffold(
+      body: Center(
+        child: Builder(
+          builder: (context) => MessageImageView(
+            openKey: const Key('message-image-open-test'),
+            image: images.first,
+            accessToken: _session.accessToken,
+            onOpen: () => showMessageImagePreview(
+              context: context,
+              images: images,
+              initialImage: images.first,
+              accessToken: _session.accessToken,
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
 Message _message(String id, String body, {required String sequence}) {
   return Message(
     id: id,
@@ -149,7 +196,11 @@ Message _message(String id, String body, {required String sequence}) {
   );
 }
 
-Message _imageMessage(String id, {required String sequence}) {
+Message _imageMessage(
+  String id, {
+  required String sequence,
+  String imageId = '5',
+}) {
   return Message(
     id: id,
     conversationId: _conversation.id,
@@ -158,13 +209,17 @@ Message _imageMessage(String id, {required String sequence}) {
     sequence: sequence,
     kind: MessageKind.image,
     body: '',
-    image: const MessageImage(
-      id: '5',
-      url: '/api/v1/message-images/5',
-      contentType: 'image/png',
-      byteSize: 3,
-    ),
+    image: _messageImage(imageId),
     createdAt: DateTime.utc(2026, 7, 15, 13),
+  );
+}
+
+MessageImage _messageImage(String id) {
+  return MessageImage(
+    id: id,
+    url: '/api/v1/message-images/$id',
+    contentType: 'image/png',
+    byteSize: 3,
   );
 }
 

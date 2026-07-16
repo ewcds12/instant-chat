@@ -7,16 +7,19 @@ class MessageImageView extends StatelessWidget {
   const MessageImageView({
     required this.image,
     required this.accessToken,
+    this.openKey,
+    this.onOpen,
     super.key,
   });
 
   final MessageImage image;
   final String accessToken;
+  final Key? openKey;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
-    final url = Uri.parse(AppConfig.apiBaseUrl).resolve(image.url).toString();
-    return DecoratedBox(
+    final content = DecoratedBox(
       decoration: const BoxDecoration(
         boxShadow: [
           BoxShadow(
@@ -31,15 +34,11 @@ class MessageImageView extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 360, maxHeight: 320),
           child: Image.network(
-            url,
+            messageImageUrl(image),
             headers: bearerAuthorization(accessToken),
             fit: BoxFit.contain,
-            errorBuilder: (context, _, _) => const _ImagePlaceholder(
-              icon: Icons.broken_image_outlined,
-              label: 'Image unavailable',
-            ),
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) {
+            frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+              if (wasSynchronouslyLoaded || frame != null) {
                 return child;
               }
               return const _ImagePlaceholder(
@@ -47,11 +46,28 @@ class MessageImageView extends StatelessWidget {
                 label: 'Loading image…',
               );
             },
+            errorBuilder: (context, _, _) => const _ImagePlaceholder(
+              icon: Icons.broken_image_outlined,
+              label: 'Image unavailable',
+            ),
           ),
         ),
       ),
     );
+    return MouseRegion(
+      cursor: onOpen == null ? MouseCursor.defer : SystemMouseCursors.click,
+      child: GestureDetector(
+        key: openKey,
+        behavior: HitTestBehavior.opaque,
+        onTap: onOpen,
+        child: content,
+      ),
+    );
   }
+}
+
+String messageImageUrl(MessageImage image) {
+  return Uri.parse(AppConfig.apiBaseUrl).resolve(image.url).toString();
 }
 
 class _ImagePlaceholder extends StatelessWidget {

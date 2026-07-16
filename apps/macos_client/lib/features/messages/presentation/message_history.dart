@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
+import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 
@@ -24,6 +25,7 @@ class MessageHistory extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final imageMessages = _messageImages(value.messages);
     if (value.messages.isEmpty) {
       return LiquidGradientBackground(
         child: Center(
@@ -76,6 +78,7 @@ class MessageHistory extends StatelessWidget {
                 return _MessageBubble(
                   message: message,
                   isMine: message.sender.id == currentUserId,
+                  imageMessages: imageMessages,
                   accessToken: accessToken,
                 );
               },
@@ -91,11 +94,13 @@ class _MessageBubble extends StatelessWidget {
   const _MessageBubble({
     required this.message,
     required this.isMine,
+    required this.imageMessages,
     required this.accessToken,
   });
 
   final Message message;
   final bool isMine;
+  final List<MessageImage> imageMessages;
   final String accessToken;
 
   @override
@@ -154,8 +159,15 @@ class _MessageBubble extends StatelessWidget {
           else
             MessageImageView(
               key: ValueKey('message-image-${message.id}'),
+              openKey: ValueKey('message-image-open-${message.id}'),
               image: image,
               accessToken: accessToken,
+              onOpen: () => showMessageImagePreview(
+                context: context,
+                images: imageMessages,
+                initialImage: image,
+                accessToken: accessToken,
+              ),
             ),
           const SizedBox(height: 4),
           Text(
@@ -231,4 +243,15 @@ bool _sameDay(DateTime first, DateTime second) {
   return first.year == second.year &&
       first.month == second.month &&
       first.day == second.day;
+}
+
+List<MessageImage> _messageImages(List<Message> messages) {
+  final images = <MessageImage>[];
+  for (final message in messages) {
+    final image = message.image;
+    if (message.kind == MessageKind.image && image != null) {
+      images.add(image);
+    }
+  }
+  return images;
 }
