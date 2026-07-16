@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
@@ -18,71 +19,82 @@ class RequestsPage extends ConsumerWidget {
           child: const Text('Try again'),
         ),
       ),
-      data: (contacts) => Padding(
-        padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Requests', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: RetroMetrics.spaceSmall),
-            const Text('Incoming requests require your approval.'),
-            if (contacts.errorMessage case final message?) ...[
-              const SizedBox(height: RetroMetrics.spaceSmall),
-              Text(
-                message,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            const SizedBox(height: RetroMetrics.spaceLarge),
-            Expanded(
-              child: ListView(
-                children: [
-                  _SectionTitle(
-                    label: 'Incoming',
-                    count: contacts.incoming.length,
-                  ),
+      data: (contacts) => LiquidGradientBackground(
+        child: Padding(
+          padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
+          child: GlassPanel(
+            tint: RetroColors.glassStrong,
+            padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Requests',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                const SizedBox(height: RetroMetrics.spaceSmall),
+                const Text('Incoming requests require your approval.'),
+                if (contacts.errorMessage case final message?) ...[
                   const SizedBox(height: RetroMetrics.spaceSmall),
-                  if (contacts.incoming.isEmpty)
-                    const _EmptyRow(label: 'No incoming requests')
-                  else
-                    ...contacts.incoming.map(
-                      (request) => Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: RetroMetrics.spaceSmall,
-                        ),
-                        child: _IncomingRow(
-                          request: request,
-                          disabled: contacts.isSubmitting,
-                          onAccept: () => ref
-                              .read(contactsControllerProvider.notifier)
-                              .accept(request.id),
-                          onReject: () => ref
-                              .read(contactsControllerProvider.notifier)
-                              .reject(request.id),
-                        ),
-                      ),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
                     ),
-                  const SizedBox(height: RetroMetrics.spaceLarge),
-                  _SectionTitle(
-                    label: 'Outgoing',
-                    count: contacts.outgoing.length,
                   ),
-                  const SizedBox(height: RetroMetrics.spaceSmall),
-                  if (contacts.outgoing.isEmpty)
-                    const _EmptyRow(label: 'No outgoing requests')
-                  else
-                    ...contacts.outgoing.map(
-                      (request) => Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: RetroMetrics.spaceSmall,
-                        ),
-                        child: _OutgoingRow(request: request),
-                      ),
-                    ),
                 ],
-              ),
+                const SizedBox(height: RetroMetrics.spaceLarge),
+                Expanded(
+                  child: ListView(
+                    children: [
+                      _SectionTitle(
+                        label: 'Incoming',
+                        count: contacts.incoming.length,
+                      ),
+                      const SizedBox(height: RetroMetrics.spaceSmall),
+                      if (contacts.incoming.isEmpty)
+                        const _EmptyRow(label: 'No incoming requests')
+                      else
+                        ...contacts.incoming.map(
+                          (request) => Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: RetroMetrics.spaceSmall,
+                            ),
+                            child: _IncomingRow(
+                              request: request,
+                              disabled: contacts.isSubmitting,
+                              onAccept: () => ref
+                                  .read(contactsControllerProvider.notifier)
+                                  .accept(request.id),
+                              onReject: () => ref
+                                  .read(contactsControllerProvider.notifier)
+                                  .reject(request.id),
+                            ),
+                          ),
+                        ),
+                      const SizedBox(height: RetroMetrics.spaceLarge),
+                      _SectionTitle(
+                        label: 'Outgoing',
+                        count: contacts.outgoing.length,
+                      ),
+                      const SizedBox(height: RetroMetrics.spaceSmall),
+                      if (contacts.outgoing.isEmpty)
+                        const _EmptyRow(label: 'No outgoing requests')
+                      else
+                        ...contacts.outgoing.map(
+                          (request) => Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: RetroMetrics.spaceSmall,
+                            ),
+                            child: _OutgoingRow(request: request),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -187,16 +199,11 @@ class _RequestFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassPanel(
+      tint: RetroColors.glass,
       padding: const EdgeInsets.all(RetroMetrics.spaceMedium),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: RetroMetrics.border,
-        ),
-        borderRadius: BorderRadius.circular(RetroMetrics.corner),
-      ),
+      radius: 14,
+      shadows: const [],
       child: child,
     );
   }

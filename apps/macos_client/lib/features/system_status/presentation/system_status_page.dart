@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/system_status/domain/service_health.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_provider.dart';
@@ -13,8 +14,7 @@ class SystemStatusPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final health = ref.watch(serviceHealthProvider);
     final colors = Theme.of(context).colorScheme;
-    return ColoredBox(
-      color: colors.surfaceContainerLow,
+    return LiquidGradientBackground(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Align(
@@ -127,13 +127,9 @@ class _StatusCard extends StatelessWidget {
       container: true,
       liveRegion: true,
       label: 'API status $label',
-      child: Container(
+      child: GlassPanel(
+        tint: RetroColors.glassStrong,
         padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          border: Border.all(color: colors.outlineVariant),
-          borderRadius: BorderRadius.circular(14),
-        ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

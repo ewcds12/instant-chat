@@ -3,27 +3,45 @@ import 'package:flutter/material.dart';
 abstract final class RetroMetrics {
   static const border = 1.0;
   static const corner = 10.0;
+  static const cornerLarge = 18.0;
+  static const cornerPill = 999.0;
   static const spaceSmall = 8.0;
   static const spaceMedium = 16.0;
   static const spaceLarge = 24.0;
-  static const composerControlHeight = 34.0;
+  static const sidebarWidth = 148.0;
+  static const conversationColumnWidth = 312.0;
+  static const composerControlHeight = 38.0;
   static const maxAuthPanelWidth = 420.0;
   static const maxPanelWidth = 760.0;
   static const statusIconSize = 20.0;
 }
 
+abstract final class RetroColors {
+  static const canvasTop = Color(0xFFF8FAFF);
+  static const canvasBottom = Color(0xFFEFF4FB);
+  static const glass = Color(0xCCFFFFFF);
+  static const glassStrong = Color(0xEAFBFCFF);
+  static const glassMuted = Color(0xB8F3F6FB);
+  static const hairline = Color(0xFFDDE3EC);
+  static const primary = Color(0xFF2F6FE4);
+  static const primaryLight = Color(0xFFEAF2FF);
+  static const primarySoft = Color(0x1F2F6FE4);
+  static const ink = Color(0xFF17191C);
+  static const mutedInk = Color(0xFF69707A);
+}
+
 abstract final class RetroTheme {
-  static const _canvas = Color(0xFFF5F6F8);
+  static const _canvas = RetroColors.canvasBottom;
   static const _surface = Color(0xFFFFFFFF);
-  static const _surfaceMuted = Color(0xFFF4F5F7);
-  static const _surfaceSelected = Color(0xFFEFF5FF);
-  static const _ink = Color(0xFF17191C);
-  static const _mutedInk = Color(0xFF6E737B);
-  static const _primary = Color(0xFF2F6FE4);
+  static const _surfaceMuted = Color(0xFFF1F4F8);
+  static const _surfaceSelected = RetroColors.primaryLight;
+  static const _ink = RetroColors.ink;
+  static const _mutedInk = RetroColors.mutedInk;
+  static const _primary = RetroColors.primary;
   static const _primaryDark = Color(0xFF2457B6);
   static const _danger = Color(0xFFC9342F);
   static const _dangerLight = Color(0xFFFCE8E7);
-  static const _divider = Color(0xFFE4E7EB);
+  static const _divider = RetroColors.hairline;
 
   static final data = ThemeData(
     useMaterial3: true,

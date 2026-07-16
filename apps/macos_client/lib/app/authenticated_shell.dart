@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_page.dart';
@@ -31,27 +32,30 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
     ref.watch(realtimeConnectionProvider);
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Row(
-        children: [
-          _AppSidebar(
-            selectedIndex: _selectedIndex,
-            onSelect: (index) => setState(() => _selectedIndex = index),
-          ),
-          VerticalDivider(color: colors.outlineVariant),
-          Expanded(
-            child: IndexedStack(
-              index: _selectedIndex,
-              children: [
-                ConversationsPage(
-                  onCompose: () => setState(() => _selectedIndex = 1),
-                ),
-                ContactsPage(onOpenConversation: _openConversation),
-                const RequestsPage(),
-                SystemStatusPage(onSignOut: widget.onSignOut),
-              ],
+      body: LiquidGradientBackground(
+        child: Row(
+          children: [
+            _AppSidebar(
+              session: widget.session,
+              selectedIndex: _selectedIndex,
+              onSelect: (index) => setState(() => _selectedIndex = index),
             ),
-          ),
-        ],
+            VerticalDivider(color: colors.outlineVariant),
+            Expanded(
+              child: IndexedStack(
+                index: _selectedIndex,
+                children: [
+                  ConversationsPage(
+                    onCompose: () => setState(() => _selectedIndex = 1),
+                  ),
+                  ContactsPage(onOpenConversation: _openConversation),
+                  const RequestsPage(),
+                  SystemStatusPage(onSignOut: widget.onSignOut),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -67,60 +71,157 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
 }
 
 class _AppSidebar extends StatelessWidget {
-  const _AppSidebar({required this.selectedIndex, required this.onSelect});
+  const _AppSidebar({
+    required this.session,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
 
+  final AuthSession session;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
 
   @override
   Widget build(BuildContext context) {
+    return SizedBox(
+      key: const Key('app-sidebar'),
+      width: RetroMetrics.sidebarWidth,
+      child: GlassPanel(
+        radius: 0,
+        tint: RetroColors.glassMuted,
+        borderColor: Colors.transparent,
+        shadows: const [],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 20, 10, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 18, 8, 16),
+                child: Text(
+                  'Instant Chat',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize: 14,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+              _SidebarItem(
+                label: 'Chats',
+                icon: Icons.chat_bubble_outline_rounded,
+                selected: selectedIndex == 0,
+                onTap: () => onSelect(0),
+              ),
+              _SidebarItem(
+                label: 'Contacts',
+                icon: Icons.person_outline_rounded,
+                selected: selectedIndex == 1,
+                onTap: () => onSelect(1),
+              ),
+              _SidebarItem(
+                label: 'Requests',
+                icon: Icons.person_add_alt_rounded,
+                selected: selectedIndex == 2,
+                onTap: () => onSelect(2),
+              ),
+              const Spacer(),
+              _SystemButton(
+                selected: selectedIndex == 3,
+                onTap: () => onSelect(3),
+              ),
+              const SizedBox(height: 10),
+              _AccountTile(session: session),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountTile extends StatelessWidget {
+  const _AccountTile({required this.session});
+
+  final AuthSession session;
+
+  @override
+  Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      key: const Key('app-sidebar'),
-      width: 136,
-      color: colors.surface,
       padding: const EdgeInsets.all(8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      decoration: BoxDecoration(
+        color: RetroColors.glass,
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
         children: [
-          const SizedBox(height: 44),
-          _SidebarItem(
-            label: 'Chats',
-            icon: Icons.chat_bubble_outline_rounded,
-            selected: selectedIndex == 0,
-            onTap: () => onSelect(0),
+          CircleAvatar(
+            radius: 15,
+            backgroundColor: RetroColors.primaryLight,
+            foregroundColor: colors.primary,
+            child: Text(_initials(session.user.displayName)),
           ),
-          _SidebarItem(
-            label: 'Contacts',
-            icon: Icons.person_outline_rounded,
-            selected: selectedIndex == 1,
-            onTap: () => onSelect(1),
-          ),
-          _SidebarItem(
-            label: 'Requests',
-            icon: Icons.person_add_alt_rounded,
-            selected: selectedIndex == 2,
-            onTap: () => onSelect(2),
-          ),
-          const Spacer(),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: IconButton(
-              tooltip: 'System',
-              style: IconButton.styleFrom(
-                foregroundColor: selectedIndex == 3
-                    ? colors.primary
-                    : colors.onSurfaceVariant,
-                backgroundColor: selectedIndex == 3
-                    ? colors.primaryContainer
-                    : Colors.transparent,
-              ),
-              onPressed: () => onSelect(3),
-              icon: const Icon(Icons.settings_outlined, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.user.displayName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelLarge,
+                ),
+                Text(
+                  '@${session.user.username}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
         ],
+      ),
+    );
+  }
+}
+
+class _SystemButton extends StatelessWidget {
+  const _SystemButton({required this.selected, required this.onTap});
+
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Tooltip(
+        message: 'System',
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: selected ? colors.primaryContainer : Colors.transparent,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              Icons.settings_outlined,
+              size: 20,
+              color: selected ? colors.primary : colors.onSurfaceVariant,
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -144,15 +245,15 @@ class _SidebarItem extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final foreground = selected ? colors.primary : colors.onSurfaceVariant;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Material(
-        color: selected ? colors.primaryContainer : Colors.transparent,
-        borderRadius: BorderRadius.circular(RetroMetrics.corner),
+        color: selected ? RetroColors.primaryLight : Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
         child: InkWell(
-          borderRadius: BorderRadius.circular(RetroMetrics.corner),
+          borderRadius: BorderRadius.circular(14),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
             child: Row(
               children: [
                 Icon(icon, color: foreground, size: 17),
@@ -164,7 +265,7 @@ class _SidebarItem extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: foreground,
-                      fontSize: 12,
+                      fontSize: 13,
                     ),
                   ),
                 ),
@@ -175,4 +276,15 @@ class _SidebarItem extends StatelessWidget {
       ),
     );
   }
+}
+
+String _initials(String name) {
+  return name
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((word) => word.isNotEmpty)
+      .take(2)
+      .map((word) => word[0])
+      .join()
+      .toUpperCase();
 }

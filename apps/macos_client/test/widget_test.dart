@@ -154,10 +154,10 @@ void main() {
     expect(find.text('Requests'), findsOneWidget);
     expect(find.text('Other User'), findsOneWidget);
     expect(find.byTooltip('New conversation'), findsOneWidget);
-    expect(tester.getSize(find.byKey(const Key('app-sidebar'))).width, 136);
+    expect(tester.getSize(find.byKey(const Key('app-sidebar'))).width, 148);
     expect(
       tester.getSize(find.byKey(const Key('conversation-column'))).width,
-      300,
+      312,
     );
 
     await tester.enterText(
@@ -216,7 +216,7 @@ void main() {
     );
     expect(
       bubble.padding,
-      const EdgeInsets.symmetric(horizontal: 17, vertical: 10),
+      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
     );
     expect(messageGateway.sentBody, 'Hello.');
   });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 
@@ -38,13 +39,16 @@ class ConversationList extends StatelessWidget {
           conversation.peer.username.toLowerCase().contains(normalizedQuery);
     }).toList();
 
-    return ColoredBox(
-      color: colors.surface,
+    return GlassPanel(
+      radius: 0,
+      tint: RetroColors.glass,
+      borderColor: Colors.transparent,
+      shadows: const [],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+            padding: const EdgeInsets.fromLTRB(12, 18, 12, 14),
             child: Row(
               children: [
                 Expanded(
@@ -53,16 +57,28 @@ class ConversationList extends StatelessWidget {
                     child: TextField(
                       key: const Key('conversation-search'),
                       onChanged: onQueryChanged,
-                      decoration: const InputDecoration(
+                      style: Theme.of(
+                        context,
+                      ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+                      decoration: InputDecoration(
                         hintText: 'Search',
-                        prefixIcon: Icon(Icons.search_rounded, size: 18),
-                        contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                        fillColor: RetroColors.glassStrong,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 8),
                         isDense: true,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: colors.outlineVariant),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide(color: colors.primary),
+                        ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 8),
                 IconButton(
                   tooltip: 'New conversation',
                   onPressed: onCompose,
@@ -97,7 +113,7 @@ class ConversationList extends StatelessWidget {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.fromLTRB(10, 0, 10, 10),
                     itemCount: filtered.length,
                     separatorBuilder: (_, index) {
                       final isNextToSelected =
@@ -105,13 +121,13 @@ class ConversationList extends StatelessWidget {
                           filtered[index + 1].id == selectedId;
 
                       if (isNextToSelected) {
-                        return const SizedBox(height: 4);
+                        return const SizedBox(height: 8);
                       }
 
                       return Divider(
-                        height: 1,
-                        indent: 58,
-                        endIndent: 8,
+                        height: 8,
+                        indent: 64,
+                        endIndent: 14,
                         color: colors.outlineVariant,
                       );
                     },
@@ -147,24 +163,33 @@ class _ConversationRow extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: selected ? colors.primaryContainer : Colors.transparent,
+        color: selected ? RetroColors.primaryLight : Colors.transparent,
         border: selected
-            ? Border.all(color: colors.primary.withValues(alpha: 0.2))
+            ? Border.all(color: colors.primary.withValues(alpha: 0.24))
             : null,
-        borderRadius: BorderRadius.circular(RetroMetrics.corner),
+        borderRadius: BorderRadius.circular(RetroMetrics.cornerLarge),
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: colors.primary.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : const [],
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(RetroMetrics.corner),
+        borderRadius: BorderRadius.circular(RetroMetrics.cornerLarge),
         child: InkWell(
-          borderRadius: BorderRadius.circular(RetroMetrics.corner),
+          borderRadius: BorderRadius.circular(RetroMetrics.cornerLarge),
           onTap: onOpen,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 11),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 19,
+                  radius: 20,
                   backgroundColor: selected
                       ? colors.primary
                       : colors.surfaceContainerHigh,
@@ -186,7 +211,7 @@ class _ConversationRow extends StatelessWidget {
                           context,
                         ).textTheme.titleMedium?.copyWith(fontSize: 13),
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: 4),
                       Text(
                         'Direct message with @${conversation.peer.username}',
                         maxLines: 1,

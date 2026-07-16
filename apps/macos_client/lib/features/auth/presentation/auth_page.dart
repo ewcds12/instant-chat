@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 
@@ -30,44 +31,50 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final auth = ref.watch(authControllerProvider).value;
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: RetroMetrics.maxAuthPanelWidth,
-              ),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: colors.surface,
-                  border: Border.all(
-                    color: colors.outlineVariant,
-                    width: RetroMetrics.border,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: colors.shadow,
-                      blurRadius: 28,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
+      body: LiquidGradientBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: RetroMetrics.maxAuthPanelWidth,
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
+                child: GlassPanel(
+                  padding: const EdgeInsets.all(26),
+                  tint: RetroColors.glassStrong,
                   child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        CircleAvatar(
-                          radius: 24,
-                          backgroundColor: colors.primary,
-                          foregroundColor: colors.onPrimary,
-                          child: const Icon(
-                            Icons.chat_bubble_rounded,
-                            size: 22,
+                        Center(
+                          child: Container(
+                            width: 54,
+                            height: 54,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Color(0xFF4F8CFF),
+                                  RetroColors.primary,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: colors.primary.withValues(alpha: 0.25),
+                                  blurRadius: 22,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.chat_bubble_rounded,
+                              color: Colors.white,
+                              size: 24,
+                            ),
                           ),
                         ),
                         const SizedBox(height: RetroMetrics.spaceMedium),

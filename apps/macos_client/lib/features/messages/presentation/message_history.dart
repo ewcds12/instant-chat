@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/core/theme/glass.dart';
+import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 
@@ -20,8 +22,7 @@ class MessageHistory extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     if (value.messages.isEmpty) {
-      return ColoredBox(
-        color: colors.surfaceContainerLowest,
+      return LiquidGradientBackground(
         child: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -42,8 +43,7 @@ class MessageHistory extends StatelessWidget {
         ),
       );
     }
-    return ColoredBox(
-      color: colors.surfaceContainerLowest,
+    return LiquidGradientBackground(
       child: Column(
         children: [
           if (value.nextCursor != null)
@@ -62,9 +62,9 @@ class MessageHistory extends StatelessWidget {
             child: ListView.separated(
               key: const Key('message-history-list'),
               controller: scrollController,
-              padding: const EdgeInsets.fromLTRB(30, 88, 30, 24),
+              padding: const EdgeInsets.fromLTRB(34, 96, 34, 28),
               itemCount: value.messages.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(height: 10),
+              separatorBuilder: (_, _) => const SizedBox(height: 13),
               itemBuilder: (context, index) {
                 if (index == 0) {
                   return _DayDivider(date: value.messages.first.createdAt);
@@ -92,7 +92,6 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final bubbleColor = isMine ? colors.primary : colors.surfaceContainer;
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
@@ -102,23 +101,40 @@ class _MessageBubble extends StatelessWidget {
         children: [
           Container(
             key: ValueKey('message-bubble-${message.id}'),
-            constraints: const BoxConstraints(maxWidth: 480),
-            padding: const EdgeInsets.symmetric(horizontal: 17, vertical: 10),
+            constraints: const BoxConstraints(maxWidth: 520),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             decoration: BoxDecoration(
-              color: bubbleColor,
+              color: isMine ? null : RetroColors.glassStrong,
+              gradient: isMine
+                  ? const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF3C7BF0), RetroColors.primary],
+                    )
+                  : null,
+              border: isMine ? null : Border.all(color: colors.outlineVariant),
               borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: Radius.circular(isMine ? 18 : 0),
-                bottomRight: Radius.circular(isMine ? 0 : 18),
+                topLeft: const Radius.circular(20),
+                topRight: const Radius.circular(20),
+                bottomLeft: Radius.circular(isMine ? 20 : 4),
+                bottomRight: Radius.circular(isMine ? 4 : 20),
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: isMine
+                      ? colors.primary.withValues(alpha: 0.2)
+                      : const Color(0x120F172A),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: SelectableText(
               message.body,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: isMine ? colors.onPrimary : colors.onSurface,
-                fontSize: 13,
-                height: 1.25,
+                fontSize: 14,
+                height: 1.28,
               ),
             ),
           ),
@@ -127,7 +143,7 @@ class _MessageBubble extends StatelessWidget {
             _messageTime(message.createdAt),
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: colors.onSurfaceVariant,
-              fontSize: 11,
+              fontSize: 12,
             ),
           ),
         ],
@@ -144,27 +160,29 @@ class _DayDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Align(
-      child: SizedBox(
-        width: 240,
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            children: [
-              Expanded(child: Divider(color: colors.outlineVariant)),
-              const SizedBox(width: 14),
-              Text(
-                _dayLabel(date),
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  fontSize: 11,
-                ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(child: Divider(color: colors.outlineVariant)),
+          const SizedBox(width: 12),
+          GlassPanel(
+            radius: RetroMetrics.cornerPill,
+            tint: RetroColors.glass,
+            shadows: const [],
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+            child: Text(
+              _dayLabel(date),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: colors.onSurfaceVariant,
+                fontSize: 11,
               ),
-              const SizedBox(width: 14),
-              Expanded(child: Divider(color: colors.outlineVariant)),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(width: 12),
+          Expanded(child: Divider(color: colors.outlineVariant)),
+        ],
       ),
     );
   }

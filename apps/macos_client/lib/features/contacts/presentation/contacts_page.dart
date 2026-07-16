@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
@@ -30,96 +31,77 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
       error: (_, _) => _LoadFailure(
         onRetry: () => ref.invalidate(contactsControllerProvider),
       ),
-      data: (contacts) => Padding(
-        padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('Contacts', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: RetroMetrics.spaceSmall),
-            const Text('Search by exact username.'),
-            const SizedBox(height: RetroMetrics.spaceMedium),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _usernameController,
-                    decoration: const InputDecoration(
-                      hintText: 'Search by username',
-                      prefixIcon: Icon(Icons.search_rounded, size: 20),
-                    ),
-                    autocorrect: false,
-                    textCapitalization: TextCapitalization.none,
-                    onSubmitted: (_) => _search(contacts.isSubmitting),
-                  ),
-                ),
-                const SizedBox(width: RetroMetrics.spaceSmall),
-                FilledButton(
-                  onPressed: contacts.isSubmitting
-                      ? null
-                      : () => _search(false),
-                  child: const Text('Search'),
-                ),
-              ],
-            ),
-            if (contacts.errorMessage case final message?) ...[
-              const SizedBox(height: RetroMetrics.spaceSmall),
-              Text(
-                message,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
-              ),
-            ],
-            if (contacts.searchResult case final user?) ...[
-              const SizedBox(height: RetroMetrics.spaceMedium),
-              _SearchResult(
-                displayName: user.displayName,
-                username: user.username,
-                disabled: contacts.isSubmitting,
-                onSend: () => ref
-                    .read(contactsControllerProvider.notifier)
-                    .sendSearchResult(),
-              ),
-            ],
-            const SizedBox(height: RetroMetrics.spaceLarge),
-            Row(
+      data: (contacts) => LiquidGradientBackground(
+        child: Padding(
+          padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
+          child: GlassPanel(
+            tint: RetroColors.glassStrong,
+            padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  '${contacts.contacts.length} contacts',
-                  style: Theme.of(context).textTheme.titleMedium,
+                  'Contacts',
+                  style: Theme.of(context).textTheme.headlineSmall,
                 ),
-                const Spacer(),
-                IconButton(
-                  tooltip: 'Refresh contacts',
-                  onPressed: contacts.isSubmitting
-                      ? null
-                      : () => ref
-                            .read(contactsControllerProvider.notifier)
-                            .refresh(),
-                  icon: const Icon(Icons.refresh),
+                const SizedBox(height: RetroMetrics.spaceSmall),
+                const Text('Search by exact username.'),
+                const SizedBox(height: RetroMetrics.spaceMedium),
+                _SearchBar(
+                  controller: _usernameController,
+                  disabled: contacts.isSubmitting,
+                  onSearch: () => _search(contacts.isSubmitting),
+                ),
+                if (contacts.errorMessage case final message?) ...[
+                  const SizedBox(height: RetroMetrics.spaceSmall),
+                  Text(
+                    message,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ],
+                if (contacts.searchResult case final user?) ...[
+                  const SizedBox(height: RetroMetrics.spaceMedium),
+                  _SearchResult(
+                    displayName: user.displayName,
+                    username: user.username,
+                    disabled: contacts.isSubmitting,
+                    onSend: () => ref
+                        .read(contactsControllerProvider.notifier)
+                        .sendSearchResult(),
+                  ),
+                ],
+                const SizedBox(height: RetroMetrics.spaceLarge),
+                _ContactsToolbar(
+                  count: contacts.contacts.length,
+                  disabled: contacts.isSubmitting,
+                  onRefresh: () =>
+                      ref.read(contactsControllerProvider.notifier).refresh(),
+                ),
+                const SizedBox(height: RetroMetrics.spaceSmall),
+                Expanded(
+                  child: contacts.contacts.isEmpty
+                      ? const Center(child: Text('No contacts yet'))
+                      : ListView.separated(
+                          itemCount: contacts.contacts.length,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(height: RetroMetrics.spaceSmall),
+                          itemBuilder: (context, index) => _ContactRow(
+                            contact: contacts.contacts[index],
+                            disabled: contacts.isSubmitting,
+                            onMessage: () => widget.onOpenConversation(
+                              contacts.contacts[index].user.id,
+                            ),
+                            onRemove: () => ref
+                                .read(contactsControllerProvider.notifier)
+                                .remove(contacts.contacts[index].user.id),
+                          ),
+                        ),
                 ),
               ],
             ),
-            const SizedBox(height: RetroMetrics.spaceSmall),
-            Expanded(
-              child: contacts.contacts.isEmpty
-                  ? const Center(child: Text('No contacts yet'))
-                  : ListView.separated(
-                      itemCount: contacts.contacts.length,
-                      separatorBuilder: (_, _) =>
-                          const SizedBox(height: RetroMetrics.spaceSmall),
-                      itemBuilder: (context, index) => _ContactRow(
-                        contact: contacts.contacts[index],
-                        disabled: contacts.isSubmitting,
-                        onMessage: () => widget.onOpenConversation(
-                          contacts.contacts[index].user.id,
-                        ),
-                        onRemove: () => ref
-                            .read(contactsControllerProvider.notifier)
-                            .remove(contacts.contacts[index].user.id),
-                      ),
-                    ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -132,6 +114,70 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
     ref
         .read(contactsControllerProvider.notifier)
         .search(_usernameController.text);
+  }
+}
+
+class _SearchBar extends StatelessWidget {
+  const _SearchBar({
+    required this.controller,
+    required this.disabled,
+    required this.onSearch,
+  });
+
+  final TextEditingController controller;
+  final bool disabled;
+  final VoidCallback onSearch;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: TextField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Search by username',
+              prefixIcon: Icon(Icons.search_rounded, size: 20),
+            ),
+            autocorrect: false,
+            textCapitalization: TextCapitalization.none,
+            onSubmitted: (_) => onSearch(),
+          ),
+        ),
+        const SizedBox(width: RetroMetrics.spaceSmall),
+        FilledButton(
+          onPressed: disabled ? null : onSearch,
+          child: const Text('Search'),
+        ),
+      ],
+    );
+  }
+}
+
+class _ContactsToolbar extends StatelessWidget {
+  const _ContactsToolbar({
+    required this.count,
+    required this.disabled,
+    required this.onRefresh,
+  });
+
+  final int count;
+  final bool disabled;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Text('$count contacts', style: Theme.of(context).textTheme.titleMedium),
+        const Spacer(),
+        IconButton(
+          tooltip: 'Refresh contacts',
+          onPressed: disabled ? null : onRefresh,
+          icon: const Icon(Icons.refresh),
+        ),
+      ],
+    );
   }
 }
 
@@ -182,7 +228,12 @@ class _ContactRow extends StatelessWidget {
     return _BorderedRow(
       child: Row(
         children: [
-          const Icon(Icons.person_outline),
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: RetroColors.primaryLight,
+            foregroundColor: Theme.of(context).colorScheme.primary,
+            child: Text(_initial(contact.user.displayName)),
+          ),
           const SizedBox(width: RetroMetrics.spaceMedium),
           Expanded(
             child: Text(
@@ -211,16 +262,11 @@ class _BorderedRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GlassPanel(
+      tint: RetroColors.glass,
       padding: const EdgeInsets.all(RetroMetrics.spaceMedium),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: RetroMetrics.border,
-        ),
-        borderRadius: BorderRadius.circular(RetroMetrics.corner),
-      ),
+      radius: 14,
+      shadows: const [],
       child: child,
     );
   }
@@ -237,4 +283,9 @@ class _LoadFailure extends StatelessWidget {
       child: FilledButton(onPressed: onRetry, child: const Text('Try again')),
     );
   }
+}
+
+String _initial(String value) {
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
 }

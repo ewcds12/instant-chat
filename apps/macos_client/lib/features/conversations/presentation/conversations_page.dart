@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/theme/glass.dart';
+import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversation_list.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
@@ -35,7 +37,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
           children: [
             SizedBox(
               key: const Key('conversation-column'),
-              width: 300,
+              width: RetroMetrics.conversationColumnWidth,
               child: ConversationList(
                 conversations: value.conversations,
                 selectedId: selected?.id,
@@ -78,8 +80,7 @@ class _NoConversationSelected extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return ColoredBox(
-      color: colors.surfaceContainerLowest,
+    return LiquidGradientBackground(
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,

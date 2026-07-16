@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 class MessageComposer extends StatelessWidget {
@@ -20,103 +21,108 @@ class MessageComposer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(top: BorderSide(color: colors.outlineVariant)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Tooltip(
-            message: 'Attachments are not available yet',
-            child: SizedBox.square(
-              dimension: RetroMetrics.composerControlHeight,
-              child: IconButton.outlined(
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Attachments are not available yet.'),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.add_rounded, size: 17),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              key: const Key('message-composer'),
-              controller: controller,
-              focusNode: focusNode,
-              enabled: !disabled,
-              minLines: 1,
-              maxLines: 5,
-              maxLength: 4000,
-              textInputAction: TextInputAction.send,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(fontSize: 13),
-              decoration: InputDecoration(
-                hintText: 'Message $recipientName',
-                counterText: '',
-                isDense: true,
-                fillColor: colors.surface,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 8,
-                ),
-                suffixIconConstraints: const BoxConstraints(
-                  minWidth: RetroMetrics.composerControlHeight,
-                  minHeight: RetroMetrics.composerControlHeight,
-                ),
-                suffixIcon: IconButton(
-                  tooltip: 'Insert emoji',
-                  onPressed: disabled ? null : _insertEmoji,
-                  icon: const Icon(Icons.sentiment_satisfied_alt, size: 16),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: colors.outlineVariant),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
-                  borderSide: BorderSide(color: colors.primary),
+    return GlassPanel(
+      radius: 0,
+      tint: RetroColors.glassStrong,
+      borderColor: Colors.transparent,
+      shadows: const [],
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: colors.outlineVariant)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Tooltip(
+              message: 'Attachments are not available yet',
+              child: SizedBox.square(
+                dimension: RetroMetrics.composerControlHeight,
+                child: IconButton.outlined(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Attachments are not available yet.'),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.add_rounded, size: 18),
                 ),
               ),
-              onSubmitted: (_) {
-                if (!disabled) {
-                  onSend();
-                }
-              },
             ),
-          ),
-          const SizedBox(width: 10),
-          Tooltip(
-            message: 'Send message',
-            child: SizedBox.square(
-              dimension: RetroMetrics.composerControlHeight,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.square(
-                    RetroMetrics.composerControlHeight,
+            const SizedBox(width: 10),
+            Expanded(
+              child: TextField(
+                key: const Key('message-composer'),
+                controller: controller,
+                focusNode: focusNode,
+                enabled: !disabled,
+                minLines: 1,
+                maxLines: 5,
+                maxLength: 4000,
+                textInputAction: TextInputAction.send,
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Message $recipientName',
+                  counterText: '',
+                  isDense: true,
+                  fillColor: RetroColors.glass,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 10,
                   ),
-                  padding: EdgeInsets.zero,
-                  shape: const CircleBorder(),
+                  suffixIconConstraints: const BoxConstraints(
+                    minWidth: RetroMetrics.composerControlHeight,
+                    minHeight: RetroMetrics.composerControlHeight,
+                  ),
+                  suffixIcon: IconButton(
+                    tooltip: 'Insert emoji',
+                    onPressed: disabled ? null : _insertEmoji,
+                    icon: const Icon(Icons.sentiment_satisfied_alt, size: 17),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide: BorderSide(color: colors.outlineVariant),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(22),
+                    borderSide: BorderSide(color: colors.primary),
+                  ),
                 ),
-                onPressed: disabled ? null : onSend,
-                child: disabled
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.send_rounded, size: 17),
+                onSubmitted: (_) {
+                  if (!disabled) {
+                    onSend();
+                  }
+                },
               ),
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Tooltip(
+              message: 'Send message',
+              child: SizedBox.square(
+                dimension: RetroMetrics.composerControlHeight,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size.square(
+                      RetroMetrics.composerControlHeight,
+                    ),
+                    padding: EdgeInsets.zero,
+                    shape: const CircleBorder(),
+                  ),
+                  onPressed: disabled ? null : onSend,
+                  child: disabled
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.send_rounded, size: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
