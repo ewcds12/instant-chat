@@ -59,6 +59,7 @@ void main() {
 final _sessionBody = {
   'user': {
     'id': '42',
+    'username': 'operator',
     'email': 'operator@example.com',
     'display_name': 'Operator',
     'created_at': '2026-07-15T12:00:00Z',

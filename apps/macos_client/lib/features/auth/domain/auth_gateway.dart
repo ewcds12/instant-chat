@@ -4,6 +4,7 @@ import 'package:instant_chat/features/auth/domain/auth_user.dart';
 abstract interface class AuthGateway {
   Future<AuthSession> register({
     required String email,
+    required String username,
     required String displayName,
     required String password,
   });

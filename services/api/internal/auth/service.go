@@ -9,6 +9,8 @@ import (
 	"time"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/ewcds12/instant-chat/services/api/internal/users"
 )
 
 const (
@@ -41,8 +43,8 @@ func NewService(repository Repository, passwords *PasswordHasher) (*Service, err
 }
 
 // Register creates a user and initial token pair.
-func (s *Service) Register(ctx context.Context, email, displayName, password string) (Session, error) {
-	normalizedEmail, err := validateRegistration(email, displayName, password)
+func (s *Service) Register(ctx context.Context, email, username, displayName, password string) (Session, error) {
+	normalizedEmail, normalizedUsername, err := validateRegistration(email, username, displayName, password)
 	if err != nil {
 		return Session{}, err
 	}
@@ -56,7 +58,7 @@ func (s *Service) Register(ctx context.Context, email, displayName, password str
 		return Session{}, err
 	}
 	user, err := s.repository.CreateAccount(
-		ctx, normalizedEmail, strings.TrimSpace(displayName), passwordHash,
+		ctx, normalizedUsername, normalizedEmail, strings.TrimSpace(displayName), passwordHash,
 		tokens.access, tokens.refresh,
 	)
 	if err != nil {
@@ -136,26 +138,30 @@ func (s *Service) consumePasswordTime(password string) {
 	_, _ = s.passwords.Verify(s.dummyHash, password)
 }
 
-func validateRegistration(email, displayName, password string) (string, error) {
+func validateRegistration(email, username, displayName, password string) (string, string, error) {
 	normalizedEmail, valid := normalizeEmail(email)
 	if !valid {
-		return "", &InputError{Message: "Enter a valid email address."}
+		return "", "", &InputError{Message: "Enter a valid email address."}
+	}
+	normalizedUsername, valid := users.NormalizeUsername(username)
+	if !valid {
+		return "", "", &InputError{Message: "Username must be 3 to 32 characters, start with a letter, and use only lowercase letters, numbers, or underscores."}
 	}
 	trimmedName := strings.TrimSpace(displayName)
 	nameLength := utf8.RuneCountInString(trimmedName)
 	if nameLength < minimumDisplayRunes || nameLength > maximumDisplayRunes {
-		return "", &InputError{Message: "Display name must be between 2 and 80 characters."}
+		return "", "", &InputError{Message: "Display name must be between 2 and 80 characters."}
 	}
 	for _, value := range trimmedName {
 		if unicode.IsControl(value) {
-			return "", &InputError{Message: "Display name contains an unsupported character."}
+			return "", "", &InputError{Message: "Display name contains an unsupported character."}
 		}
 	}
 	passwordLength := utf8.RuneCountInString(password)
 	if !utf8.ValidString(password) || passwordLength < minimumPasswordRunes || passwordLength > maximumPasswordRunes {
-		return "", &InputError{Message: "Password must be between 12 and 128 characters."}
+		return "", "", &InputError{Message: "Password must be between 12 and 128 characters."}
 	}
-	return normalizedEmail, nil
+	return normalizedEmail, normalizedUsername, nil
 }
 
 func normalizeEmail(value string) (string, bool) {

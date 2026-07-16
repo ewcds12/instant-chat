@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
@@ -24,14 +25,14 @@ func NewMySQLRepository(database *sql.DB) *MySQLRepository {
 }
 
 // CreateAccount creates a user and initial session atomically.
-func (r *MySQLRepository) CreateAccount(ctx context.Context, email, displayName, passwordHash string, access, refresh StoredToken) (User, error) {
+func (r *MySQLRepository) CreateAccount(ctx context.Context, username, email, displayName, passwordHash string, access, refresh StoredToken) (User, error) {
 	tx, err := r.database.BeginTx(ctx, nil)
 	if err != nil {
 		return User{}, fmt.Errorf("begin account transaction: %w", err)
 	}
 	queries := r.queries.WithTx(tx)
 	result, err := queries.CreateUser(ctx, store.CreateUserParams{
-		Email: email, DisplayName: displayName, PasswordHash: passwordHash,
+		Username: username, Email: email, DisplayName: displayName, PasswordHash: passwordHash,
 	})
 	if err != nil {
 		return User{}, rollback(tx, mapCreateUserError(err))
@@ -111,7 +112,7 @@ func (r *MySQLRepository) RotateSession(ctx context.Context, oldRefreshHash []by
 		return User{}, fmt.Errorf("commit refresh transaction: %w", err)
 	}
 	return User{
-		ID: session.UserID, Email: session.Email, DisplayName: session.DisplayName,
+		ID: session.UserID, Username: session.Username, Email: session.Email, DisplayName: session.DisplayName,
 		CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt,
 	}, nil
 }
@@ -128,7 +129,7 @@ func (r *MySQLRepository) FindUserByAccessToken(ctx context.Context, tokenHash [
 		return User{}, fmt.Errorf("find access token: %w", err)
 	}
 	return User{
-		ID: user.UserID, Email: user.Email, DisplayName: user.DisplayName,
+		ID: user.UserID, Username: user.Username, Email: user.Email, DisplayName: user.DisplayName,
 		CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
 	}, nil
 }
@@ -171,9 +172,9 @@ func createTokens(ctx context.Context, queries *store.Queries, userID uint64, ac
 	return nil
 }
 
-func userFromStore(user store.User) User {
+func userFromStore(user store.GetUserByEmailRow) User {
 	return User{
-		ID: user.ID, Email: user.Email, DisplayName: user.DisplayName,
+		ID: user.ID, Username: user.Username, Email: user.Email, DisplayName: user.DisplayName,
 		CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
 	}
 }
@@ -181,6 +182,9 @@ func userFromStore(user store.User) User {
 func mapCreateUserError(err error) error {
 	var mysqlError *mysql.MySQLError
 	if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {
+		if strings.Contains(mysqlError.Message, "uq_users_username") {
+			return ErrUsernameTaken
+		}
 		return ErrEmailTaken
 	}
 	return fmt.Errorf("create user: %w", err)

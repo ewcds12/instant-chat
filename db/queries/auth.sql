@@ -1,9 +1,9 @@
 -- name: CreateUser :execresult
-INSERT INTO users (email, display_name, password_hash)
-VALUES (?, ?, ?);
+INSERT INTO users (username, email, display_name, password_hash)
+VALUES (?, ?, ?, ?);
 
 -- name: GetUserByEmail :one
-SELECT id, email, display_name, password_hash, created_at, updated_at
+SELECT id, username, email, display_name, password_hash, created_at, updated_at
 FROM users
 WHERE email = ?
 LIMIT 1;
@@ -19,6 +19,7 @@ VALUES (?, ?, ?);
 -- name: GetUserByAccessToken :one
 SELECT
   u.id AS user_id,
+  u.username,
   u.email,
   u.display_name,
   u.created_at,
@@ -34,6 +35,7 @@ LIMIT 1;
 SELECT
   refresh.id AS refresh_token_id,
   u.id AS user_id,
+  u.username,
   u.email,
   u.display_name,
   u.created_at,

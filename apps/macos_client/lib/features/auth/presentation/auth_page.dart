@@ -13,6 +13,7 @@ class AuthPage extends ConsumerStatefulWidget {
 class _AuthPageState extends ConsumerState<AuthPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _usernameController = TextEditingController();
   final _displayNameController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isRegistration = false;
@@ -20,6 +21,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   @override
   void dispose() {
     _emailController.dispose();
+    _usernameController.dispose();
     _displayNameController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -70,6 +72,17 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         const Text('SECURE MACOS COMMUNICATION TERMINAL'),
                         const SizedBox(height: RetroMetrics.spaceLarge),
                         if (_isRegistration) ...[
+                          TextFormField(
+                            controller: _usernameController,
+                            decoration: const InputDecoration(
+                              labelText: 'USERNAME',
+                            ),
+                            autocorrect: false,
+                            textCapitalization: TextCapitalization.none,
+                            textInputAction: TextInputAction.next,
+                            validator: _validateUsername,
+                          ),
+                          const SizedBox(height: RetroMetrics.spaceMedium),
                           TextFormField(
                             controller: _displayNameController,
                             decoration: const InputDecoration(
@@ -152,6 +165,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     if (_isRegistration) {
       await controller.register(
         email: _emailController.text,
+        username: _usernameController.text,
         displayName: _displayNameController.text,
         password: _passwordController.text,
       );
@@ -167,6 +181,14 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final length = value?.trim().length ?? 0;
     if (length < 2 || length > 80) {
       return 'Use 2 to 80 characters.';
+    }
+    return null;
+  }
+
+  String? _validateUsername(String? value) {
+    final username = value?.trim().toLowerCase() ?? '';
+    if (!RegExp(r'^[a-z][a-z0-9_]{2,31}$').hasMatch(username)) {
+      return 'Use 3 to 32 lowercase letters, numbers, or underscores.';
     }
     return null;
   }

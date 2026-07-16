@@ -16,6 +16,8 @@ import (
 
 	"github.com/ewcds12/instant-chat/services/api/internal/auth"
 	"github.com/ewcds12/instant-chat/services/api/internal/config"
+	"github.com/ewcds12/instant-chat/services/api/internal/contacts"
+	"github.com/ewcds12/instant-chat/services/api/internal/conversations"
 	"github.com/ewcds12/instant-chat/services/api/internal/health"
 	"github.com/ewcds12/instant-chat/services/api/internal/httpapi"
 )
@@ -72,6 +74,24 @@ func run() error {
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
 	mux.HandleFunc("GET /api/v1/auth/me", authHandler.CurrentUser)
+
+	contactRepository := contacts.NewMySQLRepository(database)
+	contactHandler := contacts.NewHandler(contacts.NewService(contactRepository))
+	conversationHandler := conversations.NewHandler(conversations.NewService(
+		conversations.NewMySQLRepository(database), contactRepository,
+	))
+	protected := func(handler http.HandlerFunc) http.Handler {
+		return authHandler.RequireUser(handler)
+	}
+	mux.Handle("GET /api/v1/users/search", protected(contactHandler.SearchUser))
+	mux.Handle("POST /api/v1/contact-requests", protected(contactHandler.SendRequest))
+	mux.Handle("GET /api/v1/contact-requests", protected(contactHandler.ListRequests))
+	mux.Handle("POST /api/v1/contact-requests/{request_id}/accept", protected(contactHandler.AcceptRequest))
+	mux.Handle("POST /api/v1/contact-requests/{request_id}/reject", protected(contactHandler.RejectRequest))
+	mux.Handle("GET /api/v1/contacts", protected(contactHandler.ListContacts))
+	mux.Handle("DELETE /api/v1/contacts/{user_id}", protected(contactHandler.RemoveContact))
+	mux.Handle("POST /api/v1/conversations", protected(conversationHandler.CreateDirect))
+	mux.Handle("GET /api/v1/conversations", protected(conversationHandler.List))
 
 	server := &http.Server{
 		Addr:              cfg.Address,

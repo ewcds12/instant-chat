@@ -88,6 +88,7 @@ AuthSession _futureSession({
   return AuthSession(
     user: AuthUser(
       id: '42',
+      username: 'operator',
       email: 'operator@example.com',
       displayName: 'Operator',
       createdAt: now,
@@ -152,6 +153,7 @@ class _FakeAuthGateway implements AuthGateway {
   @override
   Future<AuthSession> register({
     required String email,
+    required String username,
     required String displayName,
     required String password,
   }) async => session;

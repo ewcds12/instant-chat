@@ -19,7 +19,7 @@ type stubAuthService struct {
 	accessSeen string
 }
 
-func (s *stubAuthService) Register(context.Context, string, string, string) (Session, error) {
+func (s *stubAuthService) Register(context.Context, string, string, string, string) (Session, error) {
 	return s.session, nil
 }
 
@@ -46,13 +46,13 @@ func (s *stubAuthService) Logout(context.Context, string, string) error {
 func TestHandlerRegisterReturnsSession(t *testing.T) {
 	createdAt := time.Date(2026, time.July, 15, 12, 0, 0, 0, time.UTC)
 	service := &stubAuthService{session: Session{
-		User:        User{ID: 7, Email: "user@example.com", DisplayName: "Retro User", CreatedAt: createdAt},
+		User:        User{ID: 7, Username: "retro_user", Email: "user@example.com", DisplayName: "Retro User", CreatedAt: createdAt},
 		AccessToken: "access", AccessExpiresAt: createdAt.Add(accessTokenTTL),
 		RefreshToken: "refresh", RefreshExpiresAt: createdAt.Add(refreshTokenTTL),
 	}}
 	handler := NewHandler(service)
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/auth/register", strings.NewReader(
-		`{"email":"user@example.com","display_name":"Retro User","password":"a secure password"}`,
+		`{"email":"user@example.com","username":"retro_user","display_name":"Retro User","password":"a secure password"}`,
 	))
 	recorder := httptest.NewRecorder()
 
@@ -65,7 +65,7 @@ func TestHandlerRegisterReturnsSession(t *testing.T) {
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 		t.Fatalf("decode response: %v", err)
 	}
-	if response.User.ID != "7" || response.AccessToken != "access" {
+	if response.User.ID != "7" || response.User.Username != "retro_user" || response.AccessToken != "access" {
 		t.Fatalf("response = %+v, want user ID and token", response)
 	}
 }

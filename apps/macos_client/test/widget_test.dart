@@ -5,6 +5,8 @@ import 'package:instant_chat/app/instant_chat_app.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
+import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
+import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/system_status/domain/service_health.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_provider.dart';
 
@@ -24,10 +26,19 @@ void main() {
               checkedAt: DateTime.utc(2026, 7, 15, 12),
             ),
           ),
+          contactsControllerProvider.overrideWith(
+            () => _StubContactsController(_emptyContacts),
+          ),
+          conversationsControllerProvider.overrideWith(
+            () => _StubConversationsController(_emptyConversations),
+          ),
         ],
         child: const InstantChatApp(),
       ),
     );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('SYSTEM'));
     await tester.pumpAndSettle();
 
     expect(find.text('ONLINE'), findsOneWidget);
@@ -49,10 +60,19 @@ void main() {
           serviceHealthProvider.overrideWith(
             (ref) => Future<ServiceHealth>.error(StateError('offline')),
           ),
+          contactsControllerProvider.overrideWith(
+            () => _StubContactsController(_emptyContacts),
+          ),
+          conversationsControllerProvider.overrideWith(
+            () => _StubConversationsController(_emptyConversations),
+          ),
         ],
         child: const InstantChatApp(),
       ),
     );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('SYSTEM'));
     await tester.pumpAndSettle();
 
     expect(find.text('OFFLINE'), findsOneWidget);
@@ -83,6 +103,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('INSTANT CHAT // REGISTER'), findsOneWidget);
+    expect(find.text('USERNAME'), findsOneWidget);
     expect(find.text('DISPLAY NAME'), findsOneWidget);
     expect(find.text('CREATE ACCOUNT'), findsOneWidget);
     expect(find.text('Email or password is incorrect.'), findsNothing);
@@ -92,6 +113,7 @@ void main() {
 final _session = AuthSession(
   user: AuthUser(
     id: '42',
+    username: 'operator',
     email: 'operator@example.com',
     displayName: 'Operator',
     createdAt: DateTime.utc(2026, 7, 15),
@@ -109,4 +131,26 @@ class _StubAuthController extends AuthController {
 
   @override
   Future<AuthState> build() async => authState;
+}
+
+const _emptyContacts = ContactsState(contacts: [], incoming: [], outgoing: []);
+
+const _emptyConversations = ConversationsState(conversations: []);
+
+class _StubContactsController extends ContactsController {
+  _StubContactsController(this.contactsState);
+
+  final ContactsState contactsState;
+
+  @override
+  Future<ContactsState> build() async => contactsState;
+}
+
+class _StubConversationsController extends ConversationsController {
+  _StubConversationsController(this.conversationsState);
+
+  final ConversationsState conversationsState;
+
+  @override
+  Future<ConversationsState> build() async => conversationsState;
 }

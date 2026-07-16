@@ -9,6 +9,8 @@ import (
 var (
 	// ErrEmailTaken indicates that an account already uses the normalized email.
 	ErrEmailTaken = errors.New("email is already registered")
+	// ErrUsernameTaken indicates that an account already uses the normalized username.
+	ErrUsernameTaken = errors.New("username is already registered")
 	// ErrInvalidCredentials hides whether the email or password was incorrect.
 	ErrInvalidCredentials = errors.New("invalid email or password")
 	// ErrInvalidToken indicates that a session token is missing, expired, or revoked.
@@ -27,6 +29,7 @@ func (e *InputError) Error() string {
 // User is the public account representation.
 type User struct {
 	ID          uint64
+	Username    string
 	Email       string
 	DisplayName string
 	CreatedAt   time.Time
@@ -56,7 +59,7 @@ type Session struct {
 
 // Repository defines the transactional persistence required by authentication.
 type Repository interface {
-	CreateAccount(ctx context.Context, email, displayName, passwordHash string, access, refresh StoredToken) (User, error)
+	CreateAccount(ctx context.Context, username, email, displayName, passwordHash string, access, refresh StoredToken) (User, error)
 	FindUserByEmail(ctx context.Context, email string) (UserRecord, error)
 	CreateSession(ctx context.Context, userID uint64, access, refresh StoredToken) error
 	RotateSession(ctx context.Context, oldRefreshHash []byte, now time.Time, access, refresh StoredToken) (User, error)

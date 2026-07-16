@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/authenticated_shell.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/auth/presentation/auth_page.dart';
-import 'package:instant_chat/features/system_status/presentation/system_status_page.dart';
 
 class AuthGate extends ConsumerWidget {
   const AuthGate({super.key});
@@ -22,41 +22,10 @@ class AuthGate extends ConsumerWidget {
             if (session == null) {
               return const AuthPage();
             }
-            return Scaffold(
-              body: Column(
-                children: [
-                  Container(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: RetroMetrics.spaceMedium,
-                      vertical: RetroMetrics.spaceSmall,
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            '${session.user.displayName} // ${session.user.email}',
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.labelLarge
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.surface,
-                                ),
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: auth.isSubmitting
-                              ? null
-                              : () => ref
-                                    .read(authControllerProvider.notifier)
-                                    .signOut(),
-                          child: const Text('SIGN OUT'),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const Expanded(child: SystemStatusPage()),
-                ],
-              ),
+            return AuthenticatedShell(
+              session: session,
+              onSignOut: () =>
+                  ref.read(authControllerProvider.notifier).signOut(),
             );
           },
         );
