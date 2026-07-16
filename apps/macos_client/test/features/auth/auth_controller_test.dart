@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/features/auth/domain/auth_failure.dart';
@@ -69,6 +71,75 @@ void main() {
     expect(store.session, isNull);
     expect(restored.session, isNull);
   });
+
+  test('refreshes a near-expiring session in the background', () async {
+    final old = _futureSession(
+      accessToken: 'old-access',
+      refreshToken: 'old-refresh',
+      accessExpiresAt: DateTime.now().toUtc().add(const Duration(minutes: 1)),
+    );
+    final fresh = _futureSession(accessToken: 'fresh-access');
+    final gateway = _FakeAuthGateway(session: fresh);
+    final store = _MemorySessionStore(old);
+    final container = _container(gateway, store);
+    addTearDown(container.dispose);
+
+    final restored = await container.read(authControllerProvider.future);
+    expect(restored.session?.accessToken, 'old-access');
+
+    await _waitFor(() => gateway.refreshCalls == 1);
+
+    expect(gateway.refreshToken, 'old-refresh');
+    expect(store.session?.accessToken, 'fresh-access');
+    expect(
+      container.read(authControllerProvider).requireValue.session?.accessToken,
+      'fresh-access',
+    );
+  });
+
+  test('background refresh clears a rejected refresh token', () async {
+    final old = _futureSession(
+      refreshToken: 'rejected-refresh',
+      accessExpiresAt: DateTime.now().toUtc().add(const Duration(minutes: 1)),
+    );
+    final gateway = _FakeAuthGateway(
+      session: _futureSession(),
+      refreshFailure: const AuthFailure(
+        code: 'invalid_token',
+        message: 'The refresh token is invalid or expired.',
+      ),
+    );
+    final store = _MemorySessionStore(old);
+    final container = _container(gateway, store);
+    addTearDown(container.dispose);
+
+    await container.read(authControllerProvider.future);
+
+    await _waitFor(() => store.session == null);
+
+    expect(gateway.refreshToken, 'rejected-refresh');
+    expect(container.read(authControllerProvider).requireValue.session, isNull);
+  });
+
+  test('coalesces concurrent manual refreshes', () async {
+    final gateway = _FakeAuthGateway(
+      session: _futureSession(accessToken: 'fresh-access'),
+      refreshBlock: Completer<void>(),
+    );
+    final store = _MemorySessionStore(_futureSession());
+    final container = _container(gateway, store);
+    addTearDown(container.dispose);
+    await container.read(authControllerProvider.future);
+
+    final notifier = container.read(authControllerProvider.notifier);
+    final first = notifier.refreshSession();
+    final second = notifier.refreshSession();
+    gateway.refreshBlock!.complete();
+    await Future.wait([first, second]);
+
+    expect(gateway.refreshCalls, 1);
+    expect(store.session?.accessToken, 'fresh-access');
+  });
 }
 
 ProviderContainer _container(AuthGateway gateway, SessionStore store) {
@@ -82,6 +153,7 @@ ProviderContainer _container(AuthGateway gateway, SessionStore store) {
 
 AuthSession _futureSession({
   String accessToken = 'new-access',
+  String refreshToken = 'refresh-token',
   DateTime? accessExpiresAt,
 }) {
   final now = DateTime.now().toUtc();
@@ -95,7 +167,7 @@ AuthSession _futureSession({
     ),
     accessToken: accessToken,
     accessExpiresAt: accessExpiresAt ?? now.add(const Duration(minutes: 10)),
-    refreshToken: 'refresh-token',
+    refreshToken: refreshToken,
     refreshExpiresAt: now.add(const Duration(days: 10)),
   );
 }
@@ -116,12 +188,18 @@ class _MemorySessionStore implements SessionStore {
 }
 
 class _FakeAuthGateway implements AuthGateway {
-  _FakeAuthGateway({required this.session, this.refreshFailure});
+  _FakeAuthGateway({
+    required this.session,
+    this.refreshFailure,
+    this.refreshBlock,
+  });
 
   final AuthSession session;
   final AuthFailure? refreshFailure;
+  final Completer<void>? refreshBlock;
   String? loginEmail;
   String? refreshToken;
+  var refreshCalls = 0;
 
   @override
   Future<AuthUser> currentUser(String accessToken) async => session.user;
@@ -144,6 +222,8 @@ class _FakeAuthGateway implements AuthGateway {
   @override
   Future<AuthSession> refresh(String refreshToken) async {
     this.refreshToken = refreshToken;
+    refreshCalls++;
+    await refreshBlock?.future;
     if (refreshFailure case final failure?) {
       throw failure;
     }
@@ -157,4 +237,14 @@ class _FakeAuthGateway implements AuthGateway {
     required String displayName,
     required String password,
   }) async => session;
+}
+
+Future<void> _waitFor(bool Function() condition) async {
+  final deadline = DateTime.now().add(const Duration(seconds: 2));
+  while (!condition()) {
+    if (DateTime.now().isAfter(deadline)) {
+      fail('Timed out waiting for condition.');
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 10));
+  }
 }

@@ -10,7 +10,7 @@ The authentication, contacts, direct conversations, and persisted text-message f
 
 - The Flutter macOS client provides modern registration and sign-in forms.
 - Registration assigns a unique lowercase username for exact account search.
-- The client restores sessions from macOS Keychain and rotates expired access tokens.
+- The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
 - The authenticated client provides modern chats, contacts, requests, and system-status workspaces.
 - The chat workspace provides real conversation filtering and a persistent desktop master-detail layout.
 - The resizable macOS window opens at 1,180 by 660 points.

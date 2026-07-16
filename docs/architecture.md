@@ -36,7 +36,7 @@ The client is located in `apps/macos_client` and currently contains:
 
 Widgets do not access Dio or Keychain directly. Presentation observes Riverpod providers, while data adapters validate remote and stored JSON before passing domain objects upward.
 
-The client keeps the complete session in macOS Keychain. On startup it validates an unexpired access token, rotates an expired access token with the refresh token, or returns to sign-in when the refresh token is rejected. A network failure preserves a locally valid session so sign-out remains available offline.
+The client keeps the complete session in macOS Keychain. On startup it validates an unexpired access token, rotates an expired access token with the refresh token, or returns to sign-in when the refresh token is rejected. While signed in, the auth controller refreshes the access token shortly before expiry, writes the rotated session back to Keychain, and falls back to sign-in when the refresh token is rejected. A network failure preserves a locally valid session so sign-out remains available offline.
 
 The authenticated shell exposes conversations, contacts, requests, and system status as keyboard-focusable Material navigation destinations. Contact and conversation providers are automatically disposed when the authenticated shell is removed so one account's in-memory directory state cannot appear in another account's session.
 
@@ -88,7 +88,7 @@ History is returned in ascending sequence order, at most 100 messages per reques
 
 After a new message commits, the realtime hub looks up the conversation members and sends a versioned `message.created` event to every connected window for those users. A failed realtime lookup or disconnected client does not change the successful REST result because persisted history remains the source of truth.
 
-The macOS client opens one authenticated WebSocket per signed-in session, sends heartbeat pings, reconnects with bounded exponential backoff, and closes the connection on sign-out. Active channels merge REST responses and realtime events by sender and client message ID, sort by server sequence, and request every sequence after the latest local message after a connection is restored.
+The macOS client opens one authenticated WebSocket per signed-in session, sends heartbeat pings, reconnects with bounded exponential backoff, replaces the connection after session rotation, and closes the connection on sign-out. Active channels merge REST responses and realtime events by sender and client message ID, sort by server sequence, and request every sequence after the latest local message after a connection is restored.
 
 ## Health States
 
