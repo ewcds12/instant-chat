@@ -40,9 +40,10 @@ type Conversation struct {
 }
 
 type ConversationMember struct {
-	ConversationID uint64    `db:"conversation_id"`
-	UserID         uint64    `db:"user_id"`
-	JoinedAt       time.Time `db:"joined_at"`
+	ConversationID   uint64    `db:"conversation_id"`
+	UserID           uint64    `db:"user_id"`
+	JoinedAt         time.Time `db:"joined_at"`
+	LastReadSequence uint64    `db:"last_read_sequence"`
 }
 
 type Message struct {

@@ -34,6 +34,20 @@ void main() {
     expect(conversation.kind, 'direct');
     expect(adapter.method, 'POST');
   });
+
+  test('markRead posts the latest sequence', () async {
+    final adapter = _StubAdapter(statusCode: 204, body: '');
+    final gateway = DioConversationGateway(_createDio(adapter));
+
+    await gateway.markRead(
+      accessToken: 'access-token',
+      conversationId: '11',
+      sequence: '9',
+    );
+
+    expect(adapter.path, '/api/v1/conversations/11/read');
+    expect(adapter.method, 'POST');
+  });
 }
 
 final _conversation = {
@@ -47,6 +61,7 @@ final _conversation = {
   },
   'created_at': '2026-07-16T13:00:00Z',
   'updated_at': '2026-07-16T13:00:00Z',
+  'unread_count': 0,
 };
 
 Dio _createDio(HttpClientAdapter adapter) {

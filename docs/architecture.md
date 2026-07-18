@@ -30,7 +30,7 @@ The client is located in `apps/macos_client` and currently contains:
 - `features/auth`: authentication domain contracts, Dio and Keychain adapters, Riverpod session state, and forms.
 - `features/users`: the public account identity shared by contacts and direct conversations.
 - `features/contacts`: exact username search, contact-request workflows, accepted contacts, and Riverpod state.
-- `features/conversations`: direct-conversation creation, list state, and channel selection.
+- `features/conversations`: direct-conversation creation, persisted unread-count state, realtime list updates, and channel selection.
 - `features/messages`: message history, text, image, and file REST sending, realtime reconciliation, idempotent retry state, and channel presentation.
 - `features/realtime`: authenticated WebSocket lifecycle, heartbeat, reconnect backoff, and event parsing.
 - `features/system_status`: health domain model, Dio data access, Riverpod state, and presentation.
@@ -77,7 +77,7 @@ One `contact_relationships` row represents both directions of a user pair. The l
 
 A direct conversation requires an accepted contact relationship when it is created. The ordered user pair is unique at the database layer, so repeated or concurrent create requests return the same conversation. Conversation creation and both membership inserts occur in one transaction.
 
-The conversation list contains direct-conversation identity and peer information. Selecting a conversation opens its persisted text history. The list does not contain unread counts, delivery state, or real-time behavior.
+The conversation list contains direct-conversation identity, peer information, and a member-specific unread count. Each membership stores the largest viewed message sequence. A read marker can only advance and is clamped to the latest persisted sequence, so a client cannot mark future messages as read. The macOS client updates the list from realtime message events, increments unread counts for incoming messages, and records the active channel's latest sequence as read.
 
 ## Messages
 
@@ -91,7 +91,7 @@ Messages have a `kind` of `text`, `image`, or `file`. Text messages store a vali
 
 After a new message commits, the realtime hub looks up the conversation members and sends a versioned `message.created` event to every connected window for those users. A failed realtime lookup or disconnected client does not change the successful REST result because persisted history remains the source of truth.
 
-The macOS client opens one authenticated WebSocket per signed-in session, sends heartbeat pings, reconnects with bounded exponential backoff, replaces the connection after session rotation, and closes the connection on sign-out. Active channels merge REST responses and realtime events by sender and client message ID, sort by server sequence, and request every sequence after the latest local message after a connection is restored.
+The macOS client opens one authenticated WebSocket per signed-in session, sends heartbeat pings, reconnects with bounded exponential backoff, replaces the connection after session rotation, and closes the connection on sign-out. Active channels merge REST responses and realtime events by sender and client message ID, sort by server sequence, and request every sequence after the latest local message when a channel opens, the connection is restored, an incoming event exposes a sequence gap, or the two-second active-channel fallback check runs. Synchronization requests never overlap, and all recovery paths use the same idempotent reconciliation.
 
 ## Health States
 
@@ -112,4 +112,4 @@ The complete response shape is defined in `api/openapi/openapi.yaml`. The client
 
 ## Not Yet Implemented
 
-The project does not yet include local message caching, unread counts, read receipts, Redis, MinIO, password reset, social sign-in, large-file object storage, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.
+The project does not yet include local message caching, cross-user read receipts, Redis, MinIO, password reset, social sign-in, large-file object storage, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.

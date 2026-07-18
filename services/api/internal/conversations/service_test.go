@@ -7,8 +7,11 @@ import (
 )
 
 type fakeRepository struct {
-	createdUserID    uint64
-	createdContactID uint64
+	createdUserID      uint64
+	createdContactID   uint64
+	readUserID         uint64
+	readConversationID uint64
+	readSequence       uint64
 }
 
 func (f *fakeRepository) CreateDirect(_ context.Context, userID, contactUserID uint64) (Conversation, bool, error) {
@@ -19,6 +22,13 @@ func (f *fakeRepository) CreateDirect(_ context.Context, userID, contactUserID u
 
 func (f *fakeRepository) List(context.Context, uint64) ([]Conversation, error) {
 	return []Conversation{}, nil
+}
+
+func (f *fakeRepository) MarkRead(_ context.Context, userID, conversationID, sequence uint64) error {
+	f.readUserID = userID
+	f.readConversationID = conversationID
+	f.readSequence = sequence
+	return nil
 }
 
 type fakeContactChecker struct {
@@ -58,5 +68,26 @@ func TestServiceCreateDirectRejectsSelf(t *testing.T) {
 	_, _, err := service.CreateDirect(context.Background(), 7, 7)
 	if !errors.Is(err, ErrSelfConversation) {
 		t.Fatalf("CreateDirect() error = %v, want ErrSelfConversation", err)
+	}
+}
+
+func TestServiceMarkReadDelegatesSequence(t *testing.T) {
+	repository := &fakeRepository{}
+	service := NewService(repository, fakeContactChecker{})
+
+	if err := service.MarkRead(context.Background(), 7, 11, 9); err != nil {
+		t.Fatalf("MarkRead() error = %v", err)
+	}
+	if repository.readUserID != 7 || repository.readConversationID != 11 || repository.readSequence != 9 {
+		t.Fatalf("read call = %+v", repository)
+	}
+}
+
+func TestServiceMarkReadRejectsZeroSequence(t *testing.T) {
+	service := NewService(&fakeRepository{}, fakeContactChecker{})
+
+	err := service.MarkRead(context.Background(), 7, 11, 0)
+	if !errors.Is(err, ErrInvalidReadSequence) {
+		t.Fatalf("MarkRead() error = %v, want ErrInvalidReadSequence", err)
 	}
 }

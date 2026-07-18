@@ -7,6 +7,7 @@ import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
@@ -161,6 +162,8 @@ Future<ProviderContainer> _container({
         () => _StubAuthController(AuthState(session: _session)),
       ),
       messageGatewayProvider.overrideWithValue(gateway),
+      messageRecoveryIntervalProvider.overrideWithValue(null),
+      conversationGatewayProvider.overrideWithValue(StubConversationGateway()),
       realtimeConnectionProvider.overrideWithValue(
         realtime ?? const StubRealtimeConnection(),
       ),
@@ -272,6 +275,7 @@ final _conversation = Conversation(
   ),
   createdAt: DateTime.utc(2026, 7, 15, 12),
   updatedAt: DateTime.utc(2026, 7, 15, 12),
+  unreadCount: 0,
 );
 
 class _StubAuthController extends AuthController {

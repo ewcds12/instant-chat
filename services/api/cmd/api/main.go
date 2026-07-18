@@ -104,6 +104,7 @@ func run() error {
 	mux.Handle("DELETE /api/v1/contacts/{user_id}", protected(contactHandler.RemoveContact))
 	mux.Handle("POST /api/v1/conversations", protected(conversationHandler.CreateDirect))
 	mux.Handle("GET /api/v1/conversations", protected(conversationHandler.List))
+	mux.Handle("POST /api/v1/conversations/{conversation_id}/read", protected(conversationHandler.MarkRead))
 	mux.Handle(
 		"POST /api/v1/conversations/{conversation_id}/messages",
 		authHandler.RequireUser(messageLimiter.Handler(http.HandlerFunc(messageHandler.Send))),

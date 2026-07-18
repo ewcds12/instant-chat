@@ -13,8 +13,10 @@ import (
 )
 
 type stubConversationService struct {
-	userID        uint64
-	contactUserID uint64
+	userID         uint64
+	contactUserID  uint64
+	conversationID uint64
+	sequence       uint64
 }
 
 func (s *stubConversationService) CreateDirect(_ context.Context, userID, contactUserID uint64) (Conversation, bool, error) {
@@ -32,10 +34,34 @@ func (s *stubConversationService) List(context.Context, uint64) ([]Conversation,
 	return []Conversation{}, nil
 }
 
+func (s *stubConversationService) MarkRead(_ context.Context, userID, conversationID, sequence uint64) error {
+	s.userID = userID
+	s.conversationID = conversationID
+	s.sequence = sequence
+	return nil
+}
+
 type stubAuthService struct{}
 
 func (stubAuthService) Register(context.Context, string, string, string) (auth.Session, error) {
 	return auth.Session{}, nil
+}
+
+func TestHandlerMarkReadReturnsNoContent(t *testing.T) {
+	service := &stubConversationService{}
+	conversationHandler := NewHandler(service)
+	authHandler := auth.NewHandler(stubAuthService{})
+	handler := httpapi.RequestIDMiddleware(authHandler.RequireUser(http.HandlerFunc(conversationHandler.MarkRead)))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/conversations/11/read", strings.NewReader(`{"sequence":"9"}`))
+	request.SetPathValue("conversation_id", "11")
+	request.Header.Set("Authorization", "Bearer access")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNoContent || service.userID != 7 || service.conversationID != 11 || service.sequence != 9 {
+		t.Fatalf("status = %d, service = %+v", recorder.Code, service)
+	}
 }
 func (stubAuthService) Login(context.Context, string, string) (auth.Session, error) {
 	return auth.Session{}, nil

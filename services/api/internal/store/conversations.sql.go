@@ -52,11 +52,21 @@ SELECT
   conversation.kind,
   conversation.created_at,
   conversation.updated_at,
+  (
+    SELECT COUNT(*)
+    FROM messages AS unread_message
+    WHERE unread_message.conversation_id = conversation.id
+      AND unread_message.sender_id <> ?
+      AND unread_message.sequence > membership.last_read_sequence
+  ) AS unread_count,
   other_user.id AS peer_user_id,
   other_user.username AS peer_username,
   other_user.display_name AS peer_display_name,
   other_user.created_at AS peer_created_at
 FROM conversations AS conversation
+JOIN conversation_members AS membership
+  ON membership.conversation_id = conversation.id
+  AND membership.user_id = ?
 JOIN users AS other_user
   ON other_user.id = CASE
     WHEN conversation.direct_lower_user_id = ? THEN conversation.direct_higher_user_id
@@ -78,6 +88,7 @@ type GetDirectConversationByPairRow struct {
 	Kind            string    `db:"kind"`
 	CreatedAt       time.Time `db:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at"`
+	UnreadCount     int64     `db:"unread_count"`
 	PeerUserID      uint64    `db:"peer_user_id"`
 	PeerUsername    string    `db:"peer_username"`
 	PeerDisplayName string    `db:"peer_display_name"`
@@ -85,13 +96,20 @@ type GetDirectConversationByPairRow struct {
 }
 
 func (q *Queries) GetDirectConversationByPair(ctx context.Context, arg GetDirectConversationByPairParams) (GetDirectConversationByPairRow, error) {
-	row := q.db.QueryRowContext(ctx, getDirectConversationByPair, arg.CurrentUserID, arg.LowerUserID, arg.HigherUserID)
+	row := q.db.QueryRowContext(ctx, getDirectConversationByPair,
+		arg.CurrentUserID,
+		arg.CurrentUserID,
+		arg.CurrentUserID,
+		arg.LowerUserID,
+		arg.HigherUserID,
+	)
 	var i GetDirectConversationByPairRow
 	err := row.Scan(
 		&i.ID,
 		&i.Kind,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UnreadCount,
 		&i.PeerUserID,
 		&i.PeerUsername,
 		&i.PeerDisplayName,
@@ -100,12 +118,40 @@ func (q *Queries) GetDirectConversationByPair(ctx context.Context, arg GetDirect
 	return i, err
 }
 
+const isConversationMemberForRead = `-- name: IsConversationMemberForRead :one
+SELECT EXISTS(
+  SELECT 1
+  FROM conversation_members
+  WHERE conversation_id = ?
+    AND user_id = ?
+) AS is_member
+`
+
+type IsConversationMemberForReadParams struct {
+	ConversationID uint64 `db:"conversation_id"`
+	UserID         uint64 `db:"user_id"`
+}
+
+func (q *Queries) IsConversationMemberForRead(ctx context.Context, arg IsConversationMemberForReadParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isConversationMemberForRead, arg.ConversationID, arg.UserID)
+	var is_member bool
+	err := row.Scan(&is_member)
+	return is_member, err
+}
+
 const listConversationsForUser = `-- name: ListConversationsForUser :many
 SELECT
   conversation.id,
   conversation.kind,
   conversation.created_at,
   conversation.updated_at,
+  (
+    SELECT COUNT(*)
+    FROM messages AS unread_message
+    WHERE unread_message.conversation_id = conversation.id
+      AND unread_message.sender_id <> ?
+      AND unread_message.sequence > membership.last_read_sequence
+  ) AS unread_count,
   other_user.id AS peer_user_id,
   other_user.username AS peer_username,
   other_user.display_name AS peer_display_name,
@@ -131,6 +177,7 @@ type ListConversationsForUserRow struct {
 	Kind            string    `db:"kind"`
 	CreatedAt       time.Time `db:"created_at"`
 	UpdatedAt       time.Time `db:"updated_at"`
+	UnreadCount     int64     `db:"unread_count"`
 	PeerUserID      uint64    `db:"peer_user_id"`
 	PeerUsername    string    `db:"peer_username"`
 	PeerDisplayName string    `db:"peer_display_name"`
@@ -138,7 +185,7 @@ type ListConversationsForUserRow struct {
 }
 
 func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversationsForUserParams) ([]ListConversationsForUserRow, error) {
-	rows, err := q.db.QueryContext(ctx, listConversationsForUser, arg.CurrentUserID, arg.CurrentUserID)
+	rows, err := q.db.QueryContext(ctx, listConversationsForUser, arg.CurrentUserID, arg.CurrentUserID, arg.CurrentUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +198,7 @@ func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversa
 			&i.Kind,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UnreadCount,
 			&i.PeerUserID,
 			&i.PeerUsername,
 			&i.PeerDisplayName,
@@ -167,4 +215,26 @@ func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversa
 		return nil, err
 	}
 	return items, nil
+}
+
+const markConversationRead = `-- name: MarkConversationRead :exec
+UPDATE conversation_members AS membership
+JOIN conversations AS conversation ON conversation.id = membership.conversation_id
+SET membership.last_read_sequence = GREATEST(
+  membership.last_read_sequence,
+  LEAST(?, conversation.next_sequence - 1)
+)
+WHERE membership.conversation_id = ?
+  AND membership.user_id = ?
+`
+
+type MarkConversationReadParams struct {
+	Sequence       interface{} `db:"sequence"`
+	ConversationID uint64      `db:"conversation_id"`
+	UserID         uint64      `db:"user_id"`
+}
+
+func (q *Queries) MarkConversationRead(ctx context.Context, arg MarkConversationReadParams) error {
+	_, err := q.db.ExecContext(ctx, markConversationRead, arg.Sequence, arg.ConversationID, arg.UserID)
+	return err
 }

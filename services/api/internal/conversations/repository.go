@@ -56,6 +56,25 @@ func (r *MySQLRepository) List(ctx context.Context, userID uint64) ([]Conversati
 	return conversations, nil
 }
 
+// MarkRead advances one member's read marker without allowing future sequences.
+func (r *MySQLRepository) MarkRead(ctx context.Context, userID, conversationID, sequence uint64) error {
+	isMember, err := r.queries.IsConversationMemberForRead(ctx, store.IsConversationMemberForReadParams{
+		ConversationID: conversationID, UserID: userID,
+	})
+	if err != nil {
+		return fmt.Errorf("check conversation member: %w", err)
+	}
+	if !isMember {
+		return ErrConversationNotFound
+	}
+	if err := r.queries.MarkConversationRead(ctx, store.MarkConversationReadParams{
+		Sequence: sequence, ConversationID: conversationID, UserID: userID,
+	}); err != nil {
+		return fmt.Errorf("mark conversation read: %w", err)
+	}
+	return nil
+}
+
 func (r *MySQLRepository) insertDirect(ctx context.Context, creatorID, lowerID, higherID uint64) (uint64, bool, error) {
 	tx, err := r.database.BeginTx(ctx, nil)
 	if err != nil {
@@ -131,7 +150,7 @@ func conversationFromPairRow(row store.GetDirectConversationByPairRow) Conversat
 	return Conversation{
 		ID: row.ID, Kind: row.Kind,
 		Peer:      Peer{ID: row.PeerUserID, Username: row.PeerUsername, DisplayName: row.PeerDisplayName, CreatedAt: row.PeerCreatedAt},
-		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, UnreadCount: uint64(row.UnreadCount),
 	}
 }
 
@@ -139,6 +158,6 @@ func conversationFromListRow(row store.ListConversationsForUserRow) Conversation
 	return Conversation{
 		ID: row.ID, Kind: row.Kind,
 		Peer:      Peer{ID: row.PeerUserID, Username: row.PeerUsername, DisplayName: row.PeerDisplayName, CreatedAt: row.PeerCreatedAt},
-		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
+		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, UnreadCount: uint64(row.UnreadCount),
 	}
 }

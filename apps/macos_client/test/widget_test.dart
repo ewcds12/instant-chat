@@ -260,6 +260,7 @@ final _conversation = Conversation(
   ),
   createdAt: DateTime.utc(2026, 7, 15, 12),
   updatedAt: DateTime.utc(2026, 7, 15, 12),
+  unreadCount: 0,
 );
 
 class _StubContactsController extends ContactsController {

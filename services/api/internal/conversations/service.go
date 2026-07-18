@@ -36,3 +36,11 @@ func (s *Service) CreateDirect(ctx context.Context, userID, contactUserID uint64
 func (s *Service) List(ctx context.Context, userID uint64) ([]Conversation, error) {
 	return s.repository.List(ctx, userID)
 }
+
+// MarkRead records the latest message sequence seen by the current member.
+func (s *Service) MarkRead(ctx context.Context, userID, conversationID, sequence uint64) error {
+	if sequence == 0 {
+		return ErrInvalidReadSequence
+	}
+	return s.repository.MarkRead(ctx, userID, conversationID, sequence)
+}

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.8.0
+  version: 0.9.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -428,6 +428,31 @@ paths:
           $ref: "#/components/responses/NotFound"
         "429":
           $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /conversations/{conversation_id}/read:
+    post:
+      operationId: markConversationRead
+      summary: Mark direct-conversation messages as read through a sequence
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MarkConversationReadRequest"
+      responses:
+        "204":
+          description: Read state was recorded
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
   /conversations/{conversation_id}/messages/images:
@@ -857,6 +882,7 @@ components:
         - peer
         - created_at
         - updated_at
+        - unread_count
       properties:
         id:
           $ref: "#/components/schemas/ResourceID"
@@ -871,6 +897,9 @@ components:
         updated_at:
           type: string
           format: date-time
+        unread_count:
+          type: integer
+          minimum: 0
     ConversationList:
       type: object
       additionalProperties: false
@@ -888,6 +917,14 @@ components:
     Sequence:
       type: string
       pattern: "^[1-9][0-9]*$"
+    MarkConversationReadRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - sequence
+      properties:
+        sequence:
+          $ref: "#/components/schemas/Sequence"
     SendMessageRequest:
       type: object
       additionalProperties: false

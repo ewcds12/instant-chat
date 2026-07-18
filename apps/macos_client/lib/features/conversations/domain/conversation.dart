@@ -8,6 +8,7 @@ class Conversation {
     required this.peer,
     required this.createdAt,
     required this.updatedAt,
+    required this.unreadCount,
   });
 
   final String id;
@@ -15,6 +16,7 @@ class Conversation {
   final PublicUser peer;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final int unreadCount;
 
   factory Conversation.fromJson(Map<String, Object?> json) {
     final peerValue = json['peer'];
@@ -30,8 +32,14 @@ class Conversation {
       }
     }
     final kind = requiredString(json, 'kind');
+    final unreadCount = json['unread_count'];
     if (kind != 'direct') {
       throw const FormatException('kind must be direct');
+    }
+    if (unreadCount is! int || unreadCount < 0) {
+      throw const FormatException(
+        'unread_count must be a non-negative integer',
+      );
     }
     return Conversation(
       id: requiredString(json, 'id'),
@@ -39,6 +47,18 @@ class Conversation {
       peer: PublicUser.fromJson(peerJson),
       createdAt: requiredDateTime(json, 'created_at'),
       updatedAt: requiredDateTime(json, 'updated_at'),
+      unreadCount: unreadCount,
+    );
+  }
+
+  Conversation copyWith({DateTime? updatedAt, int? unreadCount}) {
+    return Conversation(
+      id: id,
+      kind: kind,
+      peer: peer,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      unreadCount: unreadCount ?? this.unreadCount,
     );
   }
 }

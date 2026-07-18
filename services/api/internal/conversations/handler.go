@@ -15,6 +15,7 @@ import (
 type conversationService interface {
 	CreateDirect(ctx context.Context, userID, contactUserID uint64) (Conversation, bool, error)
 	List(ctx context.Context, userID uint64) ([]Conversation, error)
+	MarkRead(ctx context.Context, userID, conversationID, sequence uint64) error
 }
 
 // Handler maps conversation HTTP requests to the service.
@@ -31,6 +32,10 @@ type createConversationRequest struct {
 	ContactUserID string `json:"contact_user_id"`
 }
 
+type markConversationReadRequest struct {
+	Sequence string `json:"sequence"`
+}
+
 type peerResponse struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
@@ -39,11 +44,12 @@ type peerResponse struct {
 }
 
 type conversationResponse struct {
-	ID        string       `json:"id"`
-	Kind      string       `json:"kind"`
-	Peer      peerResponse `json:"peer"`
-	CreatedAt time.Time    `json:"created_at"`
-	UpdatedAt time.Time    `json:"updated_at"`
+	ID          string       `json:"id"`
+	Kind        string       `json:"kind"`
+	Peer        peerResponse `json:"peer"`
+	CreatedAt   time.Time    `json:"created_at"`
+	UpdatedAt   time.Time    `json:"updated_at"`
+	UnreadCount uint64       `json:"unread_count"`
 }
 
 // CreateDirect creates or returns the unique direct conversation for a contact.
@@ -86,6 +92,30 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}{Conversations: responses})
 }
 
+// MarkRead records the most recent message that the current user has viewed.
+func (h *Handler) MarkRead(w http.ResponseWriter, r *http.Request) {
+	conversationID, err := strconv.ParseUint(r.PathValue("conversation_id"), 10, 64)
+	if err != nil || conversationID == 0 {
+		writeInvalidArgument(w, r, "Conversation ID must be a positive integer string.")
+		return
+	}
+	var body markConversationReadRequest
+	if err := httpapi.DecodeJSON(w, r, &body); err != nil {
+		writeInvalidArgument(w, r, "Request body must be a valid JSON object.")
+		return
+	}
+	sequence, err := strconv.ParseUint(body.Sequence, 10, 64)
+	if err != nil || sequence == 0 {
+		writeInvalidArgument(w, r, "Sequence must be a positive integer string.")
+		return
+	}
+	if err := h.service.MarkRead(r.Context(), currentUserID(r), conversationID, sequence); err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func currentUserID(r *http.Request) uint64 {
 	user, _ := auth.UserFromContext(r.Context())
 	return user.ID
@@ -98,6 +128,10 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 		httpapi.WriteError(w, http.StatusForbidden, "contact_required", "A direct conversation requires an accepted contact.", requestID)
 	case errors.Is(err, ErrSelfConversation):
 		httpapi.WriteError(w, http.StatusBadRequest, "self_conversation", "You cannot create a conversation with yourself.", requestID)
+	case errors.Is(err, ErrInvalidReadSequence):
+		httpapi.WriteError(w, http.StatusBadRequest, "invalid_argument", "Sequence must be a positive integer string.", requestID)
+	case errors.Is(err, ErrConversationNotFound):
+		httpapi.WriteError(w, http.StatusNotFound, "conversation_not_found", "The conversation was not found.", requestID)
 	default:
 		slog.Error("conversation request failed", "request_id", requestID, "error", err)
 		httpapi.WriteError(w, http.StatusInternalServerError, "internal_error", "The request could not be completed.", requestID)
@@ -116,5 +150,6 @@ func responseFromConversation(conversation Conversation) conversationResponse {
 			DisplayName: conversation.Peer.DisplayName, CreatedAt: conversation.Peer.CreatedAt.UTC(),
 		},
 		CreatedAt: conversation.CreatedAt.UTC(), UpdatedAt: conversation.UpdatedAt.UTC(),
+		UnreadCount: conversation.UnreadCount,
 	}
 }

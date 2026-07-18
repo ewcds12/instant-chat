@@ -39,6 +39,22 @@ class DioConversationGateway implements ConversationGateway {
     return Conversation.fromJson(responseObject(response.data));
   }
 
+  @override
+  Future<void> markRead({
+    required String accessToken,
+    required String conversationId,
+    required String sequence,
+  }) async {
+    final response = await apiRequest(
+      () => _dio.post<Object?>(
+        '/api/v1/conversations/$conversationId/read',
+        data: {'sequence': sequence},
+        options: _options(accessToken),
+      ),
+    );
+    expectStatus(response, {204});
+  }
+
   Options _options(String token) =>
       Options(headers: bearerAuthorization(token));
 }

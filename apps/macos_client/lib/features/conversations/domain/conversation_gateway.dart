@@ -7,4 +7,10 @@ abstract interface class ConversationGateway {
     required String accessToken,
     required String contactUserId,
   });
+
+  Future<void> markRead({
+    required String accessToken,
+    required String conversationId,
+    required String sequence,
+  });
 }

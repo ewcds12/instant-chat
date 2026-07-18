@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
+import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/conversations/domain/conversation_gateway.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/domain/message_gateway.dart';
 import 'package:instant_chat/features/messages/domain/message_page.dart';
@@ -120,6 +122,30 @@ class StubMessageGateway implements MessageGateway {
   }) async {
     downloadedImageID = image.id;
     return [4, 5, 6];
+  }
+}
+
+class StubConversationGateway implements ConversationGateway {
+  String? readConversationID;
+  String? readSequence;
+
+  @override
+  Future<Conversation> createDirect({
+    required String accessToken,
+    required String contactUserId,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<List<Conversation>> list(String accessToken) async => const [];
+
+  @override
+  Future<void> markRead({
+    required String accessToken,
+    required String conversationId,
+    required String sequence,
+  }) async {
+    readConversationID = conversationId;
+    readSequence = sequence;
   }
 }
 

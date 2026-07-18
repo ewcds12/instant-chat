@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/network/api_failure.dart';
@@ -8,12 +7,18 @@ import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/messages/data/dio_message_gateway.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/domain/message_gateway.dart';
+import 'package:instant_chat/features/messages/presentation/message_client_id.dart';
 import 'package:instant_chat/features/messages/presentation/message_reconciliation.dart';
+import 'package:instant_chat/features/messages/presentation/message_recovery.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 
 final messageGatewayProvider = Provider<MessageGateway>((ref) {
   return DioMessageGateway(ref.watch(dioProvider));
+});
+
+final messageRecoveryIntervalProvider = Provider<Duration?>((ref) {
+  return const Duration(seconds: 2);
 });
 
 final messagesControllerProvider = AsyncNotifierProvider.autoDispose
@@ -26,10 +31,9 @@ class MessagesController extends AsyncNotifier<MessagesState> {
   final _pendingRealtime = <Message>[];
   StreamSubscription<Message>? _messageSubscription;
   StreamSubscription<int>? _connectionSubscription;
+  late final MessageRecovery _recovery;
   var _active = true;
   var _realtimeReady = false;
-  var _syncing = false;
-  var _pendingSync = false;
 
   MessageGateway get _gateway => ref.read(messageGatewayProvider);
 
@@ -43,14 +47,18 @@ class MessagesController extends AsyncNotifier<MessagesState> {
 
   @override
   Future<MessagesState> build() async {
+    _recovery = MessageRecovery(
+      interval: ref.read(messageRecoveryIntervalProvider),
+      synchronize: _syncNewer,
+    );
     final realtime = ref.read(realtimeConnectionProvider);
     _messageSubscription = realtime.messages.listen(_receiveRealtime);
-    _connectionSubscription = realtime.connections.listen((_) {
-      _pendingSync = true;
-      _startPendingSync();
-    });
+    _connectionSubscription = realtime.connections.listen(
+      (_) => _recovery.queue(),
+    );
     ref.onDispose(() {
       _active = false;
+      _recovery.close();
       unawaited(_messageSubscription?.cancel());
       unawaited(_connectionSubscription?.cancel());
     });
@@ -70,7 +78,7 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       return Future.value(false);
     }
     return _send(
-      FailedMessage.text(clientMessageId: _newClientID(), body: trimmed),
+      FailedMessage.text(clientMessageId: newMessageClientID(), body: trimmed),
     );
   }
 
@@ -80,7 +88,7 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     }
     return _send(
       FailedMessage.image(
-        clientMessageId: _newClientID(),
+        clientMessageId: newMessageClientID(),
         imagePath: imagePath,
       ),
     );
@@ -91,7 +99,10 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       return Future.value(false);
     }
     return _send(
-      FailedMessage.file(clientMessageId: _newClientID(), filePath: filePath),
+      FailedMessage.file(
+        clientMessageId: newMessageClientID(),
+        filePath: filePath,
+      ),
     );
   }
 
@@ -103,13 +114,11 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     return _send(failed);
   }
 
-  Future<List<int>> downloadFile(MessageFile file) {
-    return _gateway.downloadFile(accessToken: _accessToken, file: file);
-  }
+  Future<List<int>> downloadFile(MessageFile file) =>
+      _gateway.downloadFile(accessToken: _accessToken, file: file);
 
-  Future<List<int>> downloadImage(MessageImage image) {
-    return _gateway.downloadImage(accessToken: _accessToken, image: image);
-  }
+  Future<List<int>> downloadImage(MessageImage image) =>
+      _gateway.downloadImage(accessToken: _accessToken, image: image);
 
   Future<void> loadOlder() async {
     final current = state.requireValue;
@@ -210,7 +219,7 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       _applyMessages(List.of(_pendingRealtime));
       _pendingRealtime.clear();
     }
-    _startPendingSync();
+    _recovery.start();
   }
 
   void _receiveRealtime(Message message) {
@@ -221,6 +230,10 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       _pendingRealtime.add(message);
       return;
     }
+    _recovery.queueGap(
+      latest: latestSequence(state.requireValue.messages),
+      incoming: message.sequence,
+    );
     _applyMessages([message]);
   }
 
@@ -231,17 +244,13 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     );
   }
 
-  void _startPendingSync() {
-    if (!_active || !_realtimeReady || !_pendingSync || _syncing) {
+  Future<void> _syncNewer() async {
+    if (!_recovery.begin()) {
       return;
     }
-    unawaited(_syncNewer());
-  }
-
-  Future<void> _syncNewer() async {
-    _syncing = true;
-    _pendingSync = false;
-    var after = latestSequence(state.requireValue.messages);
+    var after = _recovery.consumeAfter(
+      latestSequence(state.requireValue.messages),
+    );
     try {
       while (_active) {
         final page = await _gateway.list(
@@ -261,12 +270,11 @@ class MessagesController extends AsyncNotifier<MessagesState> {
         after = next;
       }
     } on ApiFailure {
-      // The next successful connection retries sequence-based recovery.
+      // The fallback synchronization retries transient recovery failures.
     } on FormatException {
-      // A malformed recovery page is retried after the next connection.
+      // A malformed recovery page is retried by the fallback synchronization.
     } finally {
-      _syncing = false;
-      _startPendingSync();
+      _recovery.finish();
     }
   }
 
@@ -289,12 +297,4 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       current.copyWith(isLoadingOlder: false, errorMessage: message),
     );
   }
-}
-
-String _newClientID() {
-  final random = Random.secure();
-  return List.generate(
-    16,
-    (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
-  ).join();
 }

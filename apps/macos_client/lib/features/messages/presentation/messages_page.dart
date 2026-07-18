@@ -5,12 +5,14 @@ import 'package:instant_chat/core/platform/macos_file_picker.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_composer.dart';
 import 'package:instant_chat/features/messages/presentation/message_header.dart';
 import 'package:instant_chat/features/messages/presentation/message_history.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_search.dart';
+import 'package:instant_chat/features/messages/presentation/message_read_tracker.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 
@@ -27,7 +29,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   final _composer = TextEditingController();
   final _composerFocus = FocusNode();
   final _historyScroll = ScrollController();
-  String? _latestMessageKey;
+  final _readTracker = MessageReadTracker();
+  final _viewportTracker = MessageViewportTracker();
 
   @override
   void dispose() {
@@ -41,7 +44,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   void didUpdateWidget(covariant MessagesPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.conversation.id != widget.conversation.id) {
-      _latestMessageKey = null;
+      _readTracker.reset();
+      _viewportTracker.reset();
     }
   }
 
@@ -65,7 +69,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             error: (_, _) =>
                 _LoadFailure(onRetry: () => ref.invalidate(provider)),
             data: (value) {
-              _scheduleScrollForLatestMessage(value);
+              _viewportTracker.schedule(value, _historyScroll, () => mounted);
+              _readTracker.schedule(
+                state: value,
+                markRead: (sequence) => ref
+                    .read(conversationsControllerProvider.notifier)
+                    .markRead(widget.conversation.id, sequence),
+              );
               return MessageHistory(
                 value: value,
                 scrollController: _historyScroll,
@@ -189,48 +199,6 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
-  }
-
-  void _scheduleScrollForLatestMessage(MessagesState value) {
-    final messages = value.messages;
-    if (messages.isEmpty) {
-      _latestMessageKey = null;
-      return;
-    }
-    final latest = messages.last;
-    final latestKey = '${latest.sequence}:${latest.id}';
-    if (_latestMessageKey == latestKey) {
-      return;
-    }
-    _latestMessageKey = latestKey;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-  }
-
-  void _scrollToBottom() {
-    if (!mounted || !_historyScroll.hasClients) {
-      return;
-    }
-    _historyScroll
-        .animateTo(
-          _historyScroll.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 180),
-          curve: Curves.easeOutCubic,
-        )
-        .then((_) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            _snapToBottomIfNeeded();
-          });
-        });
-  }
-
-  void _snapToBottomIfNeeded() {
-    if (!mounted || !_historyScroll.hasClients) {
-      return;
-    }
-    final position = _historyScroll.position;
-    if ((position.maxScrollExtent - position.pixels).abs() > 1) {
-      _historyScroll.jumpTo(position.maxScrollExtent);
-    }
   }
 
   void _focusComposer() {
