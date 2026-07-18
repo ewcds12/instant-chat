@@ -11,6 +11,7 @@ class Message {
     required this.kind,
     required this.body,
     required this.image,
+    this.file,
     required this.createdAt,
   });
 
@@ -22,6 +23,7 @@ class Message {
   final MessageKind kind;
   final String body;
   final MessageImage? image;
+  final MessageFile? file;
   final DateTime createdAt;
 
   factory Message.fromJson(Map<String, Object?> json) {
@@ -38,6 +40,7 @@ class Message {
       kind: MessageKind.fromWire(json['kind']),
       body: _requiredBody(json),
       image: MessageImage.fromJsonOrNull(json['image']),
+      file: MessageFile.fromJsonOrNull(json['file']),
       createdAt: requiredDateTime(json, 'created_at'),
     );
   }
@@ -45,7 +48,8 @@ class Message {
 
 enum MessageKind {
   text('text'),
-  image('image');
+  image('image'),
+  file('file');
 
   const MessageKind(this.wireName);
 
@@ -61,6 +65,7 @@ enum MessageKind {
     return switch (value) {
       'text' => MessageKind.text,
       'image' => MessageKind.image,
+      'file' => MessageKind.file,
       _ => throw const FormatException('kind is not supported'),
     };
   }
@@ -94,6 +99,43 @@ class MessageImage {
     return MessageImage(
       id: requiredString(json, 'id'),
       url: requiredString(json, 'url'),
+      contentType: requiredString(json, 'content_type'),
+      byteSize: byteSize,
+    );
+  }
+}
+
+class MessageFile {
+  const MessageFile({
+    required this.id,
+    required this.url,
+    required this.filename,
+    required this.contentType,
+    required this.byteSize,
+  });
+
+  final String id;
+  final String url;
+  final String filename;
+  final String contentType;
+  final int byteSize;
+
+  static MessageFile? fromJsonOrNull(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is! Map<Object?, Object?>) {
+      throw const FormatException('file must be a JSON object or null');
+    }
+    final json = _stringKeyed(value);
+    final byteSize = json['byte_size'];
+    if (byteSize is! int) {
+      throw const FormatException('byte_size must be an integer');
+    }
+    return MessageFile(
+      id: requiredString(json, 'id'),
+      url: requiredString(json, 'url'),
+      filename: requiredString(json, 'filename'),
       contentType: requiredString(json, 'content_type'),
       byteSize: byteSize,
     );

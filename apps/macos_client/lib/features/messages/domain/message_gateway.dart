@@ -23,4 +23,16 @@ abstract interface class MessageGateway {
     required String clientMessageId,
     required String imagePath,
   });
+
+  Future<Message> sendFile({
+    required String accessToken,
+    required String conversationId,
+    required String clientMessageId,
+    required String filePath,
+  });
+
+  Future<List<int>> downloadFile({
+    required String accessToken,
+    required MessageFile file,
+  });
 }

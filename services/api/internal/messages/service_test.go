@@ -10,6 +10,7 @@ type fakeRepository struct {
 	sentClientID string
 	sentBody     string
 	imageUpload  *ImageUpload
+	fileUpload   *FileUpload
 	listedLimit  int
 	messages     []Message
 	idempotent   bool
@@ -42,8 +43,33 @@ func (f *fakeRepository) SendImage(
 	}, !f.idempotent, f.err
 }
 
+func (f *fakeRepository) SendFile(
+	_ context.Context,
+	_, _ uint64,
+	clientMessageID string,
+	upload FileUpload,
+) (Message, bool, error) {
+	f.sentClientID = clientMessageID
+	f.fileUpload = &upload
+	return Message{
+		ID:              9,
+		ClientMessageID: clientMessageID,
+		Kind:            KindFile,
+		File: &FileAttachment{
+			ID:          4,
+			Filename:    upload.Filename,
+			ContentType: upload.ContentType,
+			ByteSize:    uint32(len(upload.Data)),
+		},
+	}, !f.idempotent, f.err
+}
+
 func (f *fakeRepository) Image(context.Context, uint64, uint64) (ImageFile, error) {
 	return ImageFile{}, f.err
+}
+
+func (f *fakeRepository) File(context.Context, uint64, uint64) (MessageFile, error) {
+	return MessageFile{}, f.err
 }
 
 func (f *fakeRepository) List(

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/platform/macos_file_actions.dart';
+import 'package:instant_chat/core/platform/macos_file_picker.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_composer.dart';
 import 'package:instant_chat/features/messages/presentation/message_header.dart';
 import 'package:instant_chat/features/messages/presentation/message_history.dart';
@@ -68,6 +71,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 accessToken: session.accessToken,
                 currentUserId: session.user.id,
                 onLoadOlder: () => ref.read(provider.notifier).loadOlder(),
+                onOpenFile: (file) => _openFile(provider, file),
               );
             },
           ),
@@ -87,6 +91,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             recipientName: widget.conversation.peer.displayName,
             onSend: () => _send(provider),
             onPickImage: () => _pickAndSendImage(provider),
+            onPickFile: () => _pickAndSendFile(provider),
           ),
         ],
       ],
@@ -112,6 +117,55 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     if (await ref.read(provider.notifier).sendImage(imagePath)) {
       _focusComposer();
     }
+  }
+
+  Future<void> _pickAndSendFile(
+    AsyncNotifierProvider<MessagesController, MessagesState> provider,
+  ) async {
+    final filePath = await ref.read(localFilePickerProvider).pickFilePath();
+    if (!mounted || filePath == null) {
+      return;
+    }
+    if (await ref.read(provider.notifier).sendFile(filePath)) {
+      _focusComposer();
+    }
+  }
+
+  Future<void> _openFile(
+    AsyncNotifierProvider<MessagesController, MessagesState> provider,
+    MessageFile file,
+  ) async {
+    final actions = ref.read(localFileActionsProvider);
+    final action = await actions.chooseAction(file.filename);
+    if (!mounted || action == null) {
+      return;
+    }
+    try {
+      await _downloadFile(provider, actions, file);
+    } catch (_) {
+      if (mounted) {
+        _showFileError();
+      }
+    }
+  }
+
+  Future<void> _downloadFile(
+    AsyncNotifierProvider<MessagesController, MessagesState> provider,
+    LocalFileActions actions,
+    MessageFile file,
+  ) async {
+    final path = await actions.chooseDownloadPath(file.filename);
+    if (!mounted || path == null) {
+      return;
+    }
+    final bytes = await ref.read(provider.notifier).downloadFile(file);
+    await actions.writeDownloadFile(path, bytes);
+  }
+
+  void _showFileError() {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('File could not be saved.')));
   }
 
   void _scheduleScrollForLatestMessage(MessagesState value) {

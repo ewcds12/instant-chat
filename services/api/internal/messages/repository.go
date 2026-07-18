@@ -26,7 +26,7 @@ func (r *MySQLRepository) Send(
 	userID, conversationID uint64,
 	clientMessageID, body string,
 ) (Message, bool, error) {
-	return r.send(ctx, userID, conversationID, clientMessageID, KindText, body, nil)
+	return r.send(ctx, userID, conversationID, clientMessageID, KindText, body, nil, nil)
 }
 
 // SendImage allocates a sequence and creates one image message atomically.
@@ -36,7 +36,17 @@ func (r *MySQLRepository) SendImage(
 	clientMessageID string,
 	upload ImageUpload,
 ) (Message, bool, error) {
-	return r.send(ctx, userID, conversationID, clientMessageID, KindImage, "", &upload)
+	return r.send(ctx, userID, conversationID, clientMessageID, KindImage, "", &upload, nil)
+}
+
+// SendFile allocates a sequence and creates one file message atomically.
+func (r *MySQLRepository) SendFile(
+	ctx context.Context,
+	userID, conversationID uint64,
+	clientMessageID string,
+	upload FileUpload,
+) (Message, bool, error) {
+	return r.send(ctx, userID, conversationID, clientMessageID, KindFile, "", nil, &upload)
 }
 
 // Image returns one image if the requester belongs to its conversation.
@@ -58,11 +68,32 @@ func (r *MySQLRepository) Image(ctx context.Context, userID, imageID uint64) (Im
 	}, nil
 }
 
+// File returns one file if the requester belongs to its conversation.
+func (r *MySQLRepository) File(ctx context.Context, userID, fileID uint64) (MessageFile, error) {
+	row, err := r.queries.GetMessageFileForMember(ctx, store.GetMessageFileForMemberParams{
+		FileID: fileID,
+		UserID: userID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return MessageFile{}, ErrFileNotFound
+	}
+	if err != nil {
+		return MessageFile{}, fmt.Errorf("read message file: %w", err)
+	}
+	return MessageFile{
+		Filename:    row.Filename,
+		ContentType: row.ContentType,
+		ByteSize:    row.ByteSize,
+		Data:        row.Data,
+	}, nil
+}
+
 func (r *MySQLRepository) send(
 	ctx context.Context,
 	userID, conversationID uint64,
 	clientMessageID, kind, body string,
 	upload *ImageUpload,
+	fileUpload *FileUpload,
 ) (Message, bool, error) {
 	tx, err := r.database.BeginTx(ctx, nil)
 	if err != nil {
@@ -97,9 +128,13 @@ func (r *MySQLRepository) send(
 	if err != nil {
 		return Message{}, false, rollback(tx, err)
 	}
+	fileID, err := createFile(ctx, queries, userID, fileUpload)
+	if err != nil {
+		return Message{}, false, rollback(tx, err)
+	}
 	if err := createMessage(
 		ctx, queries, conversationID, userID, clientMessageID,
-		sequence, kind, body, imageID,
+		sequence, kind, body, imageID, fileID,
 	); err != nil {
 		return Message{}, false, rollback(tx, err)
 	}
@@ -169,99 +204,4 @@ func (r *MySQLRepository) ListAfter(
 		messages = append(messages, messageFromAfterRow(row))
 	}
 	return messages, nil
-}
-
-func createMessage(
-	ctx context.Context,
-	queries *store.Queries,
-	conversationID, userID uint64,
-	clientMessageID string,
-	sequence uint64,
-	kind string,
-	body string,
-	imageID sql.NullInt64,
-) error {
-	_, err := queries.CreateMessage(ctx, store.CreateMessageParams{
-		ConversationID:  conversationID,
-		SenderID:        userID,
-		ClientMessageID: clientMessageID,
-		Sequence:        sequence,
-		Kind:            kind,
-		Body:            body,
-		ImageID:         imageID,
-	})
-	if err != nil {
-		return fmt.Errorf("create message: %w", err)
-	}
-	if err := queries.AdvanceConversationSequence(ctx, conversationID); err != nil {
-		return fmt.Errorf("advance conversation sequence: %w", err)
-	}
-	return nil
-}
-
-func createImage(
-	ctx context.Context,
-	queries *store.Queries,
-	userID uint64,
-	upload *ImageUpload,
-) (sql.NullInt64, error) {
-	if upload == nil {
-		return sql.NullInt64{}, nil
-	}
-	result, err := queries.CreateMessageImage(ctx, store.CreateMessageImageParams{
-		UploaderID:  userID,
-		ContentType: upload.ContentType,
-		ByteSize:    uint32(len(upload.Data)),
-		Data:        upload.Data,
-	})
-	if err != nil {
-		return sql.NullInt64{}, fmt.Errorf("create message image: %w", err)
-	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		return sql.NullInt64{}, fmt.Errorf("read created image id: %w", err)
-	}
-	return sql.NullInt64{Int64: id, Valid: true}, nil
-}
-
-func (r *MySQLRepository) listLatest(ctx context.Context, conversationID uint64, limit int) ([]Message, error) {
-	rows, err := r.queries.ListLatestMessages(ctx, store.ListLatestMessagesParams{
-		ConversationID: conversationID,
-		Limit:          int32(limit),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list latest messages: %w", err)
-	}
-	messages := make([]Message, 0, len(rows))
-	for _, row := range rows {
-		messages = append(messages, messageFromLatestRow(row))
-	}
-	return messages, nil
-}
-
-func (r *MySQLRepository) listBefore(
-	ctx context.Context,
-	conversationID, before uint64,
-	limit int,
-) ([]Message, error) {
-	rows, err := r.queries.ListMessagesBefore(ctx, store.ListMessagesBeforeParams{
-		ConversationID: conversationID,
-		BeforeSequence: before,
-		Limit:          int32(limit),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("list messages before cursor: %w", err)
-	}
-	messages := make([]Message, 0, len(rows))
-	for _, row := range rows {
-		messages = append(messages, messageFromBeforeRow(row))
-	}
-	return messages, nil
-}
-
-func rollback(tx *sql.Tx, cause error) error {
-	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-		return errors.Join(cause, fmt.Errorf("roll back transaction: %w", err))
-	}
-	return cause
 }

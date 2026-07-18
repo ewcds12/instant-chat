@@ -25,23 +25,60 @@ void main() {
               recipientName: 'Sam',
               onSend: () {},
               onPickImage: () => picks++,
+              onPickFile: () {},
             ),
           ),
         ),
       ),
     );
 
-    await tester.tap(find.byTooltip('Add photo'));
+    await tester.tap(find.byTooltip('Add attachment'));
     await tester.pumpAndSettle();
     expect(find.text('Photo…'), findsOneWidget);
+    expect(find.text('File…'), findsOneWidget);
 
     await tester.tap(find.text('Photo…'));
     await tester.pumpAndSettle();
     expect(picks, 1);
     expect(find.text('Photo…'), findsNothing);
 
-    await tester.tap(find.byTooltip('Add photo'));
+    await tester.tap(find.byTooltip('Add attachment'));
     await tester.pumpAndSettle();
     expect(find.text('Photo…'), findsOneWidget);
+  });
+
+  testWidgets('attachment menu exposes file picking', (tester) async {
+    var filePicks = 0;
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: RetroTheme.data,
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: MessageComposer(
+              controller: controller,
+              focusNode: focusNode,
+              disabled: false,
+              recipientName: 'Sam',
+              onSend: () {},
+              onPickImage: () {},
+              onPickFile: () => filePicks++,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Add attachment'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('File…'));
+    await tester.pumpAndSettle();
+
+    expect(filePicks, 1);
+    expect(find.text('File…'), findsNothing);
   });
 }

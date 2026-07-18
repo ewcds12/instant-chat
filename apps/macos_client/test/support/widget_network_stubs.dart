@@ -14,6 +14,8 @@ class StubMessageGateway implements MessageGateway {
   final List<Message> initialMessages;
   String? sentBody;
   String? sentImagePath;
+  String? sentFilePath;
+  String? downloadedFileID;
 
   @override
   Future<MessagePage> list({
@@ -71,6 +73,43 @@ class StubMessageGateway implements MessageGateway {
       ),
       createdAt: DateTime.utc(2026, 7, 15, 13),
     );
+  }
+
+  @override
+  Future<Message> sendFile({
+    required String accessToken,
+    required String conversationId,
+    required String clientMessageId,
+    required String filePath,
+  }) async {
+    sentFilePath = filePath;
+    return Message(
+      id: '23',
+      conversationId: conversationId,
+      sender: PublicUser.fromAuthUser(sender),
+      clientMessageId: clientMessageId,
+      sequence: '3',
+      kind: MessageKind.file,
+      body: '',
+      image: null,
+      file: const MessageFile(
+        id: '8',
+        url: '/api/v1/message-files/8',
+        filename: 'Notes.pdf',
+        contentType: 'application/pdf',
+        byteSize: 2048,
+      ),
+      createdAt: DateTime.utc(2026, 7, 15, 13),
+    );
+  }
+
+  @override
+  Future<List<int>> downloadFile({
+    required String accessToken,
+    required MessageFile file,
+  }) async {
+    downloadedFileID = file.id;
+    return [1, 2, 3];
   }
 }
 

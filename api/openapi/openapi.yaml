@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.7.0
+  version: 0.8.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -467,6 +467,43 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/InternalError"
+  /conversations/{conversation_id}/messages/files:
+    post:
+      operationId: sendFileMessage
+      summary: Persist one direct file message
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/SendFileMessageRequest"
+      responses:
+        "200":
+          description: Idempotent retry returned the existing message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "201":
+          description: Message created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /message-images/{image_id}:
     get:
       operationId: getMessageImage
@@ -496,6 +533,34 @@ paths:
                 type: string
                 format: binary
             image/webp:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /message-files/{file_id}:
+    get:
+      operationId: getMessageFile
+      summary: Return one authorized message file
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: file_id
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ResourceID"
+      responses:
+        "200":
+          description: File bytes
+          content:
+            application/octet-stream:
               schema:
                 type: string
                 format: binary
@@ -849,6 +914,19 @@ components:
           type: string
           format: binary
           description: PNG, JPEG, GIF, or WebP image up to 15 MB.
+    SendFileMessageRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - client_message_id
+        - file
+      properties:
+        client_message_id:
+          $ref: "#/components/schemas/ClientMessageID"
+        file:
+          type: string
+          format: binary
+          description: File up to 25 MB.
     MessageImage:
       type: object
       additionalProperties: false
@@ -873,6 +951,30 @@ components:
           type: integer
           minimum: 1
           maximum: 15728640
+    MessageFile:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - url
+        - filename
+        - content_type
+        - byte_size
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        url:
+          type: string
+        filename:
+          type: string
+          minLength: 1
+          maxLength: 255
+        content_type:
+          type: string
+        byte_size:
+          type: integer
+          minimum: 1
+          maximum: 26214400
     Message:
       type: object
       additionalProperties: false
@@ -885,6 +987,7 @@ components:
         - kind
         - body
         - image
+        - file
         - created_at
       properties:
         id:
@@ -902,12 +1005,17 @@ components:
           enum:
             - text
             - image
+            - file
         body:
           type: string
           maxLength: 4000
         image:
           oneOf:
             - $ref: "#/components/schemas/MessageImage"
+            - type: "null"
+        file:
+          oneOf:
+            - $ref: "#/components/schemas/MessageFile"
             - type: "null"
         created_at:
           type: string

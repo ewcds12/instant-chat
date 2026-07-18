@@ -23,10 +23,15 @@ SELECT
   message.image_id,
   image.content_type AS image_content_type,
   image.byte_size AS image_byte_size,
+  message.file_id,
+  file.filename AS file_filename,
+  file.content_type AS file_content_type,
+  file.byte_size AS file_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
+LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sender_id = sqlc.arg(sender_id)
   AND message.client_message_id = sqlc.arg(client_message_id)
@@ -40,9 +45,10 @@ INSERT INTO messages (
   sequence,
   kind,
   body,
-  image_id
+  image_id,
+  file_id
 )
-VALUES (?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: CreateMessageImage :execresult
 INSERT INTO message_images (
@@ -52,6 +58,16 @@ INSERT INTO message_images (
   data
 )
 VALUES (?, ?, ?, ?);
+
+-- name: CreateMessageFile :execresult
+INSERT INTO message_files (
+  uploader_id,
+  filename,
+  content_type,
+  byte_size,
+  data
+)
+VALUES (?, ?, ?, ?, ?);
 
 -- name: AdvanceConversationSequence :exec
 UPDATE conversations
@@ -82,10 +98,15 @@ SELECT
   message.image_id,
   image.content_type AS image_content_type,
   image.byte_size AS image_byte_size,
+  message.file_id,
+  file.filename AS file_filename,
+  file.content_type AS file_content_type,
+  file.byte_size AS file_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
+LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
 ORDER BY message.sequence DESC
 LIMIT ?;
@@ -105,10 +126,15 @@ SELECT
   message.image_id,
   image.content_type AS image_content_type,
   image.byte_size AS image_byte_size,
+  message.file_id,
+  file.filename AS file_filename,
+  file.content_type AS file_content_type,
+  file.byte_size AS file_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
+LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence < sqlc.arg(before_sequence)
 ORDER BY message.sequence DESC
@@ -129,10 +155,15 @@ SELECT
   message.image_id,
   image.content_type AS image_content_type,
   image.byte_size AS image_byte_size,
+  message.file_id,
+  file.filename AS file_filename,
+  file.content_type AS file_content_type,
+  file.byte_size AS file_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
+LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence > sqlc.arg(after_sequence)
 ORDER BY message.sequence ASC
@@ -154,5 +185,19 @@ JOIN messages AS message ON message.image_id = image.id
 JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE image.id = sqlc.arg(image_id)
+  AND membership.user_id = sqlc.arg(user_id)
+LIMIT 1;
+
+-- name: GetMessageFileForMember :one
+SELECT
+  file.filename,
+  file.content_type,
+  file.byte_size,
+  file.data
+FROM message_files AS file
+JOIN messages AS message ON message.file_id = file.id
+JOIN conversation_members AS membership
+  ON membership.conversation_id = message.conversation_id
+WHERE file.id = sqlc.arg(file_id)
   AND membership.user_id = sqlc.arg(user_id)
 LIMIT 1;

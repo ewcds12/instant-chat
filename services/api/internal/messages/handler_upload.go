@@ -3,6 +3,8 @@ package messages
 import (
 	"io"
 	"net/http"
+	"path/filepath"
+	"strings"
 )
 
 func imageUpload(w http.ResponseWriter, r *http.Request) (ImageUpload, string, bool) {
@@ -26,6 +28,30 @@ func imageUpload(w http.ResponseWriter, r *http.Request) (ImageUpload, string, b
 		r.FormValue("client_message_id"), true
 }
 
+func fileUpload(w http.ResponseWriter, r *http.Request) (FileUpload, string, bool) {
+	r.Body = http.MaxBytesReader(w, r.Body, maximumFileBytes+1024*1024)
+	if err := r.ParseMultipartForm(maximumFileBytes); err != nil {
+		writeInvalidArgument(w, r, "File upload must be a valid multipart form.")
+		return FileUpload{}, "", false
+	}
+	file, header, err := r.FormFile("file")
+	if err != nil {
+		writeInvalidArgument(w, r, "File is required.")
+		return FileUpload{}, "", false
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, maximumFileBytes+1))
+	if err != nil {
+		writeInvalidArgument(w, r, "File could not be read.")
+		return FileUpload{}, "", false
+	}
+	return FileUpload{
+		Filename:    cleanFilename(header.Filename),
+		ContentType: detectFileContentType(header.Header.Get("Content-Type"), data),
+		Data:        data,
+	}, r.FormValue("client_message_id"), true
+}
+
 func detectImageContentType(data []byte) string {
 	if len(data) >= 12 &&
 		string(data[0:4]) == "RIFF" &&
@@ -33,4 +59,19 @@ func detectImageContentType(data []byte) string {
 		return "image/webp"
 	}
 	return http.DetectContentType(data)
+}
+
+func detectFileContentType(header string, data []byte) string {
+	if value := strings.TrimSpace(header); value != "" {
+		return value
+	}
+	return http.DetectContentType(data)
+}
+
+func cleanFilename(value string) string {
+	name := strings.TrimSpace(filepath.Base(value))
+	if name == "." {
+		return ""
+	}
+	return name
 }

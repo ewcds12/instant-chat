@@ -68,6 +68,48 @@ void main() {
     expect(message.image?.contentType, 'image/png');
   });
 
+  test('sendFile posts a multipart file message', () async {
+    final file = File('${Directory.systemTemp.path}/instant-chat-test.pdf');
+    await file.writeAsBytes([1, 2, 3]);
+    addTearDown(() => file.deleteSync());
+    final adapter = _StubAdapter(statusCode: 201, body: _fileMessage);
+    final gateway = DioMessageGateway(_createDio(adapter));
+
+    final message = await gateway.sendFile(
+      accessToken: 'access-token',
+      conversationId: '11',
+      clientMessageId: '0123456789abcdef0123456789abcdef',
+      filePath: file.path,
+    );
+
+    expect(adapter.method, 'POST');
+    expect(adapter.path, '/api/v1/conversations/11/messages/files');
+    expect(adapter.formFields['client_message_id'], message.clientMessageId);
+    expect(adapter.formFileKeys, ['file']);
+    expect(message.kind, MessageKind.file);
+    expect(message.file?.filename, 'Notes.pdf');
+  });
+
+  test('downloadFile fetches authenticated file bytes', () async {
+    final adapter = _StubAdapter(statusCode: 200, body: [1, 2, 3]);
+    final gateway = DioMessageGateway(_createDio(adapter));
+
+    final bytes = await gateway.downloadFile(
+      accessToken: 'access-token',
+      file: const MessageFile(
+        id: '8',
+        url: '/api/v1/message-files/8',
+        filename: 'Notes.pdf',
+        contentType: 'application/pdf',
+        byteSize: 3,
+      ),
+    );
+
+    expect(adapter.method, 'GET');
+    expect(adapter.path, '/api/v1/message-files/8');
+    expect(bytes, [1, 2, 3]);
+  });
+
   test('list sends the reconnect sequence cursor', () async {
     final adapter = _StubAdapter(
       statusCode: 200,
@@ -118,6 +160,22 @@ final _imageMessage = {
   },
 };
 
+final _fileMessage = {
+  ..._message,
+  'id': '23',
+  'sequence': '7',
+  'kind': 'file',
+  'body': '',
+  'image': null,
+  'file': {
+    'id': '8',
+    'url': '/api/v1/message-files/8',
+    'filename': 'Notes.pdf',
+    'content_type': 'application/pdf',
+    'byte_size': 2048,
+  },
+};
+
 Dio _createDio(HttpClientAdapter adapter) {
   final dio = Dio(
     BaseOptions(
@@ -158,6 +216,9 @@ class _StubAdapter implements HttpClientAdapter {
         for (final field in formData.fields) field.key: field.value,
       };
       formFileKeys = [for (final file in formData.files) file.key];
+    }
+    if (body case final List<int> bytes) {
+      return ResponseBody.fromBytes(bytes, statusCode);
     }
     return ResponseBody.fromString(
       jsonEncode(body),

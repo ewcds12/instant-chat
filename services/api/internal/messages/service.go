@@ -12,6 +12,8 @@ const (
 	maximumPageSize   = 100
 	maximumBodyRunes  = 4000
 	maximumImageBytes = 15 * 1024 * 1024
+	maximumFileBytes  = 25 * 1024 * 1024
+	maximumNameRunes  = 255
 )
 
 var clientMessageIDPattern = regexp.MustCompile(`^[a-f0-9]{32}$`)
@@ -95,12 +97,57 @@ func (s *Service) SendImage(
 	return message, created, err
 }
 
+// SendFile validates and persists one file message.
+func (s *Service) SendFile(
+	ctx context.Context,
+	userID, conversationID uint64,
+	clientMessageID string,
+	upload FileUpload,
+) (Message, bool, error) {
+	if !clientMessageIDPattern.MatchString(clientMessageID) {
+		return Message{}, false, &InputError{
+			Message: "Client message ID must be 32 lowercase hexadecimal characters.",
+		}
+	}
+	filename := strings.TrimSpace(upload.Filename)
+	if filename == "" || !utf8.ValidString(filename) || utf8.RuneCountInString(filename) > maximumNameRunes {
+		return Message{}, false, &InputError{
+			Message: "Filename must contain 1 to 255 Unicode characters.",
+		}
+	}
+	if len(upload.Data) == 0 {
+		return Message{}, false, &InputError{Message: "File must not be empty."}
+	}
+	if len(upload.Data) > maximumFileBytes {
+		return Message{}, false, &InputError{Message: "File must be 25 MB or smaller."}
+	}
+	if strings.TrimSpace(upload.ContentType) == "" {
+		upload.ContentType = "application/octet-stream"
+	}
+	upload.Filename = filename
+	message, created, err := s.repository.SendFile(
+		ctx, userID, conversationID, clientMessageID, upload,
+	)
+	if err == nil && created {
+		s.publisher.PublishMessage(ctx, message)
+	}
+	return message, created, err
+}
+
 // Image returns one authorized image attachment.
 func (s *Service) Image(ctx context.Context, userID, imageID uint64) (ImageFile, error) {
 	if imageID == 0 {
 		return ImageFile{}, &InputError{Message: "Image ID must be a positive integer string."}
 	}
 	return s.repository.Image(ctx, userID, imageID)
+}
+
+// File returns one authorized file attachment.
+func (s *Service) File(ctx context.Context, userID, fileID uint64) (MessageFile, error) {
+	if fileID == 0 {
+		return MessageFile{}, &InputError{Message: "File ID must be a positive integer string."}
+	}
+	return s.repository.File(ctx, userID, fileID)
 }
 
 // List returns one ascending history page and an older-page cursor.

@@ -31,9 +31,10 @@ INSERT INTO messages (
   sequence,
   kind,
   body,
-  image_id
+  image_id,
+  file_id
 )
-VALUES (?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateMessageParams struct {
@@ -44,6 +45,7 @@ type CreateMessageParams struct {
 	Kind            string        `db:"kind"`
 	Body            string        `db:"body"`
 	ImageID         sql.NullInt64 `db:"image_id"`
+	FileID          sql.NullInt64 `db:"file_id"`
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (sql.Result, error) {
@@ -55,6 +57,36 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (s
 		arg.Kind,
 		arg.Body,
 		arg.ImageID,
+		arg.FileID,
+	)
+}
+
+const createMessageFile = `-- name: CreateMessageFile :execresult
+INSERT INTO message_files (
+  uploader_id,
+  filename,
+  content_type,
+  byte_size,
+  data
+)
+VALUES (?, ?, ?, ?, ?)
+`
+
+type CreateMessageFileParams struct {
+	UploaderID  uint64 `db:"uploader_id"`
+	Filename    string `db:"filename"`
+	ContentType string `db:"content_type"`
+	ByteSize    uint32 `db:"byte_size"`
+	Data        []byte `db:"data"`
+}
+
+func (q *Queries) CreateMessageFile(ctx context.Context, arg CreateMessageFileParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createMessageFile,
+		arg.UploaderID,
+		arg.Filename,
+		arg.ContentType,
+		arg.ByteSize,
+		arg.Data,
 	)
 }
 
@@ -99,10 +131,15 @@ SELECT
   message.image_id,
   image.content_type AS image_content_type,
   image.byte_size AS image_byte_size,
+  message.file_id,
+  file.filename AS file_filename,
+  file.content_type AS file_content_type,
+  file.byte_size AS file_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
+LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
   AND message.sender_id = ?
   AND message.client_message_id = ?
@@ -129,6 +166,10 @@ type GetMessageByClientIDRow struct {
 	ImageID           sql.NullInt64  `db:"image_id"`
 	ImageContentType  sql.NullString `db:"image_content_type"`
 	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
+	FileID            sql.NullInt64  `db:"file_id"`
+	FileFilename      sql.NullString `db:"file_filename"`
+	FileContentType   sql.NullString `db:"file_content_type"`
+	FileByteSize      sql.NullInt32  `db:"file_byte_size"`
 	CreatedAt         time.Time      `db:"created_at"`
 }
 
@@ -149,7 +190,50 @@ func (q *Queries) GetMessageByClientID(ctx context.Context, arg GetMessageByClie
 		&i.ImageID,
 		&i.ImageContentType,
 		&i.ImageByteSize,
+		&i.FileID,
+		&i.FileFilename,
+		&i.FileContentType,
+		&i.FileByteSize,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getMessageFileForMember = `-- name: GetMessageFileForMember :one
+SELECT
+  file.filename,
+  file.content_type,
+  file.byte_size,
+  file.data
+FROM message_files AS file
+JOIN messages AS message ON message.file_id = file.id
+JOIN conversation_members AS membership
+  ON membership.conversation_id = message.conversation_id
+WHERE file.id = ?
+  AND membership.user_id = ?
+LIMIT 1
+`
+
+type GetMessageFileForMemberParams struct {
+	FileID uint64 `db:"file_id"`
+	UserID uint64 `db:"user_id"`
+}
+
+type GetMessageFileForMemberRow struct {
+	Filename    string `db:"filename"`
+	ContentType string `db:"content_type"`
+	ByteSize    uint32 `db:"byte_size"`
+	Data        []byte `db:"data"`
+}
+
+func (q *Queries) GetMessageFileForMember(ctx context.Context, arg GetMessageFileForMemberParams) (GetMessageFileForMemberRow, error) {
+	row := q.db.QueryRowContext(ctx, getMessageFileForMember, arg.FileID, arg.UserID)
+	var i GetMessageFileForMemberRow
+	err := row.Scan(
+		&i.Filename,
+		&i.ContentType,
+		&i.ByteSize,
+		&i.Data,
 	)
 	return i, err
 }
@@ -252,10 +336,15 @@ SELECT
   message.image_id,
   image.content_type AS image_content_type,
   image.byte_size AS image_byte_size,
+  message.file_id,
+  file.filename AS file_filename,
+  file.content_type AS file_content_type,
+  file.byte_size AS file_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
+LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
 ORDER BY message.sequence DESC
 LIMIT ?
@@ -280,6 +369,10 @@ type ListLatestMessagesRow struct {
 	ImageID           sql.NullInt64  `db:"image_id"`
 	ImageContentType  sql.NullString `db:"image_content_type"`
 	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
+	FileID            sql.NullInt64  `db:"file_id"`
+	FileFilename      sql.NullString `db:"file_filename"`
+	FileContentType   sql.NullString `db:"file_content_type"`
+	FileByteSize      sql.NullInt32  `db:"file_byte_size"`
 	CreatedAt         time.Time      `db:"created_at"`
 }
 
@@ -306,6 +399,10 @@ func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessages
 			&i.ImageID,
 			&i.ImageContentType,
 			&i.ImageByteSize,
+			&i.FileID,
+			&i.FileFilename,
+			&i.FileContentType,
+			&i.FileByteSize,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -336,10 +433,15 @@ SELECT
   message.image_id,
   image.content_type AS image_content_type,
   image.byte_size AS image_byte_size,
+  message.file_id,
+  file.filename AS file_filename,
+  file.content_type AS file_content_type,
+  file.byte_size AS file_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
+LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
   AND message.sequence > ?
 ORDER BY message.sequence ASC
@@ -366,6 +468,10 @@ type ListMessagesAfterRow struct {
 	ImageID           sql.NullInt64  `db:"image_id"`
 	ImageContentType  sql.NullString `db:"image_content_type"`
 	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
+	FileID            sql.NullInt64  `db:"file_id"`
+	FileFilename      sql.NullString `db:"file_filename"`
+	FileContentType   sql.NullString `db:"file_content_type"`
+	FileByteSize      sql.NullInt32  `db:"file_byte_size"`
 	CreatedAt         time.Time      `db:"created_at"`
 }
 
@@ -392,6 +498,10 @@ func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterPa
 			&i.ImageID,
 			&i.ImageContentType,
 			&i.ImageByteSize,
+			&i.FileID,
+			&i.FileFilename,
+			&i.FileContentType,
+			&i.FileByteSize,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -422,10 +532,15 @@ SELECT
   message.image_id,
   image.content_type AS image_content_type,
   image.byte_size AS image_byte_size,
+  message.file_id,
+  file.filename AS file_filename,
+  file.content_type AS file_content_type,
+  file.byte_size AS file_byte_size,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
+LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
   AND message.sequence < ?
 ORDER BY message.sequence DESC
@@ -452,6 +567,10 @@ type ListMessagesBeforeRow struct {
 	ImageID           sql.NullInt64  `db:"image_id"`
 	ImageContentType  sql.NullString `db:"image_content_type"`
 	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
+	FileID            sql.NullInt64  `db:"file_id"`
+	FileFilename      sql.NullString `db:"file_filename"`
+	FileContentType   sql.NullString `db:"file_content_type"`
+	FileByteSize      sql.NullInt32  `db:"file_byte_size"`
 	CreatedAt         time.Time      `db:"created_at"`
 }
 
@@ -478,6 +597,10 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.ImageID,
 			&i.ImageContentType,
 			&i.ImageByteSize,
+			&i.FileID,
+			&i.FileFilename,
+			&i.FileContentType,
+			&i.FileByteSize,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

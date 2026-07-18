@@ -12,6 +12,8 @@ var (
 	ErrConversationNotFound = errors.New("conversation not found")
 	// ErrImageNotFound hides whether an image exists from non-members.
 	ErrImageNotFound = errors.New("message image not found")
+	// ErrFileNotFound hides whether a file exists from non-members.
+	ErrFileNotFound = errors.New("message file not found")
 )
 
 const (
@@ -19,6 +21,8 @@ const (
 	KindText = "text"
 	// KindImage identifies a message with one image attachment.
 	KindImage = "image"
+	// KindFile identifies a message with one file attachment.
+	KindFile = "file"
 )
 
 // InputError describes one invalid message request field.
@@ -48,6 +52,7 @@ type Message struct {
 	Kind            string
 	Body            string
 	Image           *ImageAttachment
+	File            *FileAttachment
 	CreatedAt       time.Time
 }
 
@@ -64,8 +69,31 @@ type ImageUpload struct {
 	Data        []byte
 }
 
+// FileAttachment is the public metadata for one file message attachment.
+type FileAttachment struct {
+	ID          uint64
+	Filename    string
+	ContentType string
+	ByteSize    uint32
+}
+
+// FileUpload is a validated file upload candidate.
+type FileUpload struct {
+	Filename    string
+	ContentType string
+	Data        []byte
+}
+
 // ImageFile is one authorized image download.
 type ImageFile struct {
+	ContentType string
+	ByteSize    uint32
+	Data        []byte
+}
+
+// MessageFile is one authorized file download.
+type MessageFile struct {
+	Filename    string
 	ContentType string
 	ByteSize    uint32
 	Data        []byte
@@ -90,7 +118,14 @@ type Repository interface {
 		clientMessageID string,
 		upload ImageUpload,
 	) (Message, bool, error)
+	SendFile(
+		ctx context.Context,
+		userID, conversationID uint64,
+		clientMessageID string,
+		upload FileUpload,
+	) (Message, bool, error)
 	Image(ctx context.Context, userID, imageID uint64) (ImageFile, error)
+	File(ctx context.Context, userID, fileID uint64) (MessageFile, error)
 	List(
 		ctx context.Context,
 		userID, conversationID uint64,

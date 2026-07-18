@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/messages/presentation/message_attachment_menu.dart';
 
 class MessageComposer extends StatefulWidget {
   const MessageComposer({
@@ -10,6 +11,7 @@ class MessageComposer extends StatefulWidget {
     required this.recipientName,
     required this.onSend,
     required this.onPickImage,
+    required this.onPickFile,
     super.key,
   });
 
@@ -19,6 +21,7 @@ class MessageComposer extends StatefulWidget {
   final String recipientName;
   final VoidCallback onSend;
   final VoidCallback onPickImage;
+  final VoidCallback onPickFile;
 
   @override
   State<MessageComposer> createState() => _MessageComposerState();
@@ -57,7 +60,7 @@ class _MessageComposerState extends State<MessageComposer>
             CompositedTransformTarget(
               link: _menuLink,
               child: Tooltip(
-                message: 'Add photo',
+                message: 'Add attachment',
                 child: SizedBox.square(
                   dimension: RetroMetrics.composerControlHeight,
                   child: IconButton.outlined(
@@ -110,11 +113,15 @@ class _MessageComposerState extends State<MessageComposer>
             targetAnchor: Alignment.topLeft,
             followerAnchor: Alignment.bottomLeft,
             offset: const Offset(0, -8),
-            child: _AttachmentMenu(
+            child: MessageAttachmentMenu(
               animation: _menuController!,
               onPhoto: () {
                 _closeMenu(immediate: true);
                 widget.onPickImage();
+              },
+              onFile: () {
+                _closeMenu(immediate: true);
+                widget.onPickFile();
               },
             ),
           ),
@@ -151,79 +158,6 @@ class _MessageComposerState extends State<MessageComposer>
       entry.remove();
       controller.dispose();
     });
-  }
-}
-
-class _AttachmentMenu extends StatelessWidget {
-  const _AttachmentMenu({required this.animation, required this.onPhoto});
-
-  final Animation<double> animation;
-  final VoidCallback onPhoto;
-
-  @override
-  Widget build(BuildContext context) {
-    final opacity = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-    final scale = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutBack,
-      reverseCurve: Curves.easeInCubic,
-    );
-    final slide = CurvedAnimation(
-      parent: animation,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInCubic,
-    );
-    return FadeTransition(
-      opacity: opacity,
-      child: ScaleTransition(
-        alignment: Alignment.bottomLeft,
-        scale: scale.drive(Tween(begin: 0.96, end: 1.0)),
-        child: SlideTransition(
-          position: slide.drive(
-            Tween(begin: const Offset(0, 0.05), end: Offset.zero),
-          ),
-          child: SizedBox(
-            width: 178,
-            child: GlassPanel(
-              tint: RetroColors.glassStrong,
-              radius: 16,
-              padding: const EdgeInsets.all(6),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(11),
-                  onTap: onPhoto,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 9,
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.photo_outlined,
-                          size: 18,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Photo…',
-                          style: Theme.of(context).textTheme.labelLarge,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 

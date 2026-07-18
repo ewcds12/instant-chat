@@ -75,12 +75,56 @@ class DioMessageGateway implements MessageGateway {
     return Message.fromJson(responseObject(response.data));
   }
 
+  @override
+  Future<Message> sendFile({
+    required String accessToken,
+    required String conversationId,
+    required String clientMessageId,
+    required String filePath,
+  }) async {
+    final response = await apiRequest(
+      () async => _dio.post<Object?>(
+        '/api/v1/conversations/$conversationId/messages/files',
+        data: FormData.fromMap({
+          'client_message_id': clientMessageId,
+          'file': await MultipartFile.fromFile(filePath),
+        }),
+        options: _uploadOptions(accessToken),
+      ),
+    );
+    expectStatus(response, {200, 201});
+    return Message.fromJson(responseObject(response.data));
+  }
+
+  @override
+  Future<List<int>> downloadFile({
+    required String accessToken,
+    required MessageFile file,
+  }) async {
+    final response = await apiRequest(
+      () =>
+          _dio.get<List<int>>(file.url, options: _downloadOptions(accessToken)),
+    );
+    expectStatus(response, {200});
+    final bytes = response.data;
+    if (bytes is! List<int>) {
+      throw const FormatException('file response must contain bytes');
+    }
+    return bytes;
+  }
+
   Options _options(String token) =>
       Options(headers: bearerAuthorization(token));
 
   Options _uploadOptions(String token) => Options(
     headers: bearerAuthorization(token),
     sendTimeout: const Duration(seconds: 30),
+    receiveTimeout: const Duration(seconds: 30),
+  );
+
+  Options _downloadOptions(String token) => Options(
+    headers: bearerAuthorization(token),
+    responseType: ResponseType.bytes,
     receiveTimeout: const Duration(seconds: 30),
   );
 }

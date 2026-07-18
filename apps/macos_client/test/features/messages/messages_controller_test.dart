@@ -118,6 +118,37 @@ void main() {
     expect(message.image?.url, '/api/v1/message-images/6');
   });
 
+  test('sendFile appends a file message', () async {
+    final gateway = _FakeMessageGateway();
+    final realtime = _FakeRealtimeConnection();
+    final container = ProviderContainer(
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => _StubAuthController(AuthState(session: _session)),
+        ),
+        messageGatewayProvider.overrideWithValue(gateway),
+        realtimeConnectionProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(realtime.close);
+    await container.read(authControllerProvider.future);
+    final provider = messagesControllerProvider('11');
+    final subscription = container.listen(provider, (_, _) {});
+    addTearDown(subscription.close);
+    await container.read(provider.future);
+
+    final sent = await container
+        .read(provider.notifier)
+        .sendFile('/tmp/instant-chat-notes.pdf');
+
+    final message = container.read(provider).requireValue.messages.single;
+    expect(sent, isTrue);
+    expect(gateway.sentFilePath, '/tmp/instant-chat-notes.pdf');
+    expect(message.kind, MessageKind.file);
+    expect(message.file?.filename, 'Notes.pdf');
+  });
+
   test(
     'reconnect catches up, deduplicates, and restores sequence order',
     () async {
@@ -243,6 +274,8 @@ class _FakeMessageGateway implements MessageGateway {
   final List<String> clientIDs = [];
   final List<String> afterCursors = [];
   String? sentImagePath;
+  String? sentFilePath;
+  String? downloadedFileID;
   var listIndex = 0;
   var failNextSend = false;
 
@@ -310,6 +343,44 @@ class _FakeMessageGateway implements MessageGateway {
       ),
       createdAt: DateTime.utc(2026, 7, 16, 13),
     );
+  }
+
+  @override
+  Future<Message> sendFile({
+    required String accessToken,
+    required String conversationId,
+    required String clientMessageId,
+    required String filePath,
+  }) async {
+    clientIDs.add(clientMessageId);
+    sentFilePath = filePath;
+    return Message(
+      id: '23',
+      conversationId: conversationId,
+      sender: _message('1').sender,
+      clientMessageId: clientMessageId,
+      sequence: '5',
+      kind: MessageKind.file,
+      body: '',
+      image: null,
+      file: const MessageFile(
+        id: '8',
+        url: '/api/v1/message-files/8',
+        filename: 'Notes.pdf',
+        contentType: 'application/pdf',
+        byteSize: 2048,
+      ),
+      createdAt: DateTime.utc(2026, 7, 16, 13),
+    );
+  }
+
+  @override
+  Future<List<int>> downloadFile({
+    required String accessToken,
+    required MessageFile file,
+  }) async {
+    downloadedFileID = file.id;
+    return [1, 2, 3];
   }
 }
 

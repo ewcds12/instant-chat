@@ -86,12 +86,25 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     );
   }
 
+  Future<bool> sendFile(String filePath) {
+    if (filePath.trim().isEmpty) {
+      return Future.value(false);
+    }
+    return _send(
+      FailedMessage.file(clientMessageId: _newClientID(), filePath: filePath),
+    );
+  }
+
   Future<bool> retry() async {
     final failed = state.requireValue.failedMessage;
     if (failed == null) {
       return false;
     }
     return _send(failed);
+  }
+
+  Future<List<int>> downloadFile(MessageFile file) {
+    return _gateway.downloadFile(accessToken: _accessToken, file: file);
   }
 
   Future<void> loadOlder() async {
@@ -165,6 +178,15 @@ class MessagesController extends AsyncNotifier<MessagesState> {
         conversationId: conversationId,
         clientMessageId: pending.clientMessageId,
         imagePath: imagePath,
+      );
+    }
+    final filePath = pending.filePath;
+    if (filePath != null) {
+      return _gateway.sendFile(
+        accessToken: _accessToken,
+        conversationId: conversationId,
+        clientMessageId: pending.clientMessageId,
+        filePath: filePath,
       );
     }
     return _gateway.send(

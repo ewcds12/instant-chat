@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
+import 'package:instant_chat/features/messages/presentation/message_file_card.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
@@ -13,6 +14,7 @@ class MessageHistory extends StatelessWidget {
     required this.accessToken,
     required this.currentUserId,
     required this.onLoadOlder,
+    required this.onOpenFile,
     super.key,
   });
 
@@ -21,6 +23,7 @@ class MessageHistory extends StatelessWidget {
   final String accessToken;
   final String currentUserId;
   final VoidCallback onLoadOlder;
+  final ValueChanged<MessageFile> onOpenFile;
 
   @override
   Widget build(BuildContext context) {
@@ -80,6 +83,7 @@ class MessageHistory extends StatelessWidget {
                   isMine: message.sender.id == currentUserId,
                   imageMessages: imageMessages,
                   accessToken: accessToken,
+                  onOpenFile: onOpenFile,
                 );
               },
             ),
@@ -96,17 +100,20 @@ class _MessageBubble extends StatelessWidget {
     required this.isMine,
     required this.imageMessages,
     required this.accessToken,
+    required this.onOpenFile,
   });
 
   final Message message;
   final bool isMine;
   final List<MessageImage> imageMessages;
   final String accessToken;
+  final ValueChanged<MessageFile> onOpenFile;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final image = message.kind == MessageKind.image ? message.image : null;
+    final file = message.kind == MessageKind.file ? message.file : null;
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Column(
@@ -114,7 +121,28 @@ class _MessageBubble extends StatelessWidget {
             ? CrossAxisAlignment.end
             : CrossAxisAlignment.start,
         children: [
-          if (image == null)
+          if (image != null)
+            MessageImageView(
+              key: ValueKey('message-image-${message.id}'),
+              openKey: ValueKey('message-image-open-${message.id}'),
+              image: image,
+              accessToken: accessToken,
+              onOpen: () => showMessageImagePreview(
+                context: context,
+                images: imageMessages,
+                initialImage: image,
+                accessToken: accessToken,
+              ),
+            )
+          else if (file != null)
+            MessageFileCard(
+              key: ValueKey('message-file-${message.id}'),
+              openKey: ValueKey('message-file-open-${message.id}'),
+              file: file,
+              isMine: isMine,
+              onOpen: () => onOpenFile(file),
+            )
+          else
             Container(
               key: ValueKey('message-bubble-${message.id}'),
               constraints: const BoxConstraints(maxWidth: 520),
@@ -154,19 +182,6 @@ class _MessageBubble extends StatelessWidget {
                   fontSize: 14,
                   height: 1.28,
                 ),
-              ),
-            )
-          else
-            MessageImageView(
-              key: ValueKey('message-image-${message.id}'),
-              openKey: ValueKey('message-image-open-${message.id}'),
-              image: image,
-              accessToken: accessToken,
-              onOpen: () => showMessageImagePreview(
-                context: context,
-                images: imageMessages,
-                initialImage: image,
-                accessToken: accessToken,
               ),
             ),
           const SizedBox(height: 4),

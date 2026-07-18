@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/ewcds12/instant-chat/services/api/internal/auth"
 	"github.com/ewcds12/instant-chat/services/api/internal/httpapi"
@@ -15,7 +14,9 @@ import (
 type messageService interface {
 	Send(context.Context, uint64, uint64, string, string) (Message, bool, error)
 	SendImage(context.Context, uint64, uint64, string, ImageUpload) (Message, bool, error)
+	SendFile(context.Context, uint64, uint64, string, FileUpload) (Message, bool, error)
 	Image(context.Context, uint64, uint64) (ImageFile, error)
+	File(context.Context, uint64, uint64) (MessageFile, error)
 	List(context.Context, uint64, uint64, *uint64, *uint64, int) (Page, error)
 }
 
@@ -32,32 +33,6 @@ func NewHandler(service messageService) *Handler {
 type sendRequest struct {
 	ClientMessageID string `json:"client_message_id"`
 	Body            string `json:"body"`
-}
-
-type senderResponse struct {
-	ID          string    `json:"id"`
-	Username    string    `json:"username"`
-	DisplayName string    `json:"display_name"`
-	CreatedAt   time.Time `json:"created_at"`
-}
-
-type messageResponse struct {
-	ID              string         `json:"id"`
-	ConversationID  string         `json:"conversation_id"`
-	Sender          senderResponse `json:"sender"`
-	ClientMessageID string         `json:"client_message_id"`
-	Sequence        string         `json:"sequence"`
-	Kind            string         `json:"kind"`
-	Body            string         `json:"body"`
-	Image           *imageResponse `json:"image"`
-	CreatedAt       time.Time      `json:"created_at"`
-}
-
-type imageResponse struct {
-	ID          string `json:"id"`
-	URL         string `json:"url"`
-	ContentType string `json:"content_type"`
-	ByteSize    uint32 `json:"byte_size"`
 }
 
 // Send persists one direct text message.
@@ -109,6 +84,30 @@ func (h *Handler) SendImage(w http.ResponseWriter, r *http.Request) {
 	httpapi.WriteJSON(w, status, responseFromMessage(message))
 }
 
+// SendFile persists one direct file message.
+func (h *Handler) SendFile(w http.ResponseWriter, r *http.Request) {
+	conversationID, ok := conversationID(w, r)
+	if !ok {
+		return
+	}
+	upload, clientMessageID, ok := fileUpload(w, r)
+	if !ok {
+		return
+	}
+	message, created, err := h.service.SendFile(
+		r.Context(), currentUserID(r), conversationID, clientMessageID, upload,
+	)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	status := http.StatusOK
+	if created {
+		status = http.StatusCreated
+	}
+	httpapi.WriteJSON(w, status, responseFromMessage(message))
+}
+
 // Image returns one image attachment for an authorized conversation member.
 func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
 	imageID, ok := positivePathID(w, r, "image_id", "Image ID")
@@ -127,6 +126,27 @@ func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	if _, err := w.Write(image.Data); err != nil {
 		slog.Debug("write message image failed", "request_id", httpapi.RequestID(r.Context()), "error", err)
+	}
+}
+
+// File returns one file attachment for an authorized conversation member.
+func (h *Handler) File(w http.ResponseWriter, r *http.Request) {
+	fileID, ok := positivePathID(w, r, "file_id", "File ID")
+	if !ok {
+		return
+	}
+	file, err := h.service.File(r.Context(), currentUserID(r), fileID)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	w.Header().Set("Cache-Control", "private, max-age=60")
+	w.Header().Set("Content-Disposition", attachmentDisposition(file.Filename))
+	w.Header().Set("Content-Length", strconv.FormatUint(uint64(file.ByteSize), 10))
+	w.Header().Set("Content-Type", file.ContentType)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	if _, err := w.Write(file.Data); err != nil {
+		slog.Debug("write message file failed", "request_id", httpapi.RequestID(r.Context()), "error", err)
 	}
 }
 
@@ -241,6 +261,8 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 		httpapi.WriteError(w, http.StatusNotFound, "conversation_not_found", "Conversation was not found.", requestID)
 	case errors.Is(err, ErrImageNotFound):
 		httpapi.WriteError(w, http.StatusNotFound, "image_not_found", "Image was not found.", requestID)
+	case errors.Is(err, ErrFileNotFound):
+		httpapi.WriteError(w, http.StatusNotFound, "file_not_found", "File was not found.", requestID)
 	default:
 		slog.Error("message request failed", "request_id", requestID, "error", err)
 		httpapi.WriteError(
@@ -252,35 +274,4 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 
 func writeInvalidArgument(w http.ResponseWriter, r *http.Request, message string) {
 	httpapi.WriteError(w, http.StatusBadRequest, "invalid_argument", message, httpapi.RequestID(r.Context()))
-}
-
-func responseFromMessage(message Message) messageResponse {
-	response := messageResponse{
-		ID:             strconv.FormatUint(message.ID, 10),
-		ConversationID: strconv.FormatUint(message.ConversationID, 10),
-		Sender: senderResponse{
-			ID:          strconv.FormatUint(message.Sender.ID, 10),
-			Username:    message.Sender.Username,
-			DisplayName: message.Sender.DisplayName,
-			CreatedAt:   message.Sender.CreatedAt.UTC(),
-		},
-		ClientMessageID: message.ClientMessageID,
-		Sequence:        strconv.FormatUint(message.Sequence, 10),
-		Kind:            message.Kind,
-		Body:            message.Body,
-		CreatedAt:       message.CreatedAt.UTC(),
-	}
-	if response.Kind == "" {
-		response.Kind = KindText
-	}
-	if message.Image != nil {
-		imageID := strconv.FormatUint(message.Image.ID, 10)
-		response.Image = &imageResponse{
-			ID:          imageID,
-			URL:         "/api/v1/message-images/" + imageID,
-			ContentType: message.Image.ContentType,
-			ByteSize:    message.Image.ByteSize,
-		}
-	}
-	return response
 }

@@ -28,12 +28,21 @@ type messageEvent struct {
 	Kind            string      `json:"kind"`
 	Body            string      `json:"body"`
 	Image           *imageEvent `json:"image"`
+	File            *fileEvent  `json:"file"`
 	CreatedAt       time.Time   `json:"created_at"`
 }
 
 type imageEvent struct {
 	ID          string `json:"id"`
 	URL         string `json:"url"`
+	ContentType string `json:"content_type"`
+	ByteSize    uint32 `json:"byte_size"`
+}
+
+type fileEvent struct {
+	ID          string `json:"id"`
+	URL         string `json:"url"`
+	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
 	ByteSize    uint32 `json:"byte_size"`
 }
@@ -71,6 +80,16 @@ func messageCreatedEvent(message messages.Message) eventEnvelope {
 			URL:         "/api/v1/message-images/" + imageID,
 			ContentType: message.Image.ContentType,
 			ByteSize:    message.Image.ByteSize,
+		}
+	}
+	if message.File != nil {
+		fileID := strconv.FormatUint(message.File.ID, 10)
+		body.File = &fileEvent{
+			ID:          fileID,
+			URL:         "/api/v1/message-files/" + fileID,
+			Filename:    message.File.Filename,
+			ContentType: message.File.ContentType,
+			ByteSize:    message.File.ByteSize,
 		}
 	}
 	return eventEnvelope{

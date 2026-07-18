@@ -12,7 +12,8 @@ func messageFromClientRow(row store.GetMessageByClientIDRow) Message {
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
 		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
-		row.ImageByteSize, row.CreatedAt,
+		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
+		row.FileByteSize, row.CreatedAt,
 	)
 }
 
@@ -21,7 +22,8 @@ func messageFromLatestRow(row store.ListLatestMessagesRow) Message {
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
 		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
-		row.ImageByteSize, row.CreatedAt,
+		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
+		row.FileByteSize, row.CreatedAt,
 	)
 }
 
@@ -30,7 +32,8 @@ func messageFromBeforeRow(row store.ListMessagesBeforeRow) Message {
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
 		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
-		row.ImageByteSize, row.CreatedAt,
+		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
+		row.FileByteSize, row.CreatedAt,
 	)
 }
 
@@ -39,7 +42,8 @@ func messageFromAfterRow(row store.ListMessagesAfterRow) Message {
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
 		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
-		row.ImageByteSize, row.CreatedAt,
+		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
+		row.FileByteSize, row.CreatedAt,
 	)
 }
 
@@ -54,6 +58,10 @@ func newMessage(
 	imageID sql.NullInt64,
 	imageContentType sql.NullString,
 	imageByteSize sql.NullInt32,
+	fileID sql.NullInt64,
+	fileFilename sql.NullString,
+	fileContentType sql.NullString,
+	fileByteSize sql.NullInt32,
 	createdAt time.Time,
 ) Message {
 	message := Message{
@@ -73,6 +81,14 @@ func newMessage(
 			ID:          uint64(imageID.Int64),
 			ContentType: imageContentType.String,
 			ByteSize:    uint32(imageByteSize.Int32),
+		}
+	}
+	if kind == KindFile && fileID.Valid {
+		message.File = &FileAttachment{
+			ID:          uint64(fileID.Int64),
+			Filename:    fileFilename.String,
+			ContentType: fileContentType.String,
+			ByteSize:    uint32(fileByteSize.Int32),
 		}
 	}
 	return message

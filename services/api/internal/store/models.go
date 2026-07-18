@@ -55,6 +55,17 @@ type Message struct {
 	CreatedAt       time.Time     `db:"created_at"`
 	Kind            string        `db:"kind"`
 	ImageID         sql.NullInt64 `db:"image_id"`
+	FileID          sql.NullInt64 `db:"file_id"`
+}
+
+type MessageFile struct {
+	ID          uint64    `db:"id"`
+	UploaderID  uint64    `db:"uploader_id"`
+	Filename    string    `db:"filename"`
+	ContentType string    `db:"content_type"`
+	ByteSize    uint32    `db:"byte_size"`
+	Data        []byte    `db:"data"`
+	CreatedAt   time.Time `db:"created_at"`
 }
 
 type MessageImage struct {
