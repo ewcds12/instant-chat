@@ -92,22 +92,10 @@ class _AppSidebar extends StatelessWidget {
         borderColor: Colors.transparent,
         shadows: const [],
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 20, 10, 12),
+          padding: const EdgeInsets.fromLTRB(10, 56, 10, 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 18, 8, 16),
-                child: Text(
-                  'Instant Chat',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontSize: 14,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-              ),
               _SidebarItem(
                 label: 'Chats',
                 icon: Icons.chat_bubble_outline_rounded,

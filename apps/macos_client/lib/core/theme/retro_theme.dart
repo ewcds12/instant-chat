@@ -8,8 +8,8 @@ abstract final class RetroMetrics {
   static const spaceSmall = 8.0;
   static const spaceMedium = 16.0;
   static const spaceLarge = 24.0;
-  static const sidebarWidth = 148.0;
-  static const conversationColumnWidth = 312.0;
+  static const sidebarWidth = 180.0;
+  static const conversationColumnWidth = 280.0;
   static const composerControlHeight = 38.0;
   static const maxAuthPanelWidth = 420.0;
   static const maxPanelWidth = 760.0;

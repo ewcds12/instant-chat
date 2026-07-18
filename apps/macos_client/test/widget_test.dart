@@ -152,12 +152,13 @@ void main() {
     expect(find.text('Chats'), findsAtLeastNWidgets(1));
     expect(find.text('Contacts'), findsOneWidget);
     expect(find.text('Requests'), findsOneWidget);
+    expect(find.text('Instant Chat'), findsNothing);
     expect(find.text('Other User'), findsOneWidget);
     expect(find.byTooltip('New conversation'), findsOneWidget);
-    expect(tester.getSize(find.byKey(const Key('app-sidebar'))).width, 148);
+    expect(tester.getSize(find.byKey(const Key('app-sidebar'))).width, 180);
     expect(
       tester.getSize(find.byKey(const Key('conversation-column'))).width,
-      312,
+      280,
     );
 
     await tester.enterText(
