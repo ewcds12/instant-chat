@@ -20,6 +20,7 @@ void main() {
               'id': '7',
               'username': 'retro_user',
               'display_name': 'Retro User',
+              'avatar_url': '/api/v1/users/7/avatar',
               'created_at': '2026-07-16T12:00:00Z',
             },
             'client_message_id': '0123456789abcdef0123456789abcdef',
@@ -35,6 +36,7 @@ void main() {
 
     expect(message?.id, '21');
     expect(message?.sequence, '4');
+    expect(message?.sender.avatarUrl, '/api/v1/users/7/avatar');
   });
 
   test('rejects an unsupported message.created version', () {
@@ -129,6 +131,7 @@ String _messageCreatedEvent({bool file = false}) {
           'id': '7',
           'username': 'retro_user',
           'display_name': 'Retro User',
+          'avatar_url': '/api/v1/users/7/avatar',
           'created_at': '2026-07-16T12:00:00Z',
         },
         'client_message_id': '0123456789abcdef0123456789abcdef',

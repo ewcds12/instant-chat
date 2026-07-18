@@ -10,6 +10,7 @@ type senderResponse struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
 	DisplayName string    `json:"display_name"`
+	AvatarURL   *string   `json:"avatar_url"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -59,6 +60,10 @@ func responseFromMessage(message Message) messageResponse {
 	}
 	if response.Kind == "" {
 		response.Kind = KindText
+	}
+	if message.Sender.HasAvatar {
+		url := "/api/v1/users/" + response.Sender.ID + "/avatar"
+		response.Sender.AvatarURL = &url
 	}
 	if message.Image != nil {
 		response.Image = responseFromImage(message.Image)

@@ -77,7 +77,9 @@ func TestHandlerDeliversMessageCreatedToConversationMember(t *testing.T) {
 	})
 	waitForUserConnection(t, hub, 7)
 
-	hub.PublishMessage(ctx, realtimeTestMessage())
+	message := realtimeTestMessage()
+	message.Sender.HasAvatar = true
+	hub.PublishMessage(ctx, message)
 
 	var event eventEnvelope
 	if err := wsjson.Read(ctx, connection, &event); err != nil {
@@ -88,6 +90,9 @@ func TestHandlerDeliversMessageCreatedToConversationMember(t *testing.T) {
 	}
 	if event.Payload.Message == nil || event.Payload.Message.ID != "21" || event.Payload.Message.Sequence != "4" {
 		t.Fatalf("message payload = %+v", event.Payload.Message)
+	}
+	if event.Payload.Message.Sender.AvatarURL == nil || *event.Payload.Message.Sender.AvatarURL != "/api/v1/users/7/avatar" {
+		t.Fatalf("sender avatar URL = %v, want /api/v1/users/7/avatar", event.Payload.Message.Sender.AvatarURL)
 	}
 }
 

@@ -57,6 +57,7 @@ type senderEvent struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
 	DisplayName string    `json:"display_name"`
+	AvatarURL   *string   `json:"avatar_url"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -78,6 +79,10 @@ func messageCreatedEvent(message messages.Message) eventEnvelope {
 	}
 	if body.Kind == "" {
 		body.Kind = messages.KindText
+	}
+	if message.Sender.HasAvatar {
+		url := "/api/v1/users/" + body.Sender.ID + "/avatar"
+		body.Sender.AvatarURL = &url
 	}
 	if message.Image != nil {
 		imageID := strconv.FormatUint(message.Image.ID, 10)

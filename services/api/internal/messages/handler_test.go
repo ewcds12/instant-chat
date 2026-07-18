@@ -166,6 +166,17 @@ func TestHandlerSendReturnsCreatedMessage(t *testing.T) {
 	}
 }
 
+func TestResponseFromMessageIncludesSenderAvatarURL(t *testing.T) {
+	message := testMessage()
+	message.Sender.HasAvatar = true
+
+	response := responseFromMessage(message)
+
+	if response.Sender.AvatarURL == nil || *response.Sender.AvatarURL != "/api/v1/users/7/avatar" {
+		t.Fatalf("sender avatar URL = %v, want /api/v1/users/7/avatar", response.Sender.AvatarURL)
+	}
+}
+
 func TestHandlerSendImageReturnsCreatedMessage(t *testing.T) {
 	service := &stubMessageService{}
 	handler := authenticated(http.HandlerFunc(NewHandler(service).SendImage))

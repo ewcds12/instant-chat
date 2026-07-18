@@ -27,6 +27,7 @@ void main() {
     expect(adapter.path, '/api/v1/conversations/11/messages');
     expect(adapter.query['before'], '8');
     expect(page.messages.single.sequence, '5');
+    expect(page.messages.single.sender.avatarUrl, '/api/v1/users/7/avatar');
     expect(page.nextCursor, '4');
   });
 
@@ -155,6 +156,7 @@ final _message = {
     'id': '7',
     'username': 'retro_user',
     'display_name': 'Retro User',
+    'avatar_url': '/api/v1/users/7/avatar',
     'created_at': '2026-07-16T12:00:00Z',
   },
   'client_message_id': '0123456789abcdef0123456789abcdef',

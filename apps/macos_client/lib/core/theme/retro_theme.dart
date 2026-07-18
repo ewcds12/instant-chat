@@ -20,6 +20,10 @@ abstract final class RetroMetrics {
   static const profilePhotoButtonHeight = 32.0;
   static const profileRowHeight = 54.0;
   static const profileBackdropBlur = 3.0;
+  static const messageHistoryHorizontalInset = 20.0;
+  static const messageAvatarDiameter = 40.0;
+  static const messageAvatarGap = 4.0;
+  static const messageAvatarSlotWidth = 44.0;
   static const statusIconSize = 20.0;
 }
 

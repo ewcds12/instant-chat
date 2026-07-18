@@ -13,6 +13,7 @@ import 'package:instant_chat/features/messages/presentation/message_image_previe
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_page.dart';
+import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
@@ -107,6 +108,102 @@ void main() {
 
     expect(find.byKey(const Key('message-image-image-1')), findsOneWidget);
     expect(find.byKey(const Key('message-bubble-image-1')), findsNothing);
+  });
+
+  testWidgets('does not render message timestamps or a day divider', (
+    tester,
+  ) async {
+    final now = DateTime.now();
+    final gateway = StubMessageGateway(
+      _session.user,
+      initialMessages: [
+        _message(
+          'timeless',
+          'Without timestamps',
+          sequence: '1',
+          createdAt: now.toUtc(),
+        ),
+      ],
+    );
+    final container = await _container(gateway: gateway);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(tester, find.byKey(const Key('message-bubble-timeless')));
+
+    final time =
+        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    expect(find.text('Today'), findsNothing);
+    expect(find.text(time), findsNothing);
+  });
+
+  testWidgets('shows an avatar next to every message', (tester) async {
+    final avatarPeer = _conversation.peer.copyWith(
+      avatarUrl: '/api/v1/users/8/avatar',
+    );
+    final gateway = StubMessageGateway(
+      _session.user,
+      initialMessages: [
+        _message('peer-1', 'First', sequence: '1'),
+        _message('peer-2', 'Second', sequence: '2'),
+        _ownMessage('mine-1', 'Third', sequence: '3'),
+        _ownMessage('mine-2', 'Fourth', sequence: '4'),
+        _message('peer-3', 'Fifth', sequence: '5', sender: avatarPeer),
+      ],
+    );
+    final container = await _container(gateway: gateway);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(tester, find.byKey(const Key('message-bubble-peer-3')));
+
+    expect(
+      find.byKey(const Key('message-sender-avatar-peer-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('message-sender-avatar-peer-2')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('message-sender-avatar-mine-1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('message-sender-avatar-mine-2')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('message-sender-avatar-peer-3')),
+      findsOneWidget,
+    );
+    final avatar = tester.widget<ProfileAvatar>(
+      find.byKey(const Key('message-sender-avatar-peer-3')),
+    );
+    expect(avatar.avatarUrl, '/api/v1/users/8/avatar');
+    expect(avatar.radius, 18);
+
+    final firstIncomingBubble = tester.getRect(
+      find.byKey(const Key('message-bubble-peer-1')),
+    );
+    final terminalIncomingBubble = tester.getRect(
+      find.byKey(const Key('message-bubble-peer-2')),
+    );
+    final firstOutgoingBubble = tester.getRect(
+      find.byKey(const Key('message-bubble-mine-1')),
+    );
+    final terminalOutgoingBubble = tester.getRect(
+      find.byKey(const Key('message-bubble-mine-2')),
+    );
+
+    expect(
+      firstIncomingBubble.left,
+      moreOrLessEquals(terminalIncomingBubble.left),
+    );
+    expect(
+      firstOutgoingBubble.right,
+      moreOrLessEquals(terminalOutgoingBubble.right),
+    );
   });
 
   testWidgets('opens image preview and switches images with arrow keys', (
@@ -211,11 +308,31 @@ Widget _imagePreviewHarness(
   );
 }
 
-Message _message(String id, String body, {required String sequence}) {
+Message _message(
+  String id,
+  String body, {
+  required String sequence,
+  PublicUser? sender,
+  DateTime? createdAt,
+}) {
   return Message(
     id: id,
     conversationId: _conversation.id,
-    sender: _conversation.peer,
+    sender: sender ?? _conversation.peer,
+    clientMessageId: 'client-$id',
+    sequence: sequence,
+    kind: MessageKind.text,
+    body: body,
+    image: null,
+    createdAt: createdAt ?? DateTime.utc(2026, 7, 15, 13),
+  );
+}
+
+Message _ownMessage(String id, String body, {required String sequence}) {
+  return Message(
+    id: id,
+    conversationId: _conversation.id,
+    sender: PublicUser.fromAuthUser(_session.user),
     clientMessageId: 'client-$id',
     sequence: sequence,
     kind: MessageKind.text,

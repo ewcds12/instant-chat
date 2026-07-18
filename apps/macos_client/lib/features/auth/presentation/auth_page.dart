@@ -96,9 +96,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         const SizedBox(height: RetroMetrics.spaceLarge),
                         TextFormField(
                           controller: _usernameController,
-                          decoration: const InputDecoration(
-                            labelText: 'Username',
-                          ),
+                          decoration: const InputDecoration(labelText: 'ID'),
                           autocorrect: false,
                           textCapitalization: TextCapitalization.none,
                           textInputAction: TextInputAction.next,

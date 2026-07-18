@@ -109,7 +109,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Welcome back'), findsOneWidget);
-    expect(find.text('Username'), findsOneWidget);
+    expect(find.text('ID'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
     expect(find.text('Username or password is incorrect.'), findsOneWidget);
 
@@ -117,7 +117,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Create an account'), findsOneWidget);
-    expect(find.text('Username'), findsOneWidget);
+    expect(find.text('ID'), findsOneWidget);
     expect(find.text('Display name'), findsOneWidget);
     expect(find.text('Create account'), findsOneWidget);
     expect(find.text('Username or password is incorrect.'), findsNothing);

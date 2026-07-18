@@ -123,6 +123,7 @@ SELECT
   message.sender_id,
   sender.username AS sender_username,
   sender.display_name AS sender_display_name,
+  sender.avatar_content_type AS sender_avatar_content_type,
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
@@ -153,24 +154,25 @@ type GetMessageByClientIDParams struct {
 }
 
 type GetMessageByClientIDRow struct {
-	ID                uint64         `db:"id"`
-	ConversationID    uint64         `db:"conversation_id"`
-	SenderID          uint64         `db:"sender_id"`
-	SenderUsername    string         `db:"sender_username"`
-	SenderDisplayName string         `db:"sender_display_name"`
-	SenderCreatedAt   time.Time      `db:"sender_created_at"`
-	ClientMessageID   string         `db:"client_message_id"`
-	Sequence          uint64         `db:"sequence"`
-	Kind              string         `db:"kind"`
-	Body              string         `db:"body"`
-	ImageID           sql.NullInt64  `db:"image_id"`
-	ImageContentType  sql.NullString `db:"image_content_type"`
-	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
-	FileID            sql.NullInt64  `db:"file_id"`
-	FileFilename      sql.NullString `db:"file_filename"`
-	FileContentType   sql.NullString `db:"file_content_type"`
-	FileByteSize      sql.NullInt32  `db:"file_byte_size"`
-	CreatedAt         time.Time      `db:"created_at"`
+	ID                      uint64         `db:"id"`
+	ConversationID          uint64         `db:"conversation_id"`
+	SenderID                uint64         `db:"sender_id"`
+	SenderUsername          string         `db:"sender_username"`
+	SenderDisplayName       string         `db:"sender_display_name"`
+	SenderAvatarContentType sql.NullString `db:"sender_avatar_content_type"`
+	SenderCreatedAt         time.Time      `db:"sender_created_at"`
+	ClientMessageID         string         `db:"client_message_id"`
+	Sequence                uint64         `db:"sequence"`
+	Kind                    string         `db:"kind"`
+	Body                    string         `db:"body"`
+	ImageID                 sql.NullInt64  `db:"image_id"`
+	ImageContentType        sql.NullString `db:"image_content_type"`
+	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
+	FileID                  sql.NullInt64  `db:"file_id"`
+	FileFilename            sql.NullString `db:"file_filename"`
+	FileContentType         sql.NullString `db:"file_content_type"`
+	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	CreatedAt               time.Time      `db:"created_at"`
 }
 
 func (q *Queries) GetMessageByClientID(ctx context.Context, arg GetMessageByClientIDParams) (GetMessageByClientIDRow, error) {
@@ -182,6 +184,7 @@ func (q *Queries) GetMessageByClientID(ctx context.Context, arg GetMessageByClie
 		&i.SenderID,
 		&i.SenderUsername,
 		&i.SenderDisplayName,
+		&i.SenderAvatarContentType,
 		&i.SenderCreatedAt,
 		&i.ClientMessageID,
 		&i.Sequence,
@@ -328,6 +331,7 @@ SELECT
   message.sender_id,
   sender.username AS sender_username,
   sender.display_name AS sender_display_name,
+  sender.avatar_content_type AS sender_avatar_content_type,
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
@@ -356,24 +360,25 @@ type ListLatestMessagesParams struct {
 }
 
 type ListLatestMessagesRow struct {
-	ID                uint64         `db:"id"`
-	ConversationID    uint64         `db:"conversation_id"`
-	SenderID          uint64         `db:"sender_id"`
-	SenderUsername    string         `db:"sender_username"`
-	SenderDisplayName string         `db:"sender_display_name"`
-	SenderCreatedAt   time.Time      `db:"sender_created_at"`
-	ClientMessageID   string         `db:"client_message_id"`
-	Sequence          uint64         `db:"sequence"`
-	Kind              string         `db:"kind"`
-	Body              string         `db:"body"`
-	ImageID           sql.NullInt64  `db:"image_id"`
-	ImageContentType  sql.NullString `db:"image_content_type"`
-	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
-	FileID            sql.NullInt64  `db:"file_id"`
-	FileFilename      sql.NullString `db:"file_filename"`
-	FileContentType   sql.NullString `db:"file_content_type"`
-	FileByteSize      sql.NullInt32  `db:"file_byte_size"`
-	CreatedAt         time.Time      `db:"created_at"`
+	ID                      uint64         `db:"id"`
+	ConversationID          uint64         `db:"conversation_id"`
+	SenderID                uint64         `db:"sender_id"`
+	SenderUsername          string         `db:"sender_username"`
+	SenderDisplayName       string         `db:"sender_display_name"`
+	SenderAvatarContentType sql.NullString `db:"sender_avatar_content_type"`
+	SenderCreatedAt         time.Time      `db:"sender_created_at"`
+	ClientMessageID         string         `db:"client_message_id"`
+	Sequence                uint64         `db:"sequence"`
+	Kind                    string         `db:"kind"`
+	Body                    string         `db:"body"`
+	ImageID                 sql.NullInt64  `db:"image_id"`
+	ImageContentType        sql.NullString `db:"image_content_type"`
+	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
+	FileID                  sql.NullInt64  `db:"file_id"`
+	FileFilename            sql.NullString `db:"file_filename"`
+	FileContentType         sql.NullString `db:"file_content_type"`
+	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	CreatedAt               time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessagesParams) ([]ListLatestMessagesRow, error) {
@@ -391,6 +396,7 @@ func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessages
 			&i.SenderID,
 			&i.SenderUsername,
 			&i.SenderDisplayName,
+			&i.SenderAvatarContentType,
 			&i.SenderCreatedAt,
 			&i.ClientMessageID,
 			&i.Sequence,
@@ -425,6 +431,7 @@ SELECT
   message.sender_id,
   sender.username AS sender_username,
   sender.display_name AS sender_display_name,
+  sender.avatar_content_type AS sender_avatar_content_type,
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
@@ -455,24 +462,25 @@ type ListMessagesAfterParams struct {
 }
 
 type ListMessagesAfterRow struct {
-	ID                uint64         `db:"id"`
-	ConversationID    uint64         `db:"conversation_id"`
-	SenderID          uint64         `db:"sender_id"`
-	SenderUsername    string         `db:"sender_username"`
-	SenderDisplayName string         `db:"sender_display_name"`
-	SenderCreatedAt   time.Time      `db:"sender_created_at"`
-	ClientMessageID   string         `db:"client_message_id"`
-	Sequence          uint64         `db:"sequence"`
-	Kind              string         `db:"kind"`
-	Body              string         `db:"body"`
-	ImageID           sql.NullInt64  `db:"image_id"`
-	ImageContentType  sql.NullString `db:"image_content_type"`
-	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
-	FileID            sql.NullInt64  `db:"file_id"`
-	FileFilename      sql.NullString `db:"file_filename"`
-	FileContentType   sql.NullString `db:"file_content_type"`
-	FileByteSize      sql.NullInt32  `db:"file_byte_size"`
-	CreatedAt         time.Time      `db:"created_at"`
+	ID                      uint64         `db:"id"`
+	ConversationID          uint64         `db:"conversation_id"`
+	SenderID                uint64         `db:"sender_id"`
+	SenderUsername          string         `db:"sender_username"`
+	SenderDisplayName       string         `db:"sender_display_name"`
+	SenderAvatarContentType sql.NullString `db:"sender_avatar_content_type"`
+	SenderCreatedAt         time.Time      `db:"sender_created_at"`
+	ClientMessageID         string         `db:"client_message_id"`
+	Sequence                uint64         `db:"sequence"`
+	Kind                    string         `db:"kind"`
+	Body                    string         `db:"body"`
+	ImageID                 sql.NullInt64  `db:"image_id"`
+	ImageContentType        sql.NullString `db:"image_content_type"`
+	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
+	FileID                  sql.NullInt64  `db:"file_id"`
+	FileFilename            sql.NullString `db:"file_filename"`
+	FileContentType         sql.NullString `db:"file_content_type"`
+	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	CreatedAt               time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterParams) ([]ListMessagesAfterRow, error) {
@@ -490,6 +498,7 @@ func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterPa
 			&i.SenderID,
 			&i.SenderUsername,
 			&i.SenderDisplayName,
+			&i.SenderAvatarContentType,
 			&i.SenderCreatedAt,
 			&i.ClientMessageID,
 			&i.Sequence,
@@ -524,6 +533,7 @@ SELECT
   message.sender_id,
   sender.username AS sender_username,
   sender.display_name AS sender_display_name,
+  sender.avatar_content_type AS sender_avatar_content_type,
   sender.created_at AS sender_created_at,
   message.client_message_id,
   message.sequence,
@@ -554,24 +564,25 @@ type ListMessagesBeforeParams struct {
 }
 
 type ListMessagesBeforeRow struct {
-	ID                uint64         `db:"id"`
-	ConversationID    uint64         `db:"conversation_id"`
-	SenderID          uint64         `db:"sender_id"`
-	SenderUsername    string         `db:"sender_username"`
-	SenderDisplayName string         `db:"sender_display_name"`
-	SenderCreatedAt   time.Time      `db:"sender_created_at"`
-	ClientMessageID   string         `db:"client_message_id"`
-	Sequence          uint64         `db:"sequence"`
-	Kind              string         `db:"kind"`
-	Body              string         `db:"body"`
-	ImageID           sql.NullInt64  `db:"image_id"`
-	ImageContentType  sql.NullString `db:"image_content_type"`
-	ImageByteSize     sql.NullInt32  `db:"image_byte_size"`
-	FileID            sql.NullInt64  `db:"file_id"`
-	FileFilename      sql.NullString `db:"file_filename"`
-	FileContentType   sql.NullString `db:"file_content_type"`
-	FileByteSize      sql.NullInt32  `db:"file_byte_size"`
-	CreatedAt         time.Time      `db:"created_at"`
+	ID                      uint64         `db:"id"`
+	ConversationID          uint64         `db:"conversation_id"`
+	SenderID                uint64         `db:"sender_id"`
+	SenderUsername          string         `db:"sender_username"`
+	SenderDisplayName       string         `db:"sender_display_name"`
+	SenderAvatarContentType sql.NullString `db:"sender_avatar_content_type"`
+	SenderCreatedAt         time.Time      `db:"sender_created_at"`
+	ClientMessageID         string         `db:"client_message_id"`
+	Sequence                uint64         `db:"sequence"`
+	Kind                    string         `db:"kind"`
+	Body                    string         `db:"body"`
+	ImageID                 sql.NullInt64  `db:"image_id"`
+	ImageContentType        sql.NullString `db:"image_content_type"`
+	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
+	FileID                  sql.NullInt64  `db:"file_id"`
+	FileFilename            sql.NullString `db:"file_filename"`
+	FileContentType         sql.NullString `db:"file_content_type"`
+	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	CreatedAt               time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error) {
@@ -589,6 +600,7 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.SenderID,
 			&i.SenderUsername,
 			&i.SenderDisplayName,
+			&i.SenderAvatarContentType,
 			&i.SenderCreatedAt,
 			&i.ClientMessageID,
 			&i.Sequence,

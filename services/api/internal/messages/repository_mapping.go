@@ -10,7 +10,7 @@ import (
 func messageFromClientRow(row store.GetMessageByClientIDRow) Message {
 	return newMessage(
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
-		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
+		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
 		row.FileByteSize, row.CreatedAt,
@@ -20,7 +20,7 @@ func messageFromClientRow(row store.GetMessageByClientIDRow) Message {
 func messageFromLatestRow(row store.ListLatestMessagesRow) Message {
 	return newMessage(
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
-		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
+		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
 		row.FileByteSize, row.CreatedAt,
@@ -30,7 +30,7 @@ func messageFromLatestRow(row store.ListLatestMessagesRow) Message {
 func messageFromBeforeRow(row store.ListMessagesBeforeRow) Message {
 	return newMessage(
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
-		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
+		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
 		row.FileByteSize, row.CreatedAt,
@@ -40,7 +40,7 @@ func messageFromBeforeRow(row store.ListMessagesBeforeRow) Message {
 func messageFromAfterRow(row store.ListMessagesAfterRow) Message {
 	return newMessage(
 		row.ID, row.ConversationID, row.SenderID, row.SenderUsername,
-		row.SenderDisplayName, row.SenderCreatedAt, row.ClientMessageID,
+		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
 		row.FileByteSize, row.CreatedAt,
@@ -50,6 +50,7 @@ func messageFromAfterRow(row store.ListMessagesAfterRow) Message {
 func newMessage(
 	id, conversationID, senderID uint64,
 	username, displayName string,
+	senderAvatarContentType sql.NullString,
 	senderCreatedAt time.Time,
 	clientMessageID string,
 	sequence uint64,
@@ -68,7 +69,7 @@ func newMessage(
 		ID:             id,
 		ConversationID: conversationID,
 		Sender: Sender{
-			ID: senderID, Username: username, DisplayName: displayName, CreatedAt: senderCreatedAt,
+			ID: senderID, Username: username, DisplayName: displayName, HasAvatar: senderAvatarContentType.Valid, CreatedAt: senderCreatedAt,
 		},
 		ClientMessageID: clientMessageID,
 		Sequence:        sequence,
