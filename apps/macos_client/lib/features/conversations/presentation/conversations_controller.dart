@@ -14,6 +14,10 @@ final conversationGatewayProvider = Provider<ConversationGateway>((ref) {
   return DioConversationGateway(ref.watch(dioProvider));
 });
 
+final conversationRecoveryIntervalProvider = Provider<Duration?>((ref) {
+  return const Duration(seconds: 2);
+});
+
 final conversationsControllerProvider =
     AsyncNotifierProvider.autoDispose<
       ConversationsController,
@@ -48,6 +52,11 @@ class ConversationsState {
 class ConversationsController extends AsyncNotifier<ConversationsState> {
   ConversationGateway get _gateway => ref.read(conversationGatewayProvider);
   StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<int>? _connectionSubscription;
+  Timer? _recoveryTimer;
+  var _eventGeneration = 0;
+  var _isSynchronizing = false;
+  var _pendingSynchronization = false;
 
   String get _accessToken {
     final session = ref.read(authControllerProvider).requireValue.session;
@@ -60,11 +69,19 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
   @override
   Future<ConversationsState> build() async {
     if (_messageSubscription == null) {
-      _messageSubscription = ref
-          .read(realtimeConnectionProvider)
-          .messages
-          .listen(_onRealtimeMessage);
-      ref.onDispose(() => unawaited(_messageSubscription?.cancel()));
+      final realtime = ref.read(realtimeConnectionProvider);
+      _messageSubscription = realtime.messages.listen(_onRealtimeMessage);
+      _connectionSubscription = realtime.connections.listen(
+        (_) => _queueSynchronization(),
+      );
+      final interval = ref.read(conversationRecoveryIntervalProvider);
+      if (interval != null) {
+        _recoveryTimer = Timer.periodic(
+          interval,
+          (_) => _queueSynchronization(),
+        );
+      }
+      ref.onDispose(_closeRealtimeRecovery);
     }
     return ConversationsState(conversations: await _gateway.list(_accessToken));
   }
@@ -122,15 +139,21 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
     }
   }
 
+  void recordMessage(Message message) {
+    _onRealtimeMessage(message);
+  }
+
   void _onRealtimeMessage(Message message) {
     final current = state.asData?.value;
     if (current == null) {
+      _pendingSynchronization = true;
       return;
     }
     final index = current.conversations.indexWhere(
       (conversation) => conversation.id == message.conversationId,
     );
     if (index < 0) {
+      _queueSynchronization();
       return;
     }
     final userID = ref
@@ -140,16 +163,73 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
         ?.user
         .id;
     final conversation = current.conversations[index];
+    if (_isStale(message, conversation.lastMessage)) {
+      return;
+    }
     final unreadCount = message.sender.id == userID
         ? conversation.unreadCount
         : conversation.unreadCount + 1;
     final updated = conversation.copyWith(
       updatedAt: message.createdAt,
       unreadCount: unreadCount,
+      lastMessage: ConversationLastMessage(
+        sequence: message.sequence,
+        kind: message.kind.wireName,
+        body: message.body,
+        fileName: message.file?.filename ?? '',
+      ),
     );
     final conversations = [...current.conversations]..removeAt(index);
     conversations.insert(0, updated);
+    _eventGeneration++;
     state = AsyncData(current.copyWith(conversations: conversations));
+  }
+
+  void _queueSynchronization() {
+    if (!ref.mounted) {
+      return;
+    }
+    final current = state.asData?.value;
+    if (current == null || current.isSubmitting || _isSynchronizing) {
+      _pendingSynchronization = true;
+      return;
+    }
+    _isSynchronizing = true;
+    _pendingSynchronization = false;
+    unawaited(_synchronize(current, _eventGeneration));
+  }
+
+  Future<void> _synchronize(ConversationsState current, int generation) async {
+    try {
+      final conversations = await _gateway.list(_accessToken);
+      if (!ref.mounted || generation != _eventGeneration) {
+        _pendingSynchronization = true;
+        return;
+      }
+      state = AsyncData(current.copyWith(conversations: conversations));
+    } on ApiFailure {
+      // The next fallback check retries a transient synchronization failure.
+    } on FormatException {
+      // The next fallback check retries an invalid synchronization response.
+    } finally {
+      _isSynchronizing = false;
+      if (_pendingSynchronization) {
+        _queueSynchronization();
+      }
+    }
+  }
+
+  bool _isStale(Message message, ConversationLastMessage? lastMessage) {
+    if (lastMessage == null) {
+      return false;
+    }
+    return BigInt.parse(message.sequence) <= BigInt.parse(lastMessage.sequence);
+  }
+
+  void _closeRealtimeRecovery() {
+    _recoveryTimer?.cancel();
+    unawaited(_messageSubscription?.cancel());
+    unawaited(_connectionSubscription?.cancel());
   }
 
   void _setFailure(ConversationsState current, String message) {

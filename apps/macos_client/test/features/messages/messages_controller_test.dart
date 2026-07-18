@@ -1,12 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
+import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/domain/message_page.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 
 import '../../support/message_controller_stubs.dart';
+import '../../support/conversation_controller_stubs.dart';
 
 void main() {
   test('retry reuses the failed client message ID', () async {
@@ -146,6 +149,52 @@ void main() {
     expect(message.file?.filename, 'Notes.pdf');
   });
 
+  test('sent attachments immediately update the conversation card', () async {
+    final messageGateway = FakeMessageGateway();
+    final conversationGateway = FakeConversationGateway(
+      createdConversation: _conversation,
+      conversations: [_conversation],
+    );
+    final realtime = FakeRealtimeConnection();
+    final container = ProviderContainer(
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => StubAuthController(AuthState(session: testAuthSession)),
+        ),
+        messageGatewayProvider.overrideWithValue(messageGateway),
+        conversationGatewayProvider.overrideWithValue(conversationGateway),
+        realtimeConnectionProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(realtime.close);
+    await container.read(authControllerProvider.future);
+    final conversations = container.listen(
+      conversationsControllerProvider,
+      (_, _) {},
+    );
+    final messages = container.listen(
+      messagesControllerProvider('11'),
+      (_, _) {},
+    );
+    addTearDown(conversations.close);
+    addTearDown(messages.close);
+    await container.read(conversationsControllerProvider.future);
+    await container.read(messagesControllerProvider('11').future);
+
+    await container
+        .read(messagesControllerProvider('11').notifier)
+        .sendImage('/tmp/instant-chat-image.png');
+    expect(_preview(container).kind, 'image');
+    await container
+        .read(messagesControllerProvider('11').notifier)
+        .sendFile('/tmp/instant-chat-notes.pdf');
+
+    final preview = _preview(container);
+    expect(preview.kind, 'file');
+    expect(preview.fileName, 'Notes.pdf');
+  });
+
   test('realtime events merge in server sequence order', () async {
     final gateway = FakeMessageGateway();
     final realtime = FakeRealtimeConnection();
@@ -181,3 +230,19 @@ void main() {
     );
   });
 }
+
+final _conversation = Conversation(
+  id: '11',
+  kind: 'direct',
+  peer: testMessage('1').sender,
+  createdAt: DateTime.utc(2026, 7, 16, 12),
+  updatedAt: DateTime.utc(2026, 7, 16, 12),
+  unreadCount: 0,
+);
+
+ConversationLastMessage _preview(ProviderContainer container) => container
+    .read(conversationsControllerProvider)
+    .requireValue
+    .conversations
+    .single
+    .lastMessage!;

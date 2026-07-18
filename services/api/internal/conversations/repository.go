@@ -151,6 +151,12 @@ func conversationFromPairRow(row store.GetDirectConversationByPairRow) Conversat
 		ID: row.ID, Kind: row.Kind,
 		Peer:      Peer{ID: row.PeerUserID, Username: row.PeerUsername, DisplayName: row.PeerDisplayName, CreatedAt: row.PeerCreatedAt},
 		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, UnreadCount: uint64(row.UnreadCount),
+		LastMessage: lastMessage(
+			row.LastMessageSequence,
+			row.LastMessageKind,
+			row.LastMessageBody,
+			row.LastMessageFileName,
+		),
 	}
 }
 
@@ -159,5 +165,23 @@ func conversationFromListRow(row store.ListConversationsForUserRow) Conversation
 		ID: row.ID, Kind: row.Kind,
 		Peer:      Peer{ID: row.PeerUserID, Username: row.PeerUsername, DisplayName: row.PeerDisplayName, CreatedAt: row.PeerCreatedAt},
 		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, UnreadCount: uint64(row.UnreadCount),
+		LastMessage: lastMessage(
+			row.LastMessageSequence,
+			row.LastMessageKind,
+			row.LastMessageBody,
+			row.LastMessageFileName,
+		),
+	}
+}
+
+func lastMessage(sequence sql.NullInt64, kind, body, fileName sql.NullString) *LastMessage {
+	if !sequence.Valid || sequence.Int64 <= 0 || !kind.Valid || !body.Valid {
+		return nil
+	}
+	return &LastMessage{
+		Sequence: uint64(sequence.Int64),
+		Kind:     kind.String,
+		Body:     body.String,
+		FileName: fileName.String,
 	}
 }

@@ -900,6 +900,28 @@ components:
         unread_count:
           type: integer
           minimum: 0
+        last_message:
+          allOf:
+            - $ref: "#/components/schemas/ConversationLastMessage"
+          nullable: true
+    ConversationLastMessage:
+      type: object
+      additionalProperties: false
+      required:
+        - sequence
+        - kind
+        - body
+        - file_name
+      properties:
+        sequence:
+          $ref: "#/components/schemas/Sequence"
+        kind:
+          type: string
+          enum: [text, image, file]
+        body:
+          type: string
+        file_name:
+          type: string
     ConversationList:
       type: object
       additionalProperties: false

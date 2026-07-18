@@ -86,7 +86,7 @@ class ConversationListRow extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          'Direct message with @${conversation.peer.username}',
+          _lastMessagePreview(conversation.lastMessage),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -116,6 +116,17 @@ class ConversationListRow extends StatelessWidget {
       ],
     );
   }
+}
+
+String _lastMessagePreview(ConversationLastMessage? message) {
+  if (message == null) {
+    return 'No messages yet';
+  }
+  return switch (message.kind) {
+    'image' => 'Photo',
+    'file' => message.fileName.isEmpty ? 'File attachment' : message.fileName,
+    _ => message.body.replaceAll(RegExp(r'\s+'), ' ').trim(),
+  };
 }
 
 class _UnreadBadge extends StatelessWidget {

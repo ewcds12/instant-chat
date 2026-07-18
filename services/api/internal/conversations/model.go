@@ -34,6 +34,15 @@ type Conversation struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 	UnreadCount uint64
+	LastMessage *LastMessage
+}
+
+// LastMessage is the compact preview shown in a conversation list.
+type LastMessage struct {
+	Sequence uint64
+	Kind     string
+	Body     string
+	FileName string
 }
 
 // Repository defines persistence required by conversation use cases.

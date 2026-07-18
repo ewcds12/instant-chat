@@ -49,6 +49,14 @@ void main() {
     expect(() => decodeRealtimeMessage(raw), throwsFormatException);
   });
 
+  test('decodes file metadata from a message.created event', () {
+    final message = decodeRealtimeMessage(_messageCreatedEvent(file: true));
+
+    expect(message?.kind.name, 'file');
+    expect(message?.body, '');
+    expect(message?.file?.filename, 'v1-spec.md');
+  });
+
   test('reconnects after the socket closes and resumes delivery', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     var connections = 0;
@@ -84,7 +92,7 @@ void main() {
   });
 }
 
-String _messageCreatedEvent() {
+String _messageCreatedEvent({bool file = false}) {
   return jsonEncode({
     'event_id': 'message:21',
     'type': 'message.created',
@@ -102,9 +110,18 @@ String _messageCreatedEvent() {
         },
         'client_message_id': '0123456789abcdef0123456789abcdef',
         'sequence': '4',
-        'kind': 'text',
-        'body': 'Hello.',
+        'kind': file ? 'file' : 'text',
+        'body': file ? '' : 'Hello.',
         'image': null,
+        'file': file
+            ? {
+                'id': '8',
+                'url': '/api/v1/message-files/8',
+                'filename': 'v1-spec.md',
+                'content_type': 'text/markdown',
+                'byte_size': 2048,
+              }
+            : null,
         'created_at': '2026-07-16T13:00:00Z',
       },
     },

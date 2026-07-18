@@ -24,6 +24,10 @@ SELECT
       AND unread_message.sender_id <> sqlc.arg(current_user_id)
       AND unread_message.sequence > membership.last_read_sequence
   ) AS unread_count,
+  latest_message.sequence AS last_message_sequence,
+  latest_message.kind AS last_message_kind,
+  latest_message.body AS last_message_body,
+  latest_file.filename AS last_message_file_name,
   other_user.id AS peer_user_id,
   other_user.username AS peer_username,
   other_user.display_name AS peer_display_name,
@@ -32,6 +36,10 @@ FROM conversations AS conversation
 JOIN conversation_members AS membership
   ON membership.conversation_id = conversation.id
   AND membership.user_id = sqlc.arg(current_user_id)
+LEFT JOIN messages AS latest_message
+  ON latest_message.conversation_id = conversation.id
+  AND latest_message.sequence = conversation.next_sequence - 1
+LEFT JOIN message_files AS latest_file ON latest_file.id = latest_message.file_id
 JOIN users AS other_user
   ON other_user.id = CASE
     WHEN conversation.direct_lower_user_id = sqlc.arg(current_user_id) THEN conversation.direct_higher_user_id
@@ -54,12 +62,20 @@ SELECT
       AND unread_message.sender_id <> sqlc.arg(current_user_id)
       AND unread_message.sequence > membership.last_read_sequence
   ) AS unread_count,
+  latest_message.sequence AS last_message_sequence,
+  latest_message.kind AS last_message_kind,
+  latest_message.body AS last_message_body,
+  latest_file.filename AS last_message_file_name,
   other_user.id AS peer_user_id,
   other_user.username AS peer_username,
   other_user.display_name AS peer_display_name,
   other_user.created_at AS peer_created_at
 FROM conversation_members AS membership
 JOIN conversations AS conversation ON conversation.id = membership.conversation_id
+LEFT JOIN messages AS latest_message
+  ON latest_message.conversation_id = conversation.id
+  AND latest_message.sequence = conversation.next_sequence - 1
+LEFT JOIN message_files AS latest_file ON latest_file.id = latest_message.file_id
 JOIN users AS other_user
   ON other_user.id = CASE
     WHEN conversation.direct_lower_user_id = sqlc.arg(current_user_id) THEN conversation.direct_higher_user_id

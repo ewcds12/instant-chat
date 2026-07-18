@@ -9,6 +9,7 @@ class Conversation {
     required this.createdAt,
     required this.updatedAt,
     required this.unreadCount,
+    this.lastMessage,
   });
 
   final String id;
@@ -17,6 +18,7 @@ class Conversation {
   final DateTime createdAt;
   final DateTime updatedAt;
   final int unreadCount;
+  final ConversationLastMessage? lastMessage;
 
   factory Conversation.fromJson(Map<String, Object?> json) {
     final peerValue = json['peer'];
@@ -48,10 +50,15 @@ class Conversation {
       createdAt: requiredDateTime(json, 'created_at'),
       updatedAt: requiredDateTime(json, 'updated_at'),
       unreadCount: unreadCount,
+      lastMessage: ConversationLastMessage.fromJsonOrNull(json['last_message']),
     );
   }
 
-  Conversation copyWith({DateTime? updatedAt, int? unreadCount}) {
+  Conversation copyWith({
+    DateTime? updatedAt,
+    int? unreadCount,
+    ConversationLastMessage? lastMessage,
+  }) {
     return Conversation(
       id: id,
       kind: kind,
@@ -59,6 +66,60 @@ class Conversation {
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       unreadCount: unreadCount ?? this.unreadCount,
+      lastMessage: lastMessage ?? this.lastMessage,
     );
   }
+}
+
+class ConversationLastMessage {
+  const ConversationLastMessage({
+    required this.sequence,
+    required this.kind,
+    required this.body,
+    required this.fileName,
+  });
+
+  final String sequence;
+  final String kind;
+  final String body;
+  final String fileName;
+
+  static ConversationLastMessage? fromJsonOrNull(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is! Map<Object?, Object?>) {
+      throw const FormatException('last_message must be a JSON object or null');
+    }
+    final json = <String, Object?>{};
+    for (final entry in value.entries) {
+      if (entry.key case final String key) {
+        json[key] = entry.value;
+      } else {
+        throw const FormatException('JSON object keys must be strings');
+      }
+    }
+    final kind = requiredString(json, 'kind');
+    final fileName = json['file_name'];
+    if (kind != 'text' && kind != 'image' && kind != 'file') {
+      throw const FormatException('last_message kind is not supported');
+    }
+    if (fileName is! String) {
+      throw const FormatException('last_message file_name must be a string');
+    }
+    return ConversationLastMessage(
+      sequence: requiredString(json, 'sequence'),
+      kind: kind,
+      body: _requiredMessageBody(json),
+      fileName: fileName,
+    );
+  }
+}
+
+String _requiredMessageBody(Map<String, Object?> json) {
+  final body = json['body'];
+  if (body is! String) {
+    throw const FormatException('last_message body must be a string');
+  }
+  return body;
 }

@@ -4,17 +4,18 @@ import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
-import 'package:instant_chat/features/conversations/domain/conversation_gateway.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 import '../../support/widget_network_stubs.dart';
+import '../../support/conversation_controller_stubs.dart';
+import '../../support/conversation_test_wait.dart';
 
 void main() {
   test('create refreshes the direct conversation list', () async {
-    final gateway = _FakeConversationGateway();
+    final gateway = FakeConversationGateway(createdConversation: _conversation);
     final container = ProviderContainer(
       overrides: [
         authControllerProvider.overrideWith(
@@ -51,7 +52,8 @@ void main() {
   test(
     'receiving a message updates unread count and moves the chat first',
     () async {
-      final gateway = _FakeConversationGateway(
+      final gateway = FakeConversationGateway(
+        createdConversation: _conversation,
         conversations: [_otherConversation, _conversation],
       );
       final realtime = StreamRealtimeConnection();
@@ -85,11 +87,13 @@ void main() {
       expect(conversations.first.id, _conversation.id);
       expect(conversations.first.unreadCount, 1);
       expect(conversations.first.updatedAt, DateTime.utc(2026, 7, 16, 14));
+      expect(conversations.first.lastMessage?.body, 'New message');
     },
   );
 
   test('marking a conversation read clears its local unread badge', () async {
-    final gateway = _FakeConversationGateway(
+    final gateway = FakeConversationGateway(
+      createdConversation: _conversation,
       conversations: [_conversation.copyWith(unreadCount: 3)],
     );
     final container = ProviderContainer(
@@ -130,6 +134,57 @@ void main() {
       0,
     );
   });
+
+  test(
+    'fallback synchronization restores a missed conversation preview',
+    () async {
+      final recovered = _conversation.copyWith(
+        updatedAt: DateTime.utc(2026, 7, 16, 14),
+        lastMessage: _lastMessage,
+      );
+      final gateway = FakeConversationGateway(
+        createdConversation: _conversation,
+        pages: [_conversation, recovered],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          conversationGatewayProvider.overrideWithValue(gateway),
+          conversationRecoveryIntervalProvider.overrideWithValue(
+            const Duration(milliseconds: 10),
+          ),
+          realtimeConnectionProvider.overrideWithValue(
+            const StubRealtimeConnection(),
+          ),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(authControllerProvider.future);
+      final subscription = container.listen(
+        conversationsControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      await container.read(conversationsControllerProvider.future);
+
+      await waitForConversationPreview(container);
+
+      expect(gateway.listCalls, greaterThanOrEqualTo(2));
+      expect(
+        container
+            .read(conversationsControllerProvider)
+            .requireValue
+            .conversations
+            .single
+            .lastMessage
+            ?.body,
+        'New message',
+      );
+    },
+  );
 }
 
 final _session = AuthSession(
@@ -173,6 +228,13 @@ final _otherConversation = Conversation(
   unreadCount: 0,
 );
 
+const _lastMessage = ConversationLastMessage(
+  sequence: '9',
+  kind: 'text',
+  body: 'New message',
+  fileName: '',
+);
+
 Message _incomingMessage() {
   return Message(
     id: '12',
@@ -185,41 +247,6 @@ Message _incomingMessage() {
     image: null,
     createdAt: DateTime.utc(2026, 7, 16, 14),
   );
-}
-
-class _FakeConversationGateway implements ConversationGateway {
-  _FakeConversationGateway({this.conversations = const []});
-
-  final List<Conversation> conversations;
-  int listCalls = 0;
-  String? createdContactUserId;
-  String? readConversationID;
-  String? readSequence;
-
-  @override
-  Future<List<Conversation>> list(String accessToken) async {
-    listCalls++;
-    return createdContactUserId == null ? conversations : [_conversation];
-  }
-
-  @override
-  Future<Conversation> createDirect({
-    required String accessToken,
-    required String contactUserId,
-  }) async {
-    createdContactUserId = contactUserId;
-    return _conversation;
-  }
-
-  @override
-  Future<void> markRead({
-    required String accessToken,
-    required String conversationId,
-    required String sequence,
-  }) async {
-    readConversationID = conversationId;
-    readSequence = sequence;
-  }
 }
 
 class _StubAuthController extends AuthController {

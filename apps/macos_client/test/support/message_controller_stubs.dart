@@ -141,7 +141,7 @@ class FakeMessageGateway implements MessageGateway {
       conversationId: conversationId,
       sender: testMessage('1').sender,
       clientMessageId: clientMessageId,
-      sequence: '5',
+      sequence: '6',
       kind: MessageKind.file,
       body: '',
       image: null,

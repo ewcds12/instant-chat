@@ -162,6 +162,7 @@ Future<ProviderContainer> _container({
         () => _StubAuthController(AuthState(session: _session)),
       ),
       messageGatewayProvider.overrideWithValue(gateway),
+      conversationRecoveryIntervalProvider.overrideWithValue(null),
       messageRecoveryIntervalProvider.overrideWithValue(null),
       conversationGatewayProvider.overrideWithValue(StubConversationGateway()),
       realtimeConnectionProvider.overrideWithValue(

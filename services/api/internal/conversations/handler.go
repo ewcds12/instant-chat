@@ -44,12 +44,20 @@ type peerResponse struct {
 }
 
 type conversationResponse struct {
-	ID          string       `json:"id"`
-	Kind        string       `json:"kind"`
-	Peer        peerResponse `json:"peer"`
-	CreatedAt   time.Time    `json:"created_at"`
-	UpdatedAt   time.Time    `json:"updated_at"`
-	UnreadCount uint64       `json:"unread_count"`
+	ID          string               `json:"id"`
+	Kind        string               `json:"kind"`
+	Peer        peerResponse         `json:"peer"`
+	CreatedAt   time.Time            `json:"created_at"`
+	UpdatedAt   time.Time            `json:"updated_at"`
+	UnreadCount uint64               `json:"unread_count"`
+	LastMessage *lastMessageResponse `json:"last_message"`
+}
+
+type lastMessageResponse struct {
+	Sequence string `json:"sequence"`
+	Kind     string `json:"kind"`
+	Body     string `json:"body"`
+	FileName string `json:"file_name"`
 }
 
 // CreateDirect creates or returns the unique direct conversation for a contact.
@@ -143,7 +151,7 @@ func writeInvalidArgument(w http.ResponseWriter, r *http.Request, message string
 }
 
 func responseFromConversation(conversation Conversation) conversationResponse {
-	return conversationResponse{
+	response := conversationResponse{
 		ID: strconv.FormatUint(conversation.ID, 10), Kind: conversation.Kind,
 		Peer: peerResponse{
 			ID: strconv.FormatUint(conversation.Peer.ID, 10), Username: conversation.Peer.Username,
@@ -152,4 +160,13 @@ func responseFromConversation(conversation Conversation) conversationResponse {
 		CreatedAt: conversation.CreatedAt.UTC(), UpdatedAt: conversation.UpdatedAt.UTC(),
 		UnreadCount: conversation.UnreadCount,
 	}
+	if conversation.LastMessage != nil {
+		response.LastMessage = &lastMessageResponse{
+			Sequence: strconv.FormatUint(conversation.LastMessage.Sequence, 10),
+			Kind:     conversation.LastMessage.Kind,
+			Body:     conversation.LastMessage.Body,
+			FileName: conversation.LastMessage.FileName,
+		}
+	}
+	return response
 }

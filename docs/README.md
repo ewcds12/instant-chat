@@ -12,10 +12,10 @@ The authentication, contacts, direct conversations, and persisted message founda
 - Registration uses a unique lowercase username and password, with no email address required.
 - The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
 - The authenticated client provides modern chats, contacts, requests, and system-status workspaces.
-- The chat workspace provides real conversation filtering and a persistent desktop master-detail layout.
+- The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, and a persistent desktop master-detail layout.
 - The resizable macOS window opens at 1,180 by 660 points.
 - Users can search by exact username, send contact requests, accept or reject incoming requests, remove contacts, and open a direct conversation.
-- Direct channels load cursor-paginated history, receive realtime messages, automatically recover sequence gaps on opening, reconnecting, detecting an out-of-order event, or through a two-second active-channel fallback check, show persisted unread counts, mark viewed messages as read, and can send or retry text, image, and file messages without creating duplicates.
+- Direct channels load cursor-paginated history, receive realtime messages, automatically recover sequence gaps on opening, reconnecting, detecting an out-of-order event, or through a two-second active-channel fallback check, show persisted unread counts, mark viewed messages as read, update conversation-card previews in realtime with the same reconnect and two-second recovery safeguards, and can send or retry text, image, and file messages without creating duplicates.
 - Image messages support PNG, JPEG, GIF, and WebP files up to 15 MB. Image bytes are stored behind authenticated API endpoints and are available only to conversation members; the macOS image preview can save the current image through the native Save dialog.
 - File messages support files up to 25 MB. File bytes are stored behind authenticated API endpoints and are available only to conversation members.
 - The Go API provides health, registration, sign-in, refresh, sign-out, and current-user endpoints.

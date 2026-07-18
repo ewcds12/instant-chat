@@ -20,6 +20,32 @@ void main() {
     expect(adapter.path, '/api/v1/conversations');
     expect(conversations.single.id, '11');
     expect(conversations.single.peer.username, 'other_user');
+    expect(conversations.single.lastMessage?.body, 'See you soon');
+  });
+
+  test('list parses a file preview with an empty message body', () async {
+    final fileConversation = {
+      ..._conversation,
+      'last_message': {
+        'sequence': '10',
+        'kind': 'file',
+        'body': '',
+        'file_name': 'v1-spec.md',
+      },
+    };
+    final adapter = _StubAdapter(
+      statusCode: 200,
+      body: {
+        'conversations': [fileConversation],
+      },
+    );
+    final gateway = DioConversationGateway(_createDio(adapter));
+
+    final conversations = await gateway.list('access-token');
+
+    expect(conversations.single.lastMessage?.kind, 'file');
+    expect(conversations.single.lastMessage?.body, '');
+    expect(conversations.single.lastMessage?.fileName, 'v1-spec.md');
   });
 
   test('createDirect accepts an existing conversation response', () async {
@@ -62,6 +88,12 @@ final _conversation = {
   'created_at': '2026-07-16T13:00:00Z',
   'updated_at': '2026-07-16T13:00:00Z',
   'unread_count': 0,
+  'last_message': {
+    'sequence': '9',
+    'kind': 'text',
+    'body': 'See you soon',
+    'file_name': '',
+  },
 };
 
 Dio _createDio(HttpClientAdapter adapter) {

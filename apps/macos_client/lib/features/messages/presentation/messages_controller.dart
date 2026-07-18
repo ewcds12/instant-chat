@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/network/api_failure.dart';
 import 'package:instant_chat/core/network/dio_provider.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
+import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/data/dio_message_gateway.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/domain/message_gateway.dart';
@@ -13,14 +14,12 @@ import 'package:instant_chat/features/messages/presentation/message_recovery.dar
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 
-final messageGatewayProvider = Provider<MessageGateway>((ref) {
-  return DioMessageGateway(ref.watch(dioProvider));
-});
-
-final messageRecoveryIntervalProvider = Provider<Duration?>((ref) {
-  return const Duration(seconds: 2);
-});
-
+final messageGatewayProvider = Provider<MessageGateway>(
+  (ref) => DioMessageGateway(ref.watch(dioProvider)),
+);
+final messageRecoveryIntervalProvider = Provider<Duration?>(
+  (ref) => const Duration(seconds: 2),
+);
 final messagesControllerProvider = AsyncNotifierProvider.autoDispose
     .family<MessagesController, MessagesState, String>(MessagesController.new);
 
@@ -170,6 +169,7 @@ class MessagesController extends AsyncNotifier<MessagesState> {
           clearError: true,
         ),
       );
+      ref.read(conversationsControllerProvider.notifier).recordMessage(message);
       return true;
     } on ApiFailure catch (failure) {
       _setSendFailure(state.requireValue, pending, failure.message);

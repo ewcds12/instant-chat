@@ -154,6 +154,7 @@ void main() {
     expect(find.text('Requests'), findsOneWidget);
     expect(find.text('Instant Chat'), findsNothing);
     expect(find.text('Other User'), findsOneWidget);
+    expect(find.text('See you soon'), findsOneWidget);
     expect(find.byTooltip('New conversation'), findsOneWidget);
     expect(tester.getSize(find.byKey(const Key('app-sidebar'))).width, 180);
     expect(
@@ -210,7 +211,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('@other_user'), findsOneWidget);
-    expect(find.text('Direct message with @other_user'), findsOneWidget);
+    expect(find.text('See you soon'), findsOneWidget);
     expect(find.text('Hello.'), findsOneWidget);
     final bubble = tester.widget<Container>(
       find.byKey(const ValueKey('message-bubble-21')),
@@ -261,6 +262,12 @@ final _conversation = Conversation(
   createdAt: DateTime.utc(2026, 7, 15, 12),
   updatedAt: DateTime.utc(2026, 7, 15, 12),
   unreadCount: 0,
+  lastMessage: const ConversationLastMessage(
+    sequence: '1',
+    kind: 'text',
+    body: 'See you soon',
+    fileName: '',
+  ),
 );
 
 class _StubContactsController extends ContactsController {

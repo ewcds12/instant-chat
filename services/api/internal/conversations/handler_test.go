@@ -2,6 +2,7 @@ package conversations
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -17,6 +18,7 @@ type stubConversationService struct {
 	contactUserID  uint64
 	conversationID uint64
 	sequence       uint64
+	conversations  []Conversation
 }
 
 func (s *stubConversationService) CreateDirect(_ context.Context, userID, contactUserID uint64) (Conversation, bool, error) {
@@ -31,7 +33,7 @@ func (s *stubConversationService) CreateDirect(_ context.Context, userID, contac
 }
 
 func (s *stubConversationService) List(context.Context, uint64) ([]Conversation, error) {
-	return []Conversation{}, nil
+	return s.conversations, nil
 }
 
 func (s *stubConversationService) MarkRead(_ context.Context, userID, conversationID, sequence uint64) error {
@@ -87,5 +89,36 @@ func TestHandlerCreateDirectReturnsCreated(t *testing.T) {
 
 	if recorder.Code != http.StatusCreated || service.userID != 7 || service.contactUserID != 8 {
 		t.Fatalf("status = %d, user ID = %d, contact ID = %d", recorder.Code, service.userID, service.contactUserID)
+	}
+}
+
+func TestHandlerListIncludesLastMessagePreview(t *testing.T) {
+	service := &stubConversationService{conversations: []Conversation{{
+		ID: 11,
+		LastMessage: &LastMessage{
+			Sequence: 9,
+			Kind:     "text",
+			Body:     "See you soon",
+		},
+	}}}
+	conversationHandler := NewHandler(service)
+	authHandler := auth.NewHandler(stubAuthService{})
+	handler := httpapi.RequestIDMiddleware(authHandler.RequireUser(http.HandlerFunc(conversationHandler.List)))
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/conversations", nil)
+	request.Header.Set("Authorization", "Bearer access")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	var response struct {
+		Conversations []struct {
+			LastMessage *lastMessageResponse `json:"last_message"`
+		} `json:"conversations"`
+	}
+	if err := json.NewDecoder(recorder.Body).Decode(&response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if recorder.Code != http.StatusOK || len(response.Conversations) != 1 || response.Conversations[0].LastMessage == nil || response.Conversations[0].LastMessage.Body != "See you soon" {
+		t.Fatalf("status = %d, response = %+v", recorder.Code, response)
 	}
 }

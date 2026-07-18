@@ -77,7 +77,7 @@ One `contact_relationships` row represents both directions of a user pair. The l
 
 A direct conversation requires an accepted contact relationship when it is created. The ordered user pair is unique at the database layer, so repeated or concurrent create requests return the same conversation. Conversation creation and both membership inserts occur in one transaction.
 
-The conversation list contains direct-conversation identity, peer information, and a member-specific unread count. Each membership stores the largest viewed message sequence. A read marker can only advance and is clamped to the latest persisted sequence, so a client cannot mark future messages as read. The macOS client updates the list from realtime message events, increments unread counts for incoming messages, and records the active channel's latest sequence as read.
+The conversation list contains direct-conversation identity, peer information, a member-specific unread count, and an optional summary of the latest persisted message. Each membership stores the largest viewed message sequence. A read marker can only advance and is clamped to the latest persisted sequence, so a client cannot mark future messages as read. The macOS client updates the list from realtime message events, increments unread counts for incoming messages, and records the active channel's latest sequence as read. It refreshes the authoritative list after reconnection and through a two-second fallback check, so missed events cannot leave a stale card preview or ordering.
 
 ## Messages
 
