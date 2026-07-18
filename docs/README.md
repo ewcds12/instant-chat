@@ -16,7 +16,7 @@ The authentication, contacts, direct conversations, and persisted message founda
 - The resizable macOS window opens at 1,180 by 660 points.
 - Users can search by exact username, send contact requests, accept or reject incoming requests, remove contacts, and open a direct conversation.
 - Direct channels load cursor-paginated history, receive realtime messages, recover sequence gaps after reconnecting, and can send or retry text, image, and file messages without creating duplicates.
-- Image messages support PNG, JPEG, GIF, and WebP files up to 15 MB. Image bytes are stored behind authenticated API endpoints and are available only to conversation members.
+- Image messages support PNG, JPEG, GIF, and WebP files up to 15 MB. Image bytes are stored behind authenticated API endpoints and are available only to conversation members; the macOS image preview can save the current image through the native Save dialog.
 - File messages support files up to 25 MB. File bytes are stored behind authenticated API endpoints and are available only to conversation members.
 - The Go API provides health, registration, sign-in, refresh, sign-out, and current-user endpoints.
 - The Go API enforces unique bilateral contact relationships and unique direct conversations.

@@ -110,6 +110,25 @@ void main() {
     expect(bytes, [1, 2, 3]);
   });
 
+  test('downloadImage fetches authenticated image bytes', () async {
+    final adapter = _StubAdapter(statusCode: 200, body: [4, 5, 6]);
+    final gateway = DioMessageGateway(_createDio(adapter));
+
+    final bytes = await gateway.downloadImage(
+      accessToken: 'access-token',
+      image: const MessageImage(
+        id: '5',
+        url: '/api/v1/message-images/5',
+        contentType: 'image/png',
+        byteSize: 3,
+      ),
+    );
+
+    expect(adapter.method, 'GET');
+    expect(adapter.path, '/api/v1/message-images/5');
+    expect(bytes, [4, 5, 6]);
+  });
+
   test('list sends the reconnect sequence cursor', () async {
     final adapter = _StubAdapter(
       statusCode: 200,

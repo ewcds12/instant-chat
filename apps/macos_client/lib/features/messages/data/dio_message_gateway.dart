@@ -101,14 +101,29 @@ class DioMessageGateway implements MessageGateway {
     required String accessToken,
     required MessageFile file,
   }) async {
+    return _downloadBytes(accessToken, file.url, 'file');
+  }
+
+  @override
+  Future<List<int>> downloadImage({
+    required String accessToken,
+    required MessageImage image,
+  }) async {
+    return _downloadBytes(accessToken, image.url, 'image');
+  }
+
+  Future<List<int>> _downloadBytes(
+    String accessToken,
+    String url,
+    String type,
+  ) async {
     final response = await apiRequest(
-      () =>
-          _dio.get<List<int>>(file.url, options: _downloadOptions(accessToken)),
+      () => _dio.get<List<int>>(url, options: _downloadOptions(accessToken)),
     );
     expectStatus(response, {200});
     final bytes = response.data;
     if (bytes is! List<int>) {
-      throw const FormatException('file response must contain bytes');
+      throw FormatException('$type response must contain bytes');
     }
     return bytes;
   }

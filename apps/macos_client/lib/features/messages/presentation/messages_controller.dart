@@ -107,6 +107,10 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     return _gateway.downloadFile(accessToken: _accessToken, file: file);
   }
 
+  Future<List<int>> downloadImage(MessageImage image) {
+    return _gateway.downloadImage(accessToken: _accessToken, image: image);
+  }
+
   Future<void> loadOlder() async {
     final current = state.requireValue;
     if (current.nextCursor == null ||

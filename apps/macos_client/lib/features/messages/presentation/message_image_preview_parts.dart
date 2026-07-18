@@ -5,36 +5,69 @@ class _PreviewToolbar extends StatelessWidget {
     required this.index,
     required this.total,
     required this.onClose,
+    required this.onDownload,
+    required this.isDownloading,
   });
 
   final int index;
   final int total;
   final VoidCallback onClose;
+  final Future<void> Function() onDownload;
+  final bool isDownloading;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 12, 8),
-      child: Row(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          const SizedBox(width: 42),
-          Expanded(
-            child: Text(
-              '${index + 1} of $total',
-              key: const Key('message-image-preview-counter'),
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: colors.onSurfaceVariant,
-                fontWeight: FontWeight.w700,
-              ),
+          Text(
+            '${index + 1} of $total',
+            key: const Key('message-image-preview-counter'),
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: colors.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          IconButton(
-            key: const Key('message-image-preview-close'),
-            tooltip: 'Close',
-            onPressed: onClose,
-            icon: const Icon(Icons.close_rounded),
+          Row(
+            children: [
+              Tooltip(
+                message: 'Download image',
+                child: TextButton.icon(
+                  key: const Key('message-image-preview-download'),
+                  onPressed: isDownloading ? null : onDownload,
+                  style: TextButton.styleFrom(
+                    foregroundColor: colors.onSurfaceVariant,
+                    backgroundColor: colors.surface.withValues(alpha: 0.56),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 7,
+                    ),
+                    shape: StadiumBorder(
+                      side: BorderSide(color: colors.outlineVariant),
+                    ),
+                  ),
+                  icon: isDownloading
+                      ? const SizedBox(
+                          width: 15,
+                          height: 15,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.download_rounded, size: 17),
+                  label: const Text('Download'),
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                key: const Key('message-image-preview-close'),
+                tooltip: 'Close',
+                onPressed: onClose,
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ],
           ),
         ],
       ),

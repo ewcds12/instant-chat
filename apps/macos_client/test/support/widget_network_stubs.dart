@@ -16,6 +16,7 @@ class StubMessageGateway implements MessageGateway {
   String? sentImagePath;
   String? sentFilePath;
   String? downloadedFileID;
+  String? downloadedImageID;
 
   @override
   Future<MessagePage> list({
@@ -110,6 +111,15 @@ class StubMessageGateway implements MessageGateway {
   }) async {
     downloadedFileID = file.id;
     return [1, 2, 3];
+  }
+
+  @override
+  Future<List<int>> downloadImage({
+    required String accessToken,
+    required MessageImage image,
+  }) async {
+    downloadedImageID = image.id;
+    return [4, 5, 6];
   }
 }
 

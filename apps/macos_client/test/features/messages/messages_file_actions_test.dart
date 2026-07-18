@@ -82,6 +82,28 @@ void main() {
     expect(actions.downloadPath, '/tmp/Notes.pdf');
     expect(actions.downloadBytes, [1, 2, 3]);
   });
+
+  testWidgets('downloads an image from its preview', (tester) async {
+    final gateway = StubMessageGateway(
+      _session.user,
+      initialMessages: [_imageMessage('image-1', sequence: '1')],
+    );
+    final actions = _FakeFileActions(action: null);
+    final container = await _container(gateway: gateway, fileActions: actions);
+    addTearDown(container.dispose);
+
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(tester, find.byKey(const Key('message-image-image-1')));
+    await tester.tap(find.byKey(const Key('message-image-open-image-1')));
+    await _pumpUntil(tester, find.byKey(const Key('message-image-preview')));
+    await tester.tap(find.byKey(const Key('message-image-preview-download')));
+    await tester.runAsync(_flushEvents);
+    await tester.pump();
+
+    expect(gateway.downloadedImageID, '5');
+    expect(actions.downloadPath, '/tmp/image-5.png');
+    expect(actions.downloadBytes, [4, 5, 6]);
+  });
 }
 
 Future<ProviderContainer> _container({
@@ -131,6 +153,25 @@ Message _fileMessage(String id, {required String sequence}) {
       filename: 'Notes.pdf',
       contentType: 'application/pdf',
       byteSize: 2048,
+    ),
+    createdAt: DateTime.utc(2026, 7, 15, 13),
+  );
+}
+
+Message _imageMessage(String id, {required String sequence}) {
+  return Message(
+    id: id,
+    conversationId: _conversation.id,
+    sender: _conversation.peer,
+    clientMessageId: 'client-$id',
+    sequence: sequence,
+    kind: MessageKind.image,
+    body: '',
+    image: const MessageImage(
+      id: '5',
+      url: '/api/v1/message-images/5',
+      contentType: 'image/png',
+      byteSize: 3,
     ),
     createdAt: DateTime.utc(2026, 7, 15, 13),
   );

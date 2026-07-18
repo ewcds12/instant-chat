@@ -15,6 +15,7 @@ class MessageHistory extends StatelessWidget {
     required this.currentUserId,
     required this.onLoadOlder,
     required this.onOpenFile,
+    required this.onDownloadImage,
     super.key,
   });
 
@@ -24,6 +25,7 @@ class MessageHistory extends StatelessWidget {
   final String currentUserId;
   final VoidCallback onLoadOlder;
   final ValueChanged<MessageFile> onOpenFile;
+  final Future<void> Function(MessageImage image) onDownloadImage;
 
   @override
   Widget build(BuildContext context) {
@@ -84,6 +86,7 @@ class MessageHistory extends StatelessWidget {
                   imageMessages: imageMessages,
                   accessToken: accessToken,
                   onOpenFile: onOpenFile,
+                  onDownloadImage: onDownloadImage,
                 );
               },
             ),
@@ -101,6 +104,7 @@ class _MessageBubble extends StatelessWidget {
     required this.imageMessages,
     required this.accessToken,
     required this.onOpenFile,
+    required this.onDownloadImage,
   });
 
   final Message message;
@@ -108,6 +112,7 @@ class _MessageBubble extends StatelessWidget {
   final List<MessageImage> imageMessages;
   final String accessToken;
   final ValueChanged<MessageFile> onOpenFile;
+  final Future<void> Function(MessageImage image) onDownloadImage;
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +137,7 @@ class _MessageBubble extends StatelessWidget {
                 images: imageMessages,
                 initialImage: image,
                 accessToken: accessToken,
+                onDownload: onDownloadImage,
               ),
             )
           else if (file != null)

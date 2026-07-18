@@ -13,6 +13,7 @@ Future<void> showMessageImagePreview({
   required List<MessageImage> images,
   required MessageImage initialImage,
   required String accessToken,
+  required Future<void> Function(MessageImage image) onDownload,
 }) {
   if (images.isEmpty) {
     return Future<void>.value();
@@ -27,8 +28,22 @@ Future<void> showMessageImagePreview({
       images: images,
       initialIndex: initialIndex < 0 ? 0 : initialIndex,
       accessToken: accessToken,
+      onDownload: onDownload,
     ),
   );
+}
+
+String messageImageDownloadFilename(MessageImage image) {
+  final extension = switch (image.contentType) {
+    'image/gif' => '.gif',
+    'image/heic' => '.heic',
+    'image/jpeg' => '.jpg',
+    'image/png' => '.png',
+    'image/tiff' => '.tiff',
+    'image/webp' => '.webp',
+    _ => '.img',
+  };
+  return 'image-${image.id}$extension';
 }
 
 class MessageImagePreview extends StatefulWidget {
@@ -36,12 +51,14 @@ class MessageImagePreview extends StatefulWidget {
     required this.images,
     required this.initialIndex,
     required this.accessToken,
+    required this.onDownload,
     super.key,
   });
 
   final List<MessageImage> images;
   final int initialIndex;
   final String accessToken;
+  final Future<void> Function(MessageImage image) onDownload;
 
   @override
   State<MessageImagePreview> createState() => _MessageImagePreviewState();
@@ -49,6 +66,7 @@ class MessageImagePreview extends StatefulWidget {
 
 class _MessageImagePreviewState extends State<MessageImagePreview> {
   late int selectedIndex;
+  var isDownloading = false;
 
   @override
   void initState() {
@@ -76,6 +94,8 @@ class _MessageImagePreviewState extends State<MessageImagePreview> {
               index: selectedIndex,
               total: widget.images.length,
               onClose: () => Navigator.of(context).pop(),
+              onDownload: _download,
+              isDownloading: isDownloading,
               onPrevious: () => _move(-1),
               onNext: () => _move(1),
             ),
@@ -112,6 +132,20 @@ class _MessageImagePreviewState extends State<MessageImagePreview> {
       selectedIndex =
           (selectedIndex + delta + widget.images.length) % widget.images.length;
     });
+  }
+
+  Future<void> _download() async {
+    if (isDownloading) {
+      return;
+    }
+    setState(() => isDownloading = true);
+    try {
+      await widget.onDownload(widget.images[selectedIndex]);
+    } finally {
+      if (mounted) {
+        setState(() => isDownloading = false);
+      }
+    }
   }
 }
 
@@ -154,6 +188,8 @@ class _PreviewContent extends StatelessWidget {
     required this.index,
     required this.total,
     required this.onClose,
+    required this.onDownload,
+    required this.isDownloading,
     required this.onPrevious,
     required this.onNext,
   });
@@ -163,6 +199,8 @@ class _PreviewContent extends StatelessWidget {
   final int index;
   final int total;
   final VoidCallback onClose;
+  final Future<void> Function() onDownload;
+  final bool isDownloading;
   final VoidCallback onPrevious;
   final VoidCallback onNext;
 
@@ -171,7 +209,13 @@ class _PreviewContent extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _PreviewToolbar(index: index, total: total, onClose: onClose),
+        _PreviewToolbar(
+          index: index,
+          total: total,
+          onClose: onClose,
+          onDownload: onDownload,
+          isDownloading: isDownloading,
+        ),
         Flexible(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(26, 8, 26, 26),

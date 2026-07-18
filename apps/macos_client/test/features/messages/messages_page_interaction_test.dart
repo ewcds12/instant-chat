@@ -128,6 +128,27 @@ void main() {
     await tester.pump(const Duration(milliseconds: 220));
     expect(find.text('1 of 2'), findsOneWidget);
   });
+
+  testWidgets('downloads the selected image from the preview', (tester) async {
+    final images = [_messageImage('5'), _messageImage('6')];
+    String? downloadedID;
+
+    await tester.pumpWidget(
+      _imagePreviewHarness(
+        images,
+        onDownload: (image) async => downloadedID = image.id,
+      ),
+    );
+    await tester.tap(find.byKey(const Key('message-image-open-test')));
+    await _pumpUntil(tester, find.byKey(const Key('message-image-preview')));
+    await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+    await tester.pump(const Duration(milliseconds: 220));
+
+    await tester.tap(find.byKey(const Key('message-image-preview-download')));
+    await tester.pump();
+
+    expect(downloadedID, '6');
+  });
 }
 
 Future<ProviderContainer> _container({
@@ -159,7 +180,10 @@ Widget _messagesPage(ProviderContainer container) {
   );
 }
 
-Widget _imagePreviewHarness(List<MessageImage> images) {
+Widget _imagePreviewHarness(
+  List<MessageImage> images, {
+  Future<void> Function(MessageImage image)? onDownload,
+}) {
   return MaterialApp(
     theme: RetroTheme.data,
     home: Scaffold(
@@ -174,6 +198,7 @@ Widget _imagePreviewHarness(List<MessageImage> images) {
               images: images,
               initialImage: images.first,
               accessToken: _session.accessToken,
+              onDownload: onDownload ?? (_) async {},
             ),
           ),
         ),

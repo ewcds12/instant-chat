@@ -9,6 +9,7 @@ import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_composer.dart';
 import 'package:instant_chat/features/messages/presentation/message_header.dart';
 import 'package:instant_chat/features/messages/presentation/message_history.dart';
+import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_search.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
@@ -72,6 +73,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 currentUserId: session.user.id,
                 onLoadOlder: () => ref.read(provider.notifier).loadOlder(),
                 onOpenFile: (file) => _openFile(provider, file),
+                onDownloadImage: (image) => _downloadImage(provider, image),
               );
             },
           ),
@@ -144,7 +146,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       await _downloadFile(provider, actions, file);
     } catch (_) {
       if (mounted) {
-        _showFileError();
+        _showSaveError('File could not be saved.');
       }
     }
   }
@@ -162,10 +164,31 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     await actions.writeDownloadFile(path, bytes);
   }
 
-  void _showFileError() {
+  Future<void> _downloadImage(
+    AsyncNotifierProvider<MessagesController, MessagesState> provider,
+    MessageImage image,
+  ) async {
+    final actions = ref.read(localFileActionsProvider);
+    try {
+      final path = await actions.chooseDownloadPath(
+        messageImageDownloadFilename(image),
+      );
+      if (!mounted || path == null) {
+        return;
+      }
+      final bytes = await ref.read(provider.notifier).downloadImage(image);
+      await actions.writeDownloadFile(path, bytes);
+    } catch (_) {
+      if (mounted) {
+        _showSaveError('Image could not be saved.');
+      }
+    }
+  }
+
+  void _showSaveError(String message) {
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('File could not be saved.')));
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   void _scheduleScrollForLatestMessage(MessagesState value) {
