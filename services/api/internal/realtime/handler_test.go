@@ -2,6 +2,7 @@ package realtime
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -26,6 +27,10 @@ func (f fakeMemberRepository) ListConversationMemberIDs(
 	return f.userIDs, nil
 }
 
+func (f fakeMemberRepository) ListProfileRecipientIDs(context.Context, uint64) ([]uint64, error) {
+	return f.userIDs, nil
+}
+
 type stubAuthService struct{}
 
 func (stubAuthService) Register(context.Context, string, string, string) (auth.Session, error) {
@@ -39,6 +44,15 @@ func (stubAuthService) Refresh(context.Context, string) (auth.Session, error) {
 }
 func (stubAuthService) CurrentUser(context.Context, string) (auth.User, error) {
 	return auth.User{ID: 7, Username: "retro_user"}, nil
+}
+func (stubAuthService) UpdateProfile(context.Context, uint64, auth.ProfileInput) (auth.User, error) {
+	return auth.User{}, nil
+}
+func (stubAuthService) UpdateAvatar(context.Context, uint64, auth.AvatarUpload) (auth.User, error) {
+	return auth.User{}, nil
+}
+func (stubAuthService) Avatar(context.Context, uint64) (auth.Avatar, error) {
+	return auth.Avatar{}, nil
 }
 func (stubAuthService) Logout(context.Context, string, string) error {
 	return nil
@@ -72,7 +86,7 @@ func TestHandlerDeliversMessageCreatedToConversationMember(t *testing.T) {
 	if event.Type != "message.created" || event.Version != 1 {
 		t.Fatalf("event = %+v", event)
 	}
-	if event.Payload.Message.ID != "21" || event.Payload.Message.Sequence != "4" {
+	if event.Payload.Message == nil || event.Payload.Message.ID != "21" || event.Payload.Message.Sequence != "4" {
 		t.Fatalf("message payload = %+v", event.Payload.Message)
 	}
 }
@@ -87,6 +101,27 @@ func TestHubDoesNotDeliverToNonMember(t *testing.T) {
 
 	if len(connected.send) != 0 {
 		t.Fatalf("queued events = %d, want 0", len(connected.send))
+	}
+}
+
+func TestHubDeliversProfileUpdateToConversationPeer(t *testing.T) {
+	hub := NewHub(fakeMemberRepository{userIDs: []uint64{7, 8}})
+	_, cancel := context.WithCancel(context.Background())
+	connected := hub.add(8, cancel)
+	defer hub.remove(connected)
+
+	hub.PublishProfile(context.Background(), auth.User{
+		ID: 7, Username: "retro_user", DisplayName: "Retro User",
+		CreatedAt: time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC),
+		UpdatedAt: time.Date(2026, 7, 16, 13, 0, 0, 0, time.UTC),
+	})
+
+	var event eventEnvelope
+	if err := json.Unmarshal(<-connected.send, &event); err != nil {
+		t.Fatalf("decode event: %v", err)
+	}
+	if event.Type != "profile.updated" || event.Payload.User == nil || event.Payload.User.Username != "retro_user" {
+		t.Fatalf("event = %+v", event)
 	}
 }
 

@@ -7,15 +7,15 @@ import 'package:instant_chat/features/auth/data/keychain_session_store.dart';
 import 'package:instant_chat/features/auth/domain/auth_failure.dart';
 import 'package:instant_chat/features/auth/domain/auth_gateway.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
+import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/domain/session_store.dart';
 
-final authGatewayProvider = Provider<AuthGateway>((ref) {
-  return DioAuthGateway(ref.watch(dioProvider));
-});
-
-final sessionStoreProvider = Provider<SessionStore>((ref) {
-  return KeychainSessionStore();
-});
+final authGatewayProvider = Provider<AuthGateway>(
+  (ref) => DioAuthGateway(ref.watch(dioProvider)),
+);
+final sessionStoreProvider = Provider<SessionStore>(
+  (ref) => KeychainSessionStore(),
+);
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, AuthState>(
   AuthController.new,
@@ -74,14 +74,13 @@ class AuthController extends AsyncNotifier<AuthState> {
     }
   }
 
-  Future<void> login({required String username, required String password}) {
-    return _submit(
-      () => _gateway.login(
-        username: username.trim().toLowerCase(),
-        password: password,
-      ),
-    );
-  }
+  Future<void> login({required String username, required String password}) =>
+      _submit(
+        () => _gateway.login(
+          username: username.trim().toLowerCase(),
+          password: password,
+        ),
+      );
 
   Future<void> register({
     required String username,
@@ -103,6 +102,20 @@ class AuthController extends AsyncNotifier<AuthState> {
       return;
     }
     state = AsyncData(current.copyWith(clearError: true));
+  }
+
+  Future<void> replaceCurrentUser(AuthUser user) async {
+    final current = state.requireValue;
+    final session = current.session;
+    if (session == null) {
+      return;
+    }
+    final updated = session.copyWith(user: user);
+    await _store.write(updated);
+    if (!ref.mounted || !_sessionStillCurrent(session)) {
+      return;
+    }
+    state = AsyncData(current.copyWith(session: updated, clearError: true));
   }
 
   Future<void> signOut() async {

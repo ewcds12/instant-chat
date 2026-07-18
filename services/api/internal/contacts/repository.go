@@ -30,7 +30,7 @@ func (r *MySQLRepository) FindUserByUsername(ctx context.Context, username strin
 	if err != nil {
 		return PublicUser{}, fmt.Errorf("find user by username: %w", err)
 	}
-	return PublicUser{ID: user.ID, Username: user.Username, DisplayName: user.DisplayName, CreatedAt: user.CreatedAt}, nil
+	return PublicUser{ID: user.ID, Username: user.Username, DisplayName: user.DisplayName, HasAvatar: user.AvatarContentType.Valid, CreatedAt: user.CreatedAt}, nil
 }
 
 // CreateRequest inserts a unique pending relationship for the user pair.
@@ -101,7 +101,7 @@ func (r *MySQLRepository) ListContacts(ctx context.Context, userID uint64) ([]Co
 	for _, row := range rows {
 		contacts = append(contacts, Contact{
 			RelationshipID: row.RelationshipID,
-			User:           PublicUser{ID: row.UserID, Username: row.Username, DisplayName: row.DisplayName, CreatedAt: row.CreatedAt},
+			User:           PublicUser{ID: row.UserID, Username: row.Username, DisplayName: row.DisplayName, HasAvatar: row.AvatarContentType.Valid, CreatedAt: row.CreatedAt},
 			ConnectedAt:    row.ConnectedAt,
 		})
 	}
@@ -186,7 +186,7 @@ func requireOneRow(result sql.Result, notFound error) error {
 func requestFromRelationshipRow(row store.GetContactRelationshipByIDRow) Request {
 	return Request{
 		ID: row.ID, RequestedByUserID: row.RequestedByUserID,
-		User:      PublicUser{ID: row.OtherUserID, Username: row.OtherUsername, DisplayName: row.OtherDisplayName, CreatedAt: row.OtherCreatedAt},
+		User:      PublicUser{ID: row.OtherUserID, Username: row.OtherUsername, DisplayName: row.OtherDisplayName, HasAvatar: row.OtherAvatarContentType.Valid, CreatedAt: row.OtherCreatedAt},
 		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}
 }
@@ -194,7 +194,7 @@ func requestFromRelationshipRow(row store.GetContactRelationshipByIDRow) Request
 func requestFromPendingRow(row store.ListPendingContactRelationshipsRow) Request {
 	return Request{
 		ID: row.ID, RequestedByUserID: row.RequestedByUserID,
-		User:      PublicUser{ID: row.OtherUserID, Username: row.OtherUsername, DisplayName: row.OtherDisplayName, CreatedAt: row.OtherCreatedAt},
+		User:      PublicUser{ID: row.OtherUserID, Username: row.OtherUsername, DisplayName: row.OtherDisplayName, HasAvatar: row.OtherAvatarContentType.Valid, CreatedAt: row.OtherCreatedAt},
 		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt,
 	}
 }

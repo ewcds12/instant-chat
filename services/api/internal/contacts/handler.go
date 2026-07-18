@@ -40,6 +40,7 @@ type publicUserResponse struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
 	DisplayName string    `json:"display_name"`
+	AvatarURL   *string   `json:"avatar_url"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -195,10 +196,15 @@ func writeInvalidArgument(w http.ResponseWriter, r *http.Request, message string
 }
 
 func responseFromUser(user PublicUser) publicUserResponse {
-	return publicUserResponse{
+	response := publicUserResponse{
 		ID: strconv.FormatUint(user.ID, 10), Username: user.Username,
 		DisplayName: user.DisplayName, CreatedAt: user.CreatedAt.UTC(),
 	}
+	if user.HasAvatar {
+		url := "/api/v1/users/" + response.ID + "/avatar"
+		response.AvatarURL = &url
+	}
+	return response
 }
 
 func responseFromRequest(request Request) requestResponse {

@@ -31,6 +31,7 @@ SELECT
   other_user.id AS peer_user_id,
   other_user.username AS peer_username,
   other_user.display_name AS peer_display_name,
+  other_user.avatar_content_type AS peer_avatar_content_type,
   other_user.created_at AS peer_created_at
 FROM conversations AS conversation
 JOIN conversation_members AS membership
@@ -69,6 +70,7 @@ SELECT
   other_user.id AS peer_user_id,
   other_user.username AS peer_username,
   other_user.display_name AS peer_display_name,
+  other_user.avatar_content_type AS peer_avatar_content_type,
   other_user.created_at AS peer_created_at
 FROM conversation_members AS membership
 JOIN conversations AS conversation ON conversation.id = membership.conversation_id

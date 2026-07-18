@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversation_list.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
@@ -23,6 +24,11 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(conversationsControllerProvider);
+    final accessToken = ref
+        .read(authControllerProvider)
+        .requireValue
+        .session!
+        .accessToken;
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => Center(
@@ -40,6 +46,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
               width: RetroMetrics.conversationColumnWidth,
               child: ConversationList(
                 conversations: value.conversations,
+                accessToken: accessToken,
                 selectedId: selected?.id,
                 query: _query,
                 isRefreshing: value.isSubmitting,

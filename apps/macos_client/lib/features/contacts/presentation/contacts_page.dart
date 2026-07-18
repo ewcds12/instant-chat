@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
+import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
 class ContactsPage extends ConsumerStatefulWidget {
   const ContactsPage({required this.onOpenConversation, super.key});
@@ -26,6 +28,11 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(contactsControllerProvider);
+    final accessToken = ref
+        .read(authControllerProvider)
+        .requireValue
+        .session!
+        .accessToken;
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => _LoadFailure(
@@ -89,6 +96,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                               const SizedBox(height: RetroMetrics.spaceSmall),
                           itemBuilder: (context, index) => _ContactRow(
                             contact: contacts.contacts[index],
+                            accessToken: accessToken,
                             disabled: contacts.isSubmitting,
                             onMessage: () => widget.onOpenConversation(
                               contacts.contacts[index].user.id,
@@ -213,12 +221,14 @@ class _SearchResult extends StatelessWidget {
 class _ContactRow extends StatelessWidget {
   const _ContactRow({
     required this.contact,
+    required this.accessToken,
     required this.disabled,
     required this.onMessage,
     required this.onRemove,
   });
 
   final Contact contact;
+  final String accessToken;
   final bool disabled;
   final VoidCallback onMessage;
   final VoidCallback onRemove;
@@ -228,11 +238,11 @@ class _ContactRow extends StatelessWidget {
     return _BorderedRow(
       child: Row(
         children: [
-          CircleAvatar(
+          ProfileAvatar(
+            name: contact.user.displayName,
+            accessToken: accessToken,
+            avatarUrl: contact.user.avatarUrl,
             radius: 18,
-            backgroundColor: RetroColors.primaryLight,
-            foregroundColor: Theme.of(context).colorScheme.primary,
-            child: Text(_initial(contact.user.displayName)),
           ),
           const SizedBox(width: RetroMetrics.spaceMedium),
           Expanded(
@@ -283,9 +293,4 @@ class _LoadFailure extends StatelessWidget {
       child: FilledButton(onPressed: onRetry, child: const Text('Try again')),
     );
   }
-}
-
-String _initial(String value) {
-  final trimmed = value.trim();
-  return trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
 }

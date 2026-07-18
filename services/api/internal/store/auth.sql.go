@@ -64,6 +64,9 @@ SELECT
   u.id AS user_id,
   u.username,
   u.display_name,
+  u.gender,
+  u.region,
+  u.avatar_content_type,
   u.created_at,
   u.updated_at
 FROM refresh_tokens AS refresh
@@ -81,12 +84,15 @@ type GetRefreshSessionForUpdateParams struct {
 }
 
 type GetRefreshSessionForUpdateRow struct {
-	RefreshTokenID uint64    `db:"refresh_token_id"`
-	UserID         uint64    `db:"user_id"`
-	Username       string    `db:"username"`
-	DisplayName    string    `db:"display_name"`
-	CreatedAt      time.Time `db:"created_at"`
-	UpdatedAt      time.Time `db:"updated_at"`
+	RefreshTokenID    uint64         `db:"refresh_token_id"`
+	UserID            uint64         `db:"user_id"`
+	Username          string         `db:"username"`
+	DisplayName       string         `db:"display_name"`
+	Gender            sql.NullString `db:"gender"`
+	Region            sql.NullString `db:"region"`
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	CreatedAt         time.Time      `db:"created_at"`
+	UpdatedAt         time.Time      `db:"updated_at"`
 }
 
 func (q *Queries) GetRefreshSessionForUpdate(ctx context.Context, arg GetRefreshSessionForUpdateParams) (GetRefreshSessionForUpdateRow, error) {
@@ -97,9 +103,32 @@ func (q *Queries) GetRefreshSessionForUpdate(ctx context.Context, arg GetRefresh
 		&i.UserID,
 		&i.Username,
 		&i.DisplayName,
+		&i.Gender,
+		&i.Region,
+		&i.AvatarContentType,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
+	return i, err
+}
+
+const getUserAvatar = `-- name: GetUserAvatar :one
+SELECT avatar_content_type, avatar_data
+FROM users
+WHERE id = ?
+  AND avatar_data IS NOT NULL
+LIMIT 1
+`
+
+type GetUserAvatarRow struct {
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	AvatarData        sql.NullString `db:"avatar_data"`
+}
+
+func (q *Queries) GetUserAvatar(ctx context.Context, id uint64) (GetUserAvatarRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserAvatar, id)
+	var i GetUserAvatarRow
+	err := row.Scan(&i.AvatarContentType, &i.AvatarData)
 	return i, err
 }
 
@@ -108,6 +137,9 @@ SELECT
   u.id AS user_id,
   u.username,
   u.display_name,
+  u.gender,
+  u.region,
+  u.avatar_content_type,
   u.created_at,
   u.updated_at
 FROM access_tokens AS access
@@ -124,11 +156,14 @@ type GetUserByAccessTokenParams struct {
 }
 
 type GetUserByAccessTokenRow struct {
-	UserID      uint64    `db:"user_id"`
-	Username    string    `db:"username"`
-	DisplayName string    `db:"display_name"`
-	CreatedAt   time.Time `db:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
+	UserID            uint64         `db:"user_id"`
+	Username          string         `db:"username"`
+	DisplayName       string         `db:"display_name"`
+	Gender            sql.NullString `db:"gender"`
+	Region            sql.NullString `db:"region"`
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	CreatedAt         time.Time      `db:"created_at"`
+	UpdatedAt         time.Time      `db:"updated_at"`
 }
 
 func (q *Queries) GetUserByAccessToken(ctx context.Context, arg GetUserByAccessTokenParams) (GetUserByAccessTokenRow, error) {
@@ -138,6 +173,51 @@ func (q *Queries) GetUserByAccessToken(ctx context.Context, arg GetUserByAccessT
 		&i.UserID,
 		&i.Username,
 		&i.DisplayName,
+		&i.Gender,
+		&i.Region,
+		&i.AvatarContentType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByID = `-- name: GetUserByID :one
+SELECT
+  id,
+  username,
+  display_name,
+  gender,
+  region,
+  avatar_content_type,
+  created_at,
+  updated_at
+FROM users
+WHERE id = ?
+LIMIT 1
+`
+
+type GetUserByIDRow struct {
+	ID                uint64         `db:"id"`
+	Username          string         `db:"username"`
+	DisplayName       string         `db:"display_name"`
+	Gender            sql.NullString `db:"gender"`
+	Region            sql.NullString `db:"region"`
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	CreatedAt         time.Time      `db:"created_at"`
+	UpdatedAt         time.Time      `db:"updated_at"`
+}
+
+func (q *Queries) GetUserByID(ctx context.Context, id uint64) (GetUserByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByID, id)
+	var i GetUserByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Username,
+		&i.DisplayName,
+		&i.Gender,
+		&i.Region,
+		&i.AvatarContentType,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -145,19 +225,31 @@ func (q *Queries) GetUserByAccessToken(ctx context.Context, arg GetUserByAccessT
 }
 
 const getUserByUsername = `-- name: GetUserByUsername :one
-SELECT id, username, display_name, password_hash, created_at, updated_at
+SELECT
+  id,
+  username,
+  display_name,
+  gender,
+  region,
+  avatar_content_type,
+  password_hash,
+  created_at,
+  updated_at
 FROM users
 WHERE username = ?
 LIMIT 1
 `
 
 type GetUserByUsernameRow struct {
-	ID           uint64    `db:"id"`
-	Username     string    `db:"username"`
-	DisplayName  string    `db:"display_name"`
-	PasswordHash string    `db:"password_hash"`
-	CreatedAt    time.Time `db:"created_at"`
-	UpdatedAt    time.Time `db:"updated_at"`
+	ID                uint64         `db:"id"`
+	Username          string         `db:"username"`
+	DisplayName       string         `db:"display_name"`
+	Gender            sql.NullString `db:"gender"`
+	Region            sql.NullString `db:"region"`
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	PasswordHash      string         `db:"password_hash"`
+	CreatedAt         time.Time      `db:"created_at"`
+	UpdatedAt         time.Time      `db:"updated_at"`
 }
 
 func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUserByUsernameRow, error) {
@@ -167,6 +259,9 @@ func (q *Queries) GetUserByUsername(ctx context.Context, username string) (GetUs
 		&i.ID,
 		&i.Username,
 		&i.DisplayName,
+		&i.Gender,
+		&i.Region,
+		&i.AvatarContentType,
 		&i.PasswordHash,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -222,5 +317,47 @@ type RevokeRefreshTokenByIDParams struct {
 
 func (q *Queries) RevokeRefreshTokenByID(ctx context.Context, arg RevokeRefreshTokenByIDParams) error {
 	_, err := q.db.ExecContext(ctx, revokeRefreshTokenByID, arg.RevokedAt, arg.ID)
+	return err
+}
+
+const updateUserAvatar = `-- name: UpdateUserAvatar :exec
+UPDATE users
+SET avatar_content_type = ?, avatar_data = ?
+WHERE id = ?
+`
+
+type UpdateUserAvatarParams struct {
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	AvatarData        sql.NullString `db:"avatar_data"`
+	ID                uint64         `db:"id"`
+}
+
+func (q *Queries) UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserAvatar, arg.AvatarContentType, arg.AvatarData, arg.ID)
+	return err
+}
+
+const updateUserProfile = `-- name: UpdateUserProfile :exec
+UPDATE users
+SET username = ?, display_name = ?, gender = ?, region = ?
+WHERE id = ?
+`
+
+type UpdateUserProfileParams struct {
+	Username    string         `db:"username"`
+	DisplayName string         `db:"display_name"`
+	Gender      sql.NullString `db:"gender"`
+	Region      sql.NullString `db:"region"`
+	ID          uint64         `db:"id"`
+}
+
+func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserProfile,
+		arg.Username,
+		arg.DisplayName,
+		arg.Gender,
+		arg.Region,
+		arg.ID,
+	)
 	return err
 }

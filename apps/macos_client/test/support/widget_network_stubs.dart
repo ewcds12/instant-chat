@@ -159,6 +159,9 @@ class StubRealtimeConnection implements RealtimeConnection {
   Stream<Message> get messages => const Stream.empty();
 
   @override
+  Stream<PublicUser> get profiles => const Stream.empty();
+
+  @override
   void start() {}
 
   @override
@@ -167,12 +170,16 @@ class StubRealtimeConnection implements RealtimeConnection {
 
 class StreamRealtimeConnection implements RealtimeConnection {
   final _messages = StreamController<Message>.broadcast();
+  final _profiles = StreamController<PublicUser>.broadcast();
 
   @override
   Stream<int> get connections => const Stream.empty();
 
   @override
   Stream<Message> get messages => _messages.stream;
+
+  @override
+  Stream<PublicUser> get profiles => _profiles.stream;
 
   @override
   void start() {}
@@ -182,5 +189,6 @@ class StreamRealtimeConnection implements RealtimeConnection {
   @override
   Future<void> close() async {
     await _messages.close();
+    await _profiles.close();
   }
 }

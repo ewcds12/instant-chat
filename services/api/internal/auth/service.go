@@ -15,7 +15,16 @@ import (
 const (
 	minimumDisplayRunes = 2
 	maximumDisplayRunes = 80
+	maximumRegionRunes  = 80
+	maximumAvatarBytes  = 5 * 1024 * 1024
 )
+
+var allowedAvatarContentTypes = map[string]struct{}{
+	"image/gif":  {},
+	"image/jpeg": {},
+	"image/png":  {},
+	"image/webp": {},
+}
 
 // Service implements authentication business rules.
 type Service struct {
@@ -120,6 +129,51 @@ func (s *Service) CurrentUser(ctx context.Context, accessToken string) (User, er
 	return s.repository.FindUserByAccessToken(ctx, hashToken(accessToken), s.now().UTC())
 }
 
+// UpdateProfile validates and persists the editable account profile fields.
+func (s *Service) UpdateProfile(ctx context.Context, userID uint64, input ProfileInput) (User, error) {
+	normalizedUsername, valid := users.NormalizeUsername(input.Username)
+	if !valid {
+		return User{}, &InputError{Message: "ID must be 3 to 32 characters, start with a letter, and use only lowercase letters, numbers, or underscores."}
+	}
+	displayName, err := validateDisplayName(input.DisplayName)
+	if err != nil {
+		return User{}, err
+	}
+	gender, err := validateGender(input.Gender)
+	if err != nil {
+		return User{}, err
+	}
+	region, err := validateRegion(input.Region)
+	if err != nil {
+		return User{}, err
+	}
+	return s.repository.UpdateProfile(ctx, userID, ProfileInput{
+		Username: normalizedUsername, DisplayName: displayName, Gender: gender, Region: region,
+	})
+}
+
+// UpdateAvatar validates and stores one profile photo.
+func (s *Service) UpdateAvatar(ctx context.Context, userID uint64, upload AvatarUpload) (User, error) {
+	if len(upload.Data) == 0 {
+		return User{}, &InputError{Message: "Profile photo must not be empty."}
+	}
+	if len(upload.Data) > maximumAvatarBytes {
+		return User{}, &InputError{Message: "Profile photo must be 5 MB or smaller."}
+	}
+	if _, ok := allowedAvatarContentTypes[upload.ContentType]; !ok {
+		return User{}, &InputError{Message: "Profile photo must be PNG, JPEG, GIF, or WebP."}
+	}
+	return s.repository.UpdateAvatar(ctx, userID, upload)
+}
+
+// Avatar returns one profile photo for an authenticated account.
+func (s *Service) Avatar(ctx context.Context, userID uint64) (Avatar, error) {
+	if userID == 0 {
+		return Avatar{}, &InputError{Message: "User ID must be a positive integer string."}
+	}
+	return s.repository.Avatar(ctx, userID)
+}
+
 // Logout revokes the supplied access and refresh token pair.
 func (s *Service) Logout(ctx context.Context, accessToken, refreshToken string) error {
 	if accessToken == "" || refreshToken == "" {
@@ -140,15 +194,44 @@ func validateRegistration(username, displayName string) (string, error) {
 	if !valid {
 		return "", &InputError{Message: "Username must be 3 to 32 characters, start with a letter, and use only lowercase letters, numbers, or underscores."}
 	}
-	trimmedName := strings.TrimSpace(displayName)
-	nameLength := utf8.RuneCountInString(trimmedName)
-	if nameLength < minimumDisplayRunes || nameLength > maximumDisplayRunes {
-		return "", &InputError{Message: "Display name must be between 2 and 80 characters."}
-	}
-	for _, value := range trimmedName {
-		if unicode.IsControl(value) {
-			return "", &InputError{Message: "Display name contains an unsupported character."}
-		}
+	if _, err := validateDisplayName(displayName); err != nil {
+		return "", err
 	}
 	return normalizedUsername, nil
+}
+
+func validateDisplayName(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	length := utf8.RuneCountInString(trimmed)
+	if length < minimumDisplayRunes || length > maximumDisplayRunes {
+		return "", &InputError{Message: "Name must be between 2 and 80 characters."}
+	}
+	for _, character := range trimmed {
+		if unicode.IsControl(character) {
+			return "", &InputError{Message: "Name contains an unsupported character."}
+		}
+	}
+	return trimmed, nil
+}
+
+func validateGender(value string) (string, error) {
+	switch strings.TrimSpace(value) {
+	case "", "female", "male", "non_binary", "prefer_not_to_say":
+		return strings.TrimSpace(value), nil
+	default:
+		return "", &InputError{Message: "Gender is not supported."}
+	}
+}
+
+func validateRegion(value string) (string, error) {
+	trimmed := strings.TrimSpace(value)
+	if utf8.RuneCountInString(trimmed) > maximumRegionRunes {
+		return "", &InputError{Message: "Region must be 80 characters or fewer."}
+	}
+	for _, character := range trimmed {
+		if unicode.IsControl(character) {
+			return "", &InputError{Message: "Region contains an unsupported character."}
+		}
+	}
+	return trimmed, nil
 }

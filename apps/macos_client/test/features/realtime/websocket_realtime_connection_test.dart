@@ -57,6 +57,29 @@ void main() {
     expect(message?.file?.filename, 'v1-spec.md');
   });
 
+  test('decodes a profile.updated event', () {
+    final profile = decodeRealtimeProfile(
+      jsonEncode({
+        'event_id': 'profile:7:1',
+        'type': 'profile.updated',
+        'version': 1,
+        'occurred_at': '2026-07-16T13:00:00Z',
+        'payload': {
+          'user': {
+            'id': '7',
+            'username': 'retro_user',
+            'display_name': 'Retro User',
+            'avatar_url': '/api/v1/users/7/avatar?v=1',
+            'created_at': '2026-07-16T12:00:00Z',
+          },
+        },
+      }),
+    );
+
+    expect(profile?.username, 'retro_user');
+    expect(profile?.avatarUrl, '/api/v1/users/7/avatar?v=1');
+  });
+
   test('reconnects after the socket closes and resumes delivery', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     var connections = 0;

@@ -144,6 +144,92 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "500":
           $ref: "#/components/responses/InternalError"
+    patch:
+      operationId: updateCurrentUserProfile
+      summary: Update the current user's editable profile fields
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileUpdateRequest"
+      responses:
+        "200":
+          description: Updated current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /auth/me/avatar:
+    put:
+      operationId: updateCurrentUserAvatar
+      summary: Replace the current user's profile photo
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+                - avatar
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Updated current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUserResponse"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /users/{user_id}/avatar:
+    get:
+      operationId: getUserAvatar
+      summary: Download one authenticated user's profile photo
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ResourceID"
+      responses:
+        "200":
+          description: Profile image bytes
+          content:
+            image/png: {}
+            image/jpeg: {}
+            image/gif: {}
+            image/webp: {}
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /users/search:
     get:
       operationId: searchUserByUsername
@@ -766,6 +852,25 @@ components:
           $ref: "#/components/schemas/Username"
         display_name:
           type: string
+        gender:
+          type:
+            - string
+            - "null"
+          enum:
+            - female
+            - male
+            - non_binary
+            - prefer_not_to_say
+            - null
+        region:
+          type:
+            - string
+            - "null"
+          maxLength: 80
+        avatar_url:
+          type:
+            - string
+            - "null"
         created_at:
           type: string
           format: date-time
@@ -792,9 +897,49 @@ components:
           $ref: "#/components/schemas/Username"
         display_name:
           type: string
+        avatar_url:
+          type:
+            - string
+            - "null"
         created_at:
           type: string
           format: date-time
+    CurrentUserResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - user
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+    ProfileUpdateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - username
+        - display_name
+      properties:
+        username:
+          $ref: "#/components/schemas/Username"
+        display_name:
+          type: string
+          minLength: 2
+          maxLength: 80
+        gender:
+          type:
+            - string
+            - "null"
+          enum:
+            - female
+            - male
+            - non_binary
+            - prefer_not_to_say
+            - null
+        region:
+          type:
+            - string
+            - "null"
+          maxLength: 80
     SendContactRequest:
       type: object
       additionalProperties: false

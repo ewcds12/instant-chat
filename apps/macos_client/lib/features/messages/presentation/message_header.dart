@@ -2,16 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
 class MessageHeader extends StatelessWidget {
   const MessageHeader({
     required this.conversation,
+    required this.accessToken,
     required this.onSearch,
     required this.onRefresh,
     super.key,
   });
 
   final Conversation conversation;
+  final String accessToken;
   final VoidCallback onSearch;
   final VoidCallback onRefresh;
 
@@ -31,11 +34,11 @@ class MessageHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
-            CircleAvatar(
+            ProfileAvatar(
+              name: conversation.peer.displayName,
+              accessToken: accessToken,
+              avatarUrl: conversation.peer.avatarUrl,
               radius: 19,
-              backgroundColor: RetroColors.primaryLight,
-              foregroundColor: colors.primary,
-              child: Text(_initials(conversation.peer.displayName)),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -88,14 +91,3 @@ class MessageHeader extends StatelessWidget {
 }
 
 enum _HeaderAction { refresh }
-
-String _initials(String name) {
-  return name
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((word) => word.isNotEmpty)
-      .take(2)
-      .map((word) => word[0])
-      .join()
-      .toUpperCase();
-}

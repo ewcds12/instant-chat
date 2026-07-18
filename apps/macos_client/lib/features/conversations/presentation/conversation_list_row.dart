@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
 class ConversationListRow extends StatelessWidget {
   const ConversationListRow({
     required this.conversation,
     required this.selected,
+    required this.accessToken,
     required this.onOpen,
     super.key,
   });
 
   final Conversation conversation;
   final bool selected;
+  final String accessToken;
   final VoidCallback onOpen;
 
   @override
@@ -65,12 +68,23 @@ class ConversationListRow extends StatelessWidget {
     );
   }
 
-  Widget _avatar(ColorScheme colors) => CircleAvatar(
-    radius: 20,
-    backgroundColor: selected ? colors.primary : colors.surfaceContainerHigh,
-    foregroundColor: selected ? colors.onPrimary : colors.onSurfaceVariant,
-    child: Text(_initials(conversation.peer.displayName)),
-  );
+  Widget _avatar(ColorScheme colors) => conversation.peer.avatarUrl == null
+      ? CircleAvatar(
+          radius: 20,
+          backgroundColor: selected
+              ? colors.primary
+              : colors.surfaceContainerHigh,
+          foregroundColor: selected
+              ? colors.onPrimary
+              : colors.onSurfaceVariant,
+          child: Text(_initials(conversation.peer.displayName)),
+        )
+      : ProfileAvatar(
+          name: conversation.peer.displayName,
+          accessToken: accessToken,
+          avatarUrl: conversation.peer.avatarUrl,
+          radius: 20,
+        );
 
   Widget _details(BuildContext context, ColorScheme colors) {
     return Column(

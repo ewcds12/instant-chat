@@ -63,6 +63,8 @@ func run() error {
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/v1/health", health.NewHandler(database))
 
+	realtimeHub := realtime.NewHub(realtime.NewMySQLRepository(database))
+	defer realtimeHub.Close()
 	authService, err := auth.NewService(
 		auth.NewMySQLRepository(database),
 		auth.NewPasswordHasher(),
@@ -70,7 +72,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("initialize authentication: %w", err)
 	}
-	authHandler := auth.NewHandler(authService)
+	authHandler := auth.NewHandler(authService, realtimeHub)
 	registerLimiter := httpapi.NewIPRateLimiter(authRateLimit, authRateWindow)
 	loginLimiter := httpapi.NewIPRateLimiter(authRateLimit, authRateWindow)
 	mux.Handle("POST /api/v1/auth/register", registerLimiter.Handler(http.HandlerFunc(authHandler.Register)))
@@ -78,14 +80,15 @@ func run() error {
 	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
 	mux.HandleFunc("GET /api/v1/auth/me", authHandler.CurrentUser)
+	mux.Handle("PATCH /api/v1/auth/me", authHandler.RequireUser(http.HandlerFunc(authHandler.UpdateProfile)))
+	mux.Handle("PUT /api/v1/auth/me/avatar", authHandler.RequireUser(http.HandlerFunc(authHandler.UpdateAvatar)))
+	mux.Handle("GET /api/v1/users/{user_id}/avatar", authHandler.RequireUser(http.HandlerFunc(authHandler.Avatar)))
 
 	contactRepository := contacts.NewMySQLRepository(database)
 	contactHandler := contacts.NewHandler(contacts.NewService(contactRepository))
 	conversationHandler := conversations.NewHandler(conversations.NewService(
 		conversations.NewMySQLRepository(database), contactRepository,
 	))
-	realtimeHub := realtime.NewHub(realtime.NewMySQLRepository(database))
-	defer realtimeHub.Close()
 	messageHandler := messages.NewHandler(messages.NewService(
 		messages.NewMySQLRepository(database),
 		realtimeHub,

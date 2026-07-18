@@ -88,11 +88,15 @@ type RefreshToken struct {
 }
 
 type User struct {
-	ID           uint64         `db:"id"`
-	DisplayName  string         `db:"display_name"`
-	PasswordHash string         `db:"password_hash"`
-	CreatedAt    time.Time      `db:"created_at"`
-	UpdatedAt    time.Time      `db:"updated_at"`
-	Username     string         `db:"username"`
-	Email        sql.NullString `db:"email"`
+	ID                uint64         `db:"id"`
+	DisplayName       string         `db:"display_name"`
+	PasswordHash      string         `db:"password_hash"`
+	CreatedAt         time.Time      `db:"created_at"`
+	UpdatedAt         time.Time      `db:"updated_at"`
+	Username          string         `db:"username"`
+	Email             sql.NullString `db:"email"`
+	Gender            sql.NullString `db:"gender"`
+	Region            sql.NullString `db:"region"`
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	AvatarData        sql.NullString `db:"avatar_data"`
 }

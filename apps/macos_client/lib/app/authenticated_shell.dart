@@ -7,6 +7,8 @@ import 'package:instant_chat/features/contacts/presentation/contacts_page.dart';
 import 'package:instant_chat/features/contacts/presentation/requests_page.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_page.dart';
+import 'package:instant_chat/features/profile/presentation/profile_sheet.dart';
+import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_page.dart';
 
@@ -39,6 +41,8 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
               session: widget.session,
               selectedIndex: _selectedIndex,
               onSelect: (index) => setState(() => _selectedIndex = index),
+              onOpenProfile: () =>
+                  showProfileSheet(context: context, session: widget.session),
             ),
             VerticalDivider(color: colors.outlineVariant),
             Expanded(
@@ -75,11 +79,13 @@ class _AppSidebar extends StatelessWidget {
     required this.session,
     required this.selectedIndex,
     required this.onSelect,
+    required this.onOpenProfile,
   });
 
   final AuthSession session;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
+  final VoidCallback onOpenProfile;
 
   @override
   Widget build(BuildContext context) {
@@ -120,7 +126,7 @@ class _AppSidebar extends StatelessWidget {
                 onTap: () => onSelect(3),
               ),
               const SizedBox(height: 10),
-              _AccountTile(session: session),
+              _AccountTile(session: session, onTap: onOpenProfile),
             ],
           ),
         ),
@@ -130,51 +136,61 @@ class _AppSidebar extends StatelessWidget {
 }
 
 class _AccountTile extends StatelessWidget {
-  const _AccountTile({required this.session});
+  const _AccountTile({required this.session, required this.onTap});
 
   final AuthSession session;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: RetroColors.glass,
-        border: Border.all(color: colors.outlineVariant),
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        key: const Key('profile-account-card'),
         borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 15,
-            backgroundColor: RetroColors.primaryLight,
-            foregroundColor: colors.primary,
-            child: Text(_initials(session.user.displayName)),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: RetroColors.glass,
+            border: Border.all(color: colors.outlineVariant),
+            borderRadius: BorderRadius.circular(14),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  session.user.displayName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelLarge,
+          child: Row(
+            children: [
+              ProfileAvatar(
+                name: session.user.displayName,
+                accessToken: session.accessToken,
+                avatarUrl: session.user.avatarUrl,
+                radius: 15,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      session.user.displayName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    Text(
+                      '@${session.user.username}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  '@${session.user.username}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -264,15 +280,4 @@ class _SidebarItem extends StatelessWidget {
       ),
     );
   }
-}
-
-String _initials(String name) {
-  return name
-      .trim()
-      .split(RegExp(r'\s+'))
-      .where((word) => word.isNotEmpty)
-      .take(2)
-      .map((word) => word[0])
-      .join()
-      .toUpperCase();
 }

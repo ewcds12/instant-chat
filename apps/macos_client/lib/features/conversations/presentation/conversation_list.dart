@@ -7,6 +7,7 @@ import 'package:instant_chat/features/conversations/presentation/conversation_li
 class ConversationList extends StatelessWidget {
   const ConversationList({
     required this.conversations,
+    required this.accessToken,
     required this.selectedId,
     required this.query,
     required this.isRefreshing,
@@ -18,6 +19,7 @@ class ConversationList extends StatelessWidget {
   });
 
   final List<Conversation> conversations;
+  final String accessToken;
   final String? selectedId;
   final String query;
   final bool isRefreshing;
@@ -136,6 +138,7 @@ class ConversationList extends StatelessWidget {
                       final conversation = filtered[index];
                       return ConversationListRow(
                         conversation: conversation,
+                        accessToken: accessToken,
                         selected: conversation.id == selectedId,
                         onOpen: () => onSelect(conversation),
                       );

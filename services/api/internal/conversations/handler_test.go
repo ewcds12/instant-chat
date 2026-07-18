@@ -74,6 +74,15 @@ func (stubAuthService) Refresh(context.Context, string) (auth.Session, error) {
 func (stubAuthService) CurrentUser(context.Context, string) (auth.User, error) {
 	return auth.User{ID: 7, Username: "retro_user"}, nil
 }
+func (stubAuthService) UpdateProfile(context.Context, uint64, auth.ProfileInput) (auth.User, error) {
+	return auth.User{}, nil
+}
+func (stubAuthService) UpdateAvatar(context.Context, uint64, auth.AvatarUpload) (auth.User, error) {
+	return auth.User{}, nil
+}
+func (stubAuthService) Avatar(context.Context, uint64) (auth.Avatar, error) {
+	return auth.Avatar{}, nil
+}
 func (stubAuthService) Logout(context.Context, string, string) error { return nil }
 
 func TestHandlerCreateDirectReturnsCreated(t *testing.T) {

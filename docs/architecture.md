@@ -32,7 +32,8 @@ The client is located in `apps/macos_client` and currently contains:
 - `features/contacts`: exact username search, contact-request workflows, accepted contacts, and Riverpod state.
 - `features/conversations`: direct-conversation creation, persisted unread-count state, realtime list updates, and channel selection.
 - `features/messages`: message history, text, image, and file REST sending, realtime reconciliation, idempotent retry state, and channel presentation.
-- `features/realtime`: authenticated WebSocket lifecycle, heartbeat, reconnect backoff, and event parsing.
+- `features/profile`: an in-app profile sheet opened from the account card, with native-style editors backed by authenticated profile and avatar APIs.
+- `features/realtime`: authenticated WebSocket lifecycle, heartbeat, reconnect backoff, and parsing for message and profile updates.
 - `features/system_status`: health domain model, Dio data access, Riverpod state, and presentation.
 
 Widgets do not access Dio or Keychain directly. Presentation observes Riverpod providers, while data adapters validate remote and stored JSON before passing domain objects upward.
@@ -63,7 +64,7 @@ The API uses the standard library's `net/http` package and the zero-dependency I
 
 Passwords are hashed with Argon2id using one centralized configuration. Account registration and login use the username as the credential identifier and do not require email addresses. Login failures do not reveal whether an account exists, and registration and login are limited to 10 attempts per IP address per minute in each API process.
 
-Access tokens are cryptographically random opaque values valid for 15 minutes. Refresh tokens are cryptographically random opaque values valid for 30 days and are rotated in a database transaction. MySQL stores only SHA-256 token digests, never the bearer values returned to the client.
+Access tokens are cryptographically random opaque values valid for 15 minutes. Refresh tokens are cryptographically random opaque values valid for 30 days and are rotated in a database transaction. MySQL stores only SHA-256 token digests, never the bearer values returned to the client. The authenticated account API owns Name, Gender, Region, ID, and one validated profile photo; public peer data includes only Name, ID, and an authenticated avatar URL.
 
 The authentication tables and changes are owned by `db/migrations`. Source queries are owned by `db/queries`, and `db/sqlc.yaml` generates the server store package.
 
@@ -89,7 +90,7 @@ History is returned in ascending sequence order, at most 100 messages per reques
 
 Messages have a `kind` of `text`, `image`, or `file`. Text messages store a validated body. Image messages store one PNG, JPEG, GIF, or WebP attachment up to 15 MB in MySQL for the first implementation. File messages store one named file attachment up to 25 MB in MySQL. Attachment bytes are returned only through authenticated API endpoints that verify the requester is a member of the attachment's conversation. The client uses native macOS file pickers for selecting images and files and sends uploads through the API, never by connecting directly to storage.
 
-After a new message commits, the realtime hub looks up the conversation members and sends a versioned `message.created` event to every connected window for those users. A failed realtime lookup or disconnected client does not change the successful REST result because persisted history remains the source of truth.
+After a new message commits, the realtime hub looks up the conversation members and sends a versioned `message.created` event to every connected window for those users. A profile update sends a versioned `profile.updated` event to connected users who share a conversation with the changed account. Failed realtime lookup or disconnected clients do not change the successful REST result because persisted REST data remains the source of truth.
 
 The macOS client opens one authenticated WebSocket per signed-in session, sends heartbeat pings, reconnects with bounded exponential backoff, replaces the connection after session rotation, and closes the connection on sign-out. Active channels merge REST responses and realtime events by sender and client message ID, sort by server sequence, and request every sequence after the latest local message when a channel opens, the connection is restored, an incoming event exposes a sequence gap, or the two-second active-channel fallback check runs. Synchronization requests never overlap, and all recovery paths use the same idempotent reconciliation.
 

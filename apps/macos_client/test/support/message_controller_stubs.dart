@@ -177,6 +177,7 @@ class FakeMessageGateway implements MessageGateway {
 
 class FakeRealtimeConnection implements RealtimeConnection {
   final _messages = StreamController<Message>.broadcast();
+  final _profiles = StreamController<PublicUser>.broadcast();
   final _connections = StreamController<int>.broadcast();
   var _generation = 0;
 
@@ -185,6 +186,9 @@ class FakeRealtimeConnection implements RealtimeConnection {
 
   @override
   Stream<Message> get messages => _messages.stream;
+
+  @override
+  Stream<PublicUser> get profiles => _profiles.stream;
 
   @override
   void start() {}
@@ -196,6 +200,7 @@ class FakeRealtimeConnection implements RealtimeConnection {
   @override
   Future<void> close() async {
     await _messages.close();
+    await _profiles.close();
     await _connections.close();
   }
 }

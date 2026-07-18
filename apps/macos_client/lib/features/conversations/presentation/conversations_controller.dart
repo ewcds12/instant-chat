@@ -9,6 +9,7 @@ import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/domain/conversation_gateway.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
+import 'package:instant_chat/features/users/domain/public_user.dart';
 
 final conversationGatewayProvider = Provider<ConversationGateway>((ref) {
   return DioConversationGateway(ref.watch(dioProvider));
@@ -52,6 +53,7 @@ class ConversationsState {
 class ConversationsController extends AsyncNotifier<ConversationsState> {
   ConversationGateway get _gateway => ref.read(conversationGatewayProvider);
   StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<PublicUser>? _profileSubscription;
   StreamSubscription<int>? _connectionSubscription;
   Timer? _recoveryTimer;
   var _eventGeneration = 0;
@@ -71,6 +73,7 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
     if (_messageSubscription == null) {
       final realtime = ref.read(realtimeConnectionProvider);
       _messageSubscription = realtime.messages.listen(_onRealtimeMessage);
+      _profileSubscription = realtime.profiles.listen(_onRealtimeProfile);
       _connectionSubscription = realtime.connections.listen(
         (_) => _queueSynchronization(),
       );
@@ -185,6 +188,21 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
     state = AsyncData(current.copyWith(conversations: conversations));
   }
 
+  void _onRealtimeProfile(PublicUser profile) {
+    final current = state.asData?.value;
+    if (current == null) {
+      return;
+    }
+    final conversations = current.conversations
+        .map(
+          (conversation) => conversation.peer.id == profile.id
+              ? conversation.copyWith(peer: profile)
+              : conversation,
+        )
+        .toList(growable: false);
+    state = AsyncData(current.copyWith(conversations: conversations));
+  }
+
   void _queueSynchronization() {
     if (!ref.mounted) {
       return;
@@ -229,6 +247,7 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
   void _closeRealtimeRecovery() {
     _recoveryTimer?.cancel();
     unawaited(_messageSubscription?.cancel());
+    unawaited(_profileSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
   }
 

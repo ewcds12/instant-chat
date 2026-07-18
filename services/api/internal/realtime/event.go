@@ -4,15 +4,21 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/ewcds12/instant-chat/services/api/internal/auth"
 	"github.com/ewcds12/instant-chat/services/api/internal/messages"
 )
 
 type eventEnvelope struct {
-	EventID    string         `json:"event_id"`
-	Type       string         `json:"type"`
-	Version    int            `json:"version"`
-	OccurredAt time.Time      `json:"occurred_at"`
-	Payload    messagePayload `json:"payload"`
+	EventID    string       `json:"event_id"`
+	Type       string       `json:"type"`
+	Version    int          `json:"version"`
+	OccurredAt time.Time    `json:"occurred_at"`
+	Payload    eventPayload `json:"payload"`
+}
+
+type eventPayload struct {
+	Message *messageEvent `json:"message,omitempty"`
+	User    *profileEvent `json:"user,omitempty"`
 }
 
 type messagePayload struct {
@@ -97,6 +103,29 @@ func messageCreatedEvent(message messages.Message) eventEnvelope {
 		Type:       "message.created",
 		Version:    1,
 		OccurredAt: message.CreatedAt.UTC(),
-		Payload:    messagePayload{Message: body},
+		Payload:    eventPayload{Message: &body},
+	}
+}
+
+type profileEvent struct {
+	ID          string    `json:"id"`
+	Username    string    `json:"username"`
+	DisplayName string    `json:"display_name"`
+	AvatarURL   *string   `json:"avatar_url"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+func profileUpdatedEvent(user auth.User) eventEnvelope {
+	profile := profileEvent{
+		ID: strconv.FormatUint(user.ID, 10), Username: user.Username, DisplayName: user.DisplayName, CreatedAt: user.CreatedAt.UTC(),
+	}
+	if user.HasAvatar {
+		url := "/api/v1/users/" + profile.ID + "/avatar?v=" + strconv.FormatInt(user.UpdatedAt.UnixMicro(), 10)
+		profile.AvatarURL = &url
+	}
+	return eventEnvelope{
+		EventID: "profile:" + profile.ID + ":" + strconv.FormatInt(user.UpdatedAt.UnixMicro(), 10),
+		Type:    "profile.updated", Version: 1, OccurredAt: user.UpdatedAt.UTC(),
+		Payload: eventPayload{User: &profile},
 	}
 }

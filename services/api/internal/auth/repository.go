@@ -111,10 +111,7 @@ func (r *MySQLRepository) RotateSession(ctx context.Context, oldRefreshHash []by
 	if err := tx.Commit(); err != nil {
 		return User{}, fmt.Errorf("commit refresh transaction: %w", err)
 	}
-	return User{
-		ID: session.UserID, Username: session.Username, DisplayName: session.DisplayName,
-		CreatedAt: session.CreatedAt, UpdatedAt: session.UpdatedAt,
-	}, nil
+	return userFromRefreshStore(session), nil
 }
 
 // FindUserByAccessToken resolves a nonexpired, nonrevoked access token.
@@ -128,10 +125,55 @@ func (r *MySQLRepository) FindUserByAccessToken(ctx context.Context, tokenHash [
 	if err != nil {
 		return User{}, fmt.Errorf("find access token: %w", err)
 	}
-	return User{
-		ID: user.UserID, Username: user.Username, DisplayName: user.DisplayName,
-		CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
-	}, nil
+	return userFromAccessTokenStore(user), nil
+}
+
+// UpdateProfile persists all editable profile fields and returns the new user.
+func (r *MySQLRepository) UpdateProfile(ctx context.Context, userID uint64, input ProfileInput) (User, error) {
+	err := r.queries.UpdateUserProfile(ctx, store.UpdateUserProfileParams{
+		Username: input.Username, DisplayName: input.DisplayName,
+		Gender: nullableString(input.Gender), Region: nullableString(input.Region), ID: userID,
+	})
+	if err != nil {
+		return User{}, mapUpdateProfileError(err)
+	}
+	user, err := r.queries.GetUserByID(ctx, userID)
+	if err != nil {
+		return User{}, fmt.Errorf("read updated user profile: %w", err)
+	}
+	return userFromIDStore(user), nil
+}
+
+// UpdateAvatar replaces one user's profile photo and returns the new user.
+func (r *MySQLRepository) UpdateAvatar(ctx context.Context, userID uint64, upload AvatarUpload) (User, error) {
+	err := r.queries.UpdateUserAvatar(ctx, store.UpdateUserAvatarParams{
+		AvatarContentType: sql.NullString{String: upload.ContentType, Valid: true},
+		AvatarData:        sql.NullString{String: string(upload.Data), Valid: true},
+		ID:                userID,
+	})
+	if err != nil {
+		return User{}, fmt.Errorf("update profile photo: %w", err)
+	}
+	user, err := r.queries.GetUserByID(ctx, userID)
+	if err != nil {
+		return User{}, fmt.Errorf("read updated profile photo: %w", err)
+	}
+	return userFromIDStore(user), nil
+}
+
+// Avatar returns one stored profile photo.
+func (r *MySQLRepository) Avatar(ctx context.Context, userID uint64) (Avatar, error) {
+	avatar, err := r.queries.GetUserAvatar(ctx, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return Avatar{}, sql.ErrNoRows
+	}
+	if err != nil {
+		return Avatar{}, fmt.Errorf("read profile photo: %w", err)
+	}
+	if !avatar.AvatarContentType.Valid || !avatar.AvatarData.Valid || avatar.AvatarData.String == "" {
+		return Avatar{}, sql.ErrNoRows
+	}
+	return Avatar{ContentType: avatar.AvatarContentType.String, Data: []byte(avatar.AvatarData.String)}, nil
 }
 
 // RevokeSession revokes both supplied tokens atomically and is idempotent.
@@ -175,8 +217,47 @@ func createTokens(ctx context.Context, queries *store.Queries, userID uint64, ac
 func userFromStore(user store.GetUserByUsernameRow) User {
 	return User{
 		ID: user.ID, Username: user.Username, DisplayName: user.DisplayName,
-		CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
+		Gender: nullStringValue(user.Gender), Region: nullStringValue(user.Region),
+		HasAvatar: user.AvatarContentType.Valid, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
 	}
+}
+
+func userFromIDStore(user store.GetUserByIDRow) User {
+	return User{
+		ID: user.ID, Username: user.Username, DisplayName: user.DisplayName,
+		Gender: nullStringValue(user.Gender), Region: nullStringValue(user.Region),
+		HasAvatar: user.AvatarContentType.Valid, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
+	}
+}
+
+func userFromAccessTokenStore(user store.GetUserByAccessTokenRow) User {
+	return User{
+		ID: user.UserID, Username: user.Username, DisplayName: user.DisplayName,
+		Gender: nullStringValue(user.Gender), Region: nullStringValue(user.Region),
+		HasAvatar: user.AvatarContentType.Valid, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
+	}
+}
+
+func userFromRefreshStore(user store.GetRefreshSessionForUpdateRow) User {
+	return User{
+		ID: user.UserID, Username: user.Username, DisplayName: user.DisplayName,
+		Gender: nullStringValue(user.Gender), Region: nullStringValue(user.Region),
+		HasAvatar: user.AvatarContentType.Valid, CreatedAt: user.CreatedAt, UpdatedAt: user.UpdatedAt,
+	}
+}
+
+func nullableString(value string) sql.NullString {
+	if value == "" {
+		return sql.NullString{}
+	}
+	return sql.NullString{String: value, Valid: true}
+}
+
+func nullStringValue(value sql.NullString) string {
+	if !value.Valid {
+		return ""
+	}
+	return value.String
 }
 
 func mapCreateUserError(err error) error {
@@ -187,6 +268,14 @@ func mapCreateUserError(err error) error {
 		}
 	}
 	return fmt.Errorf("create user: %w", err)
+}
+
+func mapUpdateProfileError(err error) error {
+	var mysqlError *mysql.MySQLError
+	if errors.As(err, &mysqlError) && mysqlError.Number == 1062 && strings.Contains(mysqlError.Message, "uq_users_username") {
+		return ErrUsernameTaken
+	}
+	return fmt.Errorf("update user profile: %w", err)
 }
 
 func rollback(tx *sql.Tx, cause error) error {

@@ -66,6 +66,7 @@ SELECT
   other_user.id AS peer_user_id,
   other_user.username AS peer_username,
   other_user.display_name AS peer_display_name,
+  other_user.avatar_content_type AS peer_avatar_content_type,
   other_user.created_at AS peer_created_at
 FROM conversations AS conversation
 JOIN conversation_members AS membership
@@ -92,19 +93,20 @@ type GetDirectConversationByPairParams struct {
 }
 
 type GetDirectConversationByPairRow struct {
-	ID                  uint64         `db:"id"`
-	Kind                string         `db:"kind"`
-	CreatedAt           time.Time      `db:"created_at"`
-	UpdatedAt           time.Time      `db:"updated_at"`
-	UnreadCount         int64          `db:"unread_count"`
-	LastMessageSequence sql.NullInt64  `db:"last_message_sequence"`
-	LastMessageKind     sql.NullString `db:"last_message_kind"`
-	LastMessageBody     sql.NullString `db:"last_message_body"`
-	LastMessageFileName sql.NullString `db:"last_message_file_name"`
-	PeerUserID          uint64         `db:"peer_user_id"`
-	PeerUsername        string         `db:"peer_username"`
-	PeerDisplayName     string         `db:"peer_display_name"`
-	PeerCreatedAt       time.Time      `db:"peer_created_at"`
+	ID                    uint64         `db:"id"`
+	Kind                  string         `db:"kind"`
+	CreatedAt             time.Time      `db:"created_at"`
+	UpdatedAt             time.Time      `db:"updated_at"`
+	UnreadCount           int64          `db:"unread_count"`
+	LastMessageSequence   sql.NullInt64  `db:"last_message_sequence"`
+	LastMessageKind       sql.NullString `db:"last_message_kind"`
+	LastMessageBody       sql.NullString `db:"last_message_body"`
+	LastMessageFileName   sql.NullString `db:"last_message_file_name"`
+	PeerUserID            uint64         `db:"peer_user_id"`
+	PeerUsername          string         `db:"peer_username"`
+	PeerDisplayName       string         `db:"peer_display_name"`
+	PeerAvatarContentType sql.NullString `db:"peer_avatar_content_type"`
+	PeerCreatedAt         time.Time      `db:"peer_created_at"`
 }
 
 func (q *Queries) GetDirectConversationByPair(ctx context.Context, arg GetDirectConversationByPairParams) (GetDirectConversationByPairRow, error) {
@@ -129,6 +131,7 @@ func (q *Queries) GetDirectConversationByPair(ctx context.Context, arg GetDirect
 		&i.PeerUserID,
 		&i.PeerUsername,
 		&i.PeerDisplayName,
+		&i.PeerAvatarContentType,
 		&i.PeerCreatedAt,
 	)
 	return i, err
@@ -175,6 +178,7 @@ SELECT
   other_user.id AS peer_user_id,
   other_user.username AS peer_username,
   other_user.display_name AS peer_display_name,
+  other_user.avatar_content_type AS peer_avatar_content_type,
   other_user.created_at AS peer_created_at
 FROM conversation_members AS membership
 JOIN conversations AS conversation ON conversation.id = membership.conversation_id
@@ -197,19 +201,20 @@ type ListConversationsForUserParams struct {
 }
 
 type ListConversationsForUserRow struct {
-	ID                  uint64         `db:"id"`
-	Kind                string         `db:"kind"`
-	CreatedAt           time.Time      `db:"created_at"`
-	UpdatedAt           time.Time      `db:"updated_at"`
-	UnreadCount         int64          `db:"unread_count"`
-	LastMessageSequence sql.NullInt64  `db:"last_message_sequence"`
-	LastMessageKind     sql.NullString `db:"last_message_kind"`
-	LastMessageBody     sql.NullString `db:"last_message_body"`
-	LastMessageFileName sql.NullString `db:"last_message_file_name"`
-	PeerUserID          uint64         `db:"peer_user_id"`
-	PeerUsername        string         `db:"peer_username"`
-	PeerDisplayName     string         `db:"peer_display_name"`
-	PeerCreatedAt       time.Time      `db:"peer_created_at"`
+	ID                    uint64         `db:"id"`
+	Kind                  string         `db:"kind"`
+	CreatedAt             time.Time      `db:"created_at"`
+	UpdatedAt             time.Time      `db:"updated_at"`
+	UnreadCount           int64          `db:"unread_count"`
+	LastMessageSequence   sql.NullInt64  `db:"last_message_sequence"`
+	LastMessageKind       sql.NullString `db:"last_message_kind"`
+	LastMessageBody       sql.NullString `db:"last_message_body"`
+	LastMessageFileName   sql.NullString `db:"last_message_file_name"`
+	PeerUserID            uint64         `db:"peer_user_id"`
+	PeerUsername          string         `db:"peer_username"`
+	PeerDisplayName       string         `db:"peer_display_name"`
+	PeerAvatarContentType sql.NullString `db:"peer_avatar_content_type"`
+	PeerCreatedAt         time.Time      `db:"peer_created_at"`
 }
 
 func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversationsForUserParams) ([]ListConversationsForUserRow, error) {
@@ -234,6 +239,7 @@ func (q *Queries) ListConversationsForUser(ctx context.Context, arg ListConversa
 			&i.PeerUserID,
 			&i.PeerUsername,
 			&i.PeerDisplayName,
+			&i.PeerAvatarContentType,
 			&i.PeerCreatedAt,
 		); err != nil {
 			return nil, err

@@ -7,17 +7,19 @@ final localImagePickerProvider = Provider<LocalImagePicker>((ref) {
 });
 
 abstract interface class LocalImagePicker {
-  Future<String?> pickImagePath();
+  Future<String?> pickImagePath({String prompt = 'Choose an image to send'});
 }
 
 class MacOSImagePicker implements LocalImagePicker {
   const MacOSImagePicker();
 
   @override
-  Future<String?> pickImagePath() async {
+  Future<String?> pickImagePath({
+    String prompt = 'Choose an image to send',
+  }) async {
     final result = await Process.run('/usr/bin/osascript', [
       '-e',
-      'set pickedImage to choose file of type {"public.image"} with prompt "Choose an image to send"',
+      'set pickedImage to choose file of type {"public.image"} with prompt "$prompt"',
       '-e',
       'POSIX path of pickedImage',
     ]);

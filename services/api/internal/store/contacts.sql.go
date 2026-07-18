@@ -78,17 +78,18 @@ func (q *Queries) CreateContactRelationship(ctx context.Context, arg CreateConta
 }
 
 const findPublicUserByUsername = `-- name: FindPublicUserByUsername :one
-SELECT id, username, display_name, created_at
+SELECT id, username, display_name, avatar_content_type, created_at
 FROM users
 WHERE username = ?
 LIMIT 1
 `
 
 type FindPublicUserByUsernameRow struct {
-	ID          uint64    `db:"id"`
-	Username    string    `db:"username"`
-	DisplayName string    `db:"display_name"`
-	CreatedAt   time.Time `db:"created_at"`
+	ID                uint64         `db:"id"`
+	Username          string         `db:"username"`
+	DisplayName       string         `db:"display_name"`
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	CreatedAt         time.Time      `db:"created_at"`
 }
 
 func (q *Queries) FindPublicUserByUsername(ctx context.Context, username string) (FindPublicUserByUsernameRow, error) {
@@ -98,6 +99,7 @@ func (q *Queries) FindPublicUserByUsername(ctx context.Context, username string)
 		&i.ID,
 		&i.Username,
 		&i.DisplayName,
+		&i.AvatarContentType,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -115,6 +117,7 @@ SELECT
   other_user.id AS other_user_id,
   other_user.username AS other_username,
   other_user.display_name AS other_display_name,
+  other_user.avatar_content_type AS other_avatar_content_type,
   other_user.created_at AS other_created_at
 FROM contact_relationships AS relationship
 JOIN users AS other_user
@@ -136,17 +139,18 @@ type GetContactRelationshipByIDParams struct {
 }
 
 type GetContactRelationshipByIDRow struct {
-	ID                uint64    `db:"id"`
-	LowerUserID       uint64    `db:"lower_user_id"`
-	HigherUserID      uint64    `db:"higher_user_id"`
-	RequestedByUserID uint64    `db:"requested_by_user_id"`
-	Status            string    `db:"status"`
-	CreatedAt         time.Time `db:"created_at"`
-	UpdatedAt         time.Time `db:"updated_at"`
-	OtherUserID       uint64    `db:"other_user_id"`
-	OtherUsername     string    `db:"other_username"`
-	OtherDisplayName  string    `db:"other_display_name"`
-	OtherCreatedAt    time.Time `db:"other_created_at"`
+	ID                     uint64         `db:"id"`
+	LowerUserID            uint64         `db:"lower_user_id"`
+	HigherUserID           uint64         `db:"higher_user_id"`
+	RequestedByUserID      uint64         `db:"requested_by_user_id"`
+	Status                 string         `db:"status"`
+	CreatedAt              time.Time      `db:"created_at"`
+	UpdatedAt              time.Time      `db:"updated_at"`
+	OtherUserID            uint64         `db:"other_user_id"`
+	OtherUsername          string         `db:"other_username"`
+	OtherDisplayName       string         `db:"other_display_name"`
+	OtherAvatarContentType sql.NullString `db:"other_avatar_content_type"`
+	OtherCreatedAt         time.Time      `db:"other_created_at"`
 }
 
 func (q *Queries) GetContactRelationshipByID(ctx context.Context, arg GetContactRelationshipByIDParams) (GetContactRelationshipByIDRow, error) {
@@ -168,6 +172,7 @@ func (q *Queries) GetContactRelationshipByID(ctx context.Context, arg GetContact
 		&i.OtherUserID,
 		&i.OtherUsername,
 		&i.OtherDisplayName,
+		&i.OtherAvatarContentType,
 		&i.OtherCreatedAt,
 	)
 	return i, err
@@ -179,6 +184,7 @@ SELECT
   other_user.id AS user_id,
   other_user.username,
   other_user.display_name,
+  other_user.avatar_content_type,
   other_user.created_at,
   relationship.updated_at AS connected_at
 FROM contact_relationships AS relationship
@@ -201,12 +207,13 @@ type ListAcceptedContactsParams struct {
 }
 
 type ListAcceptedContactsRow struct {
-	RelationshipID uint64    `db:"relationship_id"`
-	UserID         uint64    `db:"user_id"`
-	Username       string    `db:"username"`
-	DisplayName    string    `db:"display_name"`
-	CreatedAt      time.Time `db:"created_at"`
-	ConnectedAt    time.Time `db:"connected_at"`
+	RelationshipID    uint64         `db:"relationship_id"`
+	UserID            uint64         `db:"user_id"`
+	Username          string         `db:"username"`
+	DisplayName       string         `db:"display_name"`
+	AvatarContentType sql.NullString `db:"avatar_content_type"`
+	CreatedAt         time.Time      `db:"created_at"`
+	ConnectedAt       time.Time      `db:"connected_at"`
 }
 
 func (q *Queries) ListAcceptedContacts(ctx context.Context, arg ListAcceptedContactsParams) ([]ListAcceptedContactsRow, error) {
@@ -223,6 +230,7 @@ func (q *Queries) ListAcceptedContacts(ctx context.Context, arg ListAcceptedCont
 			&i.UserID,
 			&i.Username,
 			&i.DisplayName,
+			&i.AvatarContentType,
 			&i.CreatedAt,
 			&i.ConnectedAt,
 		); err != nil {
@@ -251,6 +259,7 @@ SELECT
   other_user.id AS other_user_id,
   other_user.username AS other_username,
   other_user.display_name AS other_display_name,
+  other_user.avatar_content_type AS other_avatar_content_type,
   other_user.created_at AS other_created_at
 FROM contact_relationships AS relationship
 JOIN users AS other_user
@@ -272,17 +281,18 @@ type ListPendingContactRelationshipsParams struct {
 }
 
 type ListPendingContactRelationshipsRow struct {
-	ID                uint64    `db:"id"`
-	LowerUserID       uint64    `db:"lower_user_id"`
-	HigherUserID      uint64    `db:"higher_user_id"`
-	RequestedByUserID uint64    `db:"requested_by_user_id"`
-	Status            string    `db:"status"`
-	CreatedAt         time.Time `db:"created_at"`
-	UpdatedAt         time.Time `db:"updated_at"`
-	OtherUserID       uint64    `db:"other_user_id"`
-	OtherUsername     string    `db:"other_username"`
-	OtherDisplayName  string    `db:"other_display_name"`
-	OtherCreatedAt    time.Time `db:"other_created_at"`
+	ID                     uint64         `db:"id"`
+	LowerUserID            uint64         `db:"lower_user_id"`
+	HigherUserID           uint64         `db:"higher_user_id"`
+	RequestedByUserID      uint64         `db:"requested_by_user_id"`
+	Status                 string         `db:"status"`
+	CreatedAt              time.Time      `db:"created_at"`
+	UpdatedAt              time.Time      `db:"updated_at"`
+	OtherUserID            uint64         `db:"other_user_id"`
+	OtherUsername          string         `db:"other_username"`
+	OtherDisplayName       string         `db:"other_display_name"`
+	OtherAvatarContentType sql.NullString `db:"other_avatar_content_type"`
+	OtherCreatedAt         time.Time      `db:"other_created_at"`
 }
 
 func (q *Queries) ListPendingContactRelationships(ctx context.Context, arg ListPendingContactRelationshipsParams) ([]ListPendingContactRelationshipsRow, error) {
@@ -305,6 +315,7 @@ func (q *Queries) ListPendingContactRelationships(ctx context.Context, arg ListP
 			&i.OtherUserID,
 			&i.OtherUsername,
 			&i.OtherDisplayName,
+			&i.OtherAvatarContentType,
 			&i.OtherCreatedAt,
 		); err != nil {
 			return nil, err

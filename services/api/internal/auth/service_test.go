@@ -17,6 +17,7 @@ type fakeRepository struct {
 	userRecord          UserRecord
 	findUserError       error
 	rotatedHash         []byte
+	profileInput        ProfileInput
 }
 
 func (f *fakeRepository) CreateAccount(_ context.Context, username, displayName, passwordHash string, _, _ StoredToken) (User, error) {
@@ -41,6 +42,19 @@ func (f *fakeRepository) RotateSession(_ context.Context, oldRefreshHash []byte,
 
 func (f *fakeRepository) FindUserByAccessToken(context.Context, []byte, time.Time) (User, error) {
 	return User{ID: 7}, nil
+}
+
+func (f *fakeRepository) UpdateProfile(_ context.Context, _ uint64, input ProfileInput) (User, error) {
+	f.profileInput = input
+	return User{ID: 7, Username: input.Username, DisplayName: input.DisplayName}, nil
+}
+
+func (f *fakeRepository) UpdateAvatar(context.Context, uint64, AvatarUpload) (User, error) {
+	return User{ID: 7}, nil
+}
+
+func (f *fakeRepository) Avatar(context.Context, uint64) (Avatar, error) {
+	return Avatar{}, nil
 }
 
 func (f *fakeRepository) RevokeSession(context.Context, []byte, []byte, time.Time) error {
@@ -126,6 +140,29 @@ func TestServiceRefreshHashesSuppliedToken(t *testing.T) {
 	}
 	if !bytes.Equal(repository.rotatedHash, hashToken("refresh-token")) {
 		t.Fatal("Refresh() did not hash the supplied token")
+	}
+}
+
+func TestServiceUpdateProfileNormalizesIDAndAllowsUnsetFields(t *testing.T) {
+	repository := &fakeRepository{}
+	service := newTestService(t, repository)
+
+	_, err := service.UpdateProfile(context.Background(), 7, ProfileInput{
+		Username: "  RETRO_USER ", DisplayName: "  Retro User  ",
+	})
+	if err != nil {
+		t.Fatalf("UpdateProfile() error = %v", err)
+	}
+	if repository.profileInput.Username != "retro_user" || repository.profileInput.DisplayName != "Retro User" {
+		t.Fatalf("profile input = %+v", repository.profileInput)
+	}
+
+	_, err = service.UpdateProfile(context.Background(), 7, ProfileInput{
+		Username: "retro_user", DisplayName: "Retro User", Gender: "unsupported",
+	})
+	var inputError *InputError
+	if !errors.As(err, &inputError) {
+		t.Fatalf("UpdateProfile() error = %v, want InputError", err)
 	}
 }
 

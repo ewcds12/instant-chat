@@ -29,8 +29,36 @@ type User struct {
 	ID          uint64
 	Username    string
 	DisplayName string
+	Gender      string
+	Region      string
+	HasAvatar   bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+// ProfileInput contains all editable account profile fields.
+type ProfileInput struct {
+	Username    string
+	DisplayName string
+	Gender      string
+	Region      string
+}
+
+// AvatarUpload is a validated profile image candidate.
+type AvatarUpload struct {
+	ContentType string
+	Data        []byte
+}
+
+// Avatar is one stored profile image.
+type Avatar struct {
+	ContentType string
+	Data        []byte
+}
+
+// ProfilePublisher sends noncritical profile updates after persistence succeeds.
+type ProfilePublisher interface {
+	PublishProfile(ctx context.Context, user User)
 }
 
 // UserRecord contains private data used only while authenticating.
@@ -61,5 +89,8 @@ type Repository interface {
 	CreateSession(ctx context.Context, userID uint64, access, refresh StoredToken) error
 	RotateSession(ctx context.Context, oldRefreshHash []byte, now time.Time, access, refresh StoredToken) (User, error)
 	FindUserByAccessToken(ctx context.Context, tokenHash []byte, now time.Time) (User, error)
+	UpdateProfile(ctx context.Context, userID uint64, input ProfileInput) (User, error)
+	UpdateAvatar(ctx context.Context, userID uint64, upload AvatarUpload) (User, error)
+	Avatar(ctx context.Context, userID uint64) (Avatar, error)
 	RevokeSession(ctx context.Context, accessHash, refreshHash []byte, now time.Time) error
 }

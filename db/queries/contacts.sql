@@ -1,5 +1,5 @@
 -- name: FindPublicUserByUsername :one
-SELECT id, username, display_name, created_at
+SELECT id, username, display_name, avatar_content_type, created_at
 FROM users
 WHERE username = ?
 LIMIT 1;
@@ -25,6 +25,7 @@ SELECT
   other_user.id AS other_user_id,
   other_user.username AS other_username,
   other_user.display_name AS other_display_name,
+  other_user.avatar_content_type AS other_avatar_content_type,
   other_user.created_at AS other_created_at
 FROM contact_relationships AS relationship
 JOIN users AS other_user
@@ -51,6 +52,7 @@ SELECT
   other_user.id AS other_user_id,
   other_user.username AS other_username,
   other_user.display_name AS other_display_name,
+  other_user.avatar_content_type AS other_avatar_content_type,
   other_user.created_at AS other_created_at
 FROM contact_relationships AS relationship
 JOIN users AS other_user
@@ -72,6 +74,7 @@ SELECT
   other_user.id AS user_id,
   other_user.username,
   other_user.display_name,
+  other_user.avatar_content_type,
   other_user.created_at,
   relationship.updated_at AS connected_at
 FROM contact_relationships AS relationship

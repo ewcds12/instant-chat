@@ -40,6 +40,7 @@ type peerResponse struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
 	DisplayName string    `json:"display_name"`
+	AvatarURL   *string   `json:"avatar_url"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
@@ -167,6 +168,10 @@ func responseFromConversation(conversation Conversation) conversationResponse {
 			Body:     conversation.LastMessage.Body,
 			FileName: conversation.LastMessage.FileName,
 		}
+	}
+	if conversation.Peer.HasAvatar {
+		url := "/api/v1/users/" + response.Peer.ID + "/avatar"
+		response.Peer.AvatarURL = &url
 	}
 	return response
 }

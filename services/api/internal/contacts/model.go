@@ -36,6 +36,7 @@ type PublicUser struct {
 	ID          uint64
 	Username    string
 	DisplayName string
+	HasAvatar   bool
 	CreatedAt   time.Time
 }
 

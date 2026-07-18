@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/network/api_failure.dart';
 import 'package:instant_chat/core/network/dio_provider.dart';
@@ -6,6 +8,7 @@ import 'package:instant_chat/features/contacts/data/dio_contact_gateway.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/domain/contact_gateway.dart';
 import 'package:instant_chat/features/contacts/domain/contact_request.dart';
+import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 final contactGatewayProvider = Provider<ContactGateway>((ref) {
@@ -35,6 +38,9 @@ class ContactsState {
   final String? errorMessage;
 
   ContactsState copyWith({
+    List<Contact>? contacts,
+    List<ContactRequest>? incoming,
+    List<ContactRequest>? outgoing,
     PublicUser? searchResult,
     bool clearSearch = false,
     bool? isSubmitting,
@@ -42,9 +48,9 @@ class ContactsState {
     bool clearError = false,
   }) {
     return ContactsState(
-      contacts: contacts,
-      incoming: incoming,
-      outgoing: outgoing,
+      contacts: contacts ?? this.contacts,
+      incoming: incoming ?? this.incoming,
+      outgoing: outgoing ?? this.outgoing,
       searchResult: clearSearch ? null : searchResult ?? this.searchResult,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
@@ -54,6 +60,7 @@ class ContactsState {
 
 class ContactsController extends AsyncNotifier<ContactsState> {
   ContactGateway get _gateway => ref.read(contactGatewayProvider);
+  StreamSubscription<PublicUser>? _profileSubscription;
 
   String get _accessToken {
     final session = ref.read(authControllerProvider).requireValue.session;
@@ -64,7 +71,16 @@ class ContactsController extends AsyncNotifier<ContactsState> {
   }
 
   @override
-  Future<ContactsState> build() => _load();
+  Future<ContactsState> build() {
+    if (_profileSubscription == null) {
+      _profileSubscription = ref
+          .read(realtimeConnectionProvider)
+          .profiles
+          .listen(_onRealtimeProfile);
+      ref.onDispose(() => unawaited(_profileSubscription?.cancel()));
+    }
+    return _load();
+  }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
@@ -153,6 +169,55 @@ class ContactsController extends AsyncNotifier<ContactsState> {
   void _setFailure(ContactsState current, String message) {
     state = AsyncData(
       current.copyWith(isSubmitting: false, errorMessage: message),
+    );
+  }
+
+  void _onRealtimeProfile(PublicUser profile) {
+    final current = state.asData?.value;
+    if (current == null) {
+      return;
+    }
+    state = AsyncData(
+      current.copyWith(
+        contacts: current.contacts
+            .map(
+              (contact) => contact.user.id == profile.id
+                  ? Contact(
+                      relationshipId: contact.relationshipId,
+                      user: profile,
+                      connectedAt: contact.connectedAt,
+                    )
+                  : contact,
+            )
+            .toList(growable: false),
+        incoming: current.incoming
+            .map(
+              (request) => request.user.id == profile.id
+                  ? ContactRequest(
+                      id: request.id,
+                      user: profile,
+                      createdAt: request.createdAt,
+                      updatedAt: request.updatedAt,
+                    )
+                  : request,
+            )
+            .toList(growable: false),
+        outgoing: current.outgoing
+            .map(
+              (request) => request.user.id == profile.id
+                  ? ContactRequest(
+                      id: request.id,
+                      user: profile,
+                      createdAt: request.createdAt,
+                      updatedAt: request.updatedAt,
+                    )
+                  : request,
+            )
+            .toList(growable: false),
+        searchResult: current.searchResult?.id == profile.id
+            ? profile
+            : current.searchResult,
+      ),
     );
   }
 }

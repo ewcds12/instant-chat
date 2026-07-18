@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/realtime/domain/realtime_connection.dart';
+import 'package:instant_chat/features/users/domain/public_user.dart';
 
 const _heartbeatPeriod = Duration(seconds: 20);
 const _maximumReconnectDelay = Duration(seconds: 30);
@@ -14,6 +15,7 @@ class WebSocketRealtimeConnection implements RealtimeConnection {
   final Uri uri;
   final String accessToken;
   final _messages = StreamController<Message>.broadcast();
+  final _profiles = StreamController<PublicUser>.broadcast();
   final _connections = StreamController<int>.broadcast();
   final _stopSignal = Completer<void>();
 
@@ -24,6 +26,9 @@ class WebSocketRealtimeConnection implements RealtimeConnection {
 
   @override
   Stream<Message> get messages => _messages.stream;
+
+  @override
+  Stream<PublicUser> get profiles => _profiles.stream;
 
   @override
   Stream<int> get connections => _connections.stream;
@@ -44,6 +49,7 @@ class WebSocketRealtimeConnection implements RealtimeConnection {
     await _socket?.close(WebSocketStatus.normalClosure);
     await _runner;
     await _messages.close();
+    await _profiles.close();
     await _connections.close();
   }
 
@@ -102,8 +108,26 @@ class WebSocketRealtimeConnection implements RealtimeConnection {
       if (message != null) {
         _messages.add(message);
       }
+      final profile = decodeRealtimeProfile(raw);
+      if (profile != null) {
+        _profiles.add(profile);
+      }
     }
   }
+}
+
+PublicUser? decodeRealtimeProfile(String raw) {
+  final Object? decoded = jsonDecode(raw);
+  final event = _object(decoded, 'event');
+  final type = _requiredString(event, 'type');
+  if (type != 'profile.updated') {
+    return null;
+  }
+  if (event['version'] != 1) {
+    throw const FormatException('Unsupported profile.updated version.');
+  }
+  final payload = _object(event['payload'], 'payload');
+  return PublicUser.fromJson(_object(payload['user'], 'user'));
 }
 
 Message? decodeRealtimeMessage(String raw) {

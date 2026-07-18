@@ -3,9 +3,49 @@ INSERT INTO users (username, display_name, password_hash)
 VALUES (?, ?, ?);
 
 -- name: GetUserByUsername :one
-SELECT id, username, display_name, password_hash, created_at, updated_at
+SELECT
+  id,
+  username,
+  display_name,
+  gender,
+  region,
+  avatar_content_type,
+  password_hash,
+  created_at,
+  updated_at
 FROM users
 WHERE username = ?
+LIMIT 1;
+
+-- name: GetUserByID :one
+SELECT
+  id,
+  username,
+  display_name,
+  gender,
+  region,
+  avatar_content_type,
+  created_at,
+  updated_at
+FROM users
+WHERE id = ?
+LIMIT 1;
+
+-- name: UpdateUserProfile :exec
+UPDATE users
+SET username = ?, display_name = ?, gender = ?, region = ?
+WHERE id = ?;
+
+-- name: UpdateUserAvatar :exec
+UPDATE users
+SET avatar_content_type = ?, avatar_data = ?
+WHERE id = ?;
+
+-- name: GetUserAvatar :one
+SELECT avatar_content_type, avatar_data
+FROM users
+WHERE id = ?
+  AND avatar_data IS NOT NULL
 LIMIT 1;
 
 -- name: CreateAccessToken :exec
@@ -21,6 +61,9 @@ SELECT
   u.id AS user_id,
   u.username,
   u.display_name,
+  u.gender,
+  u.region,
+  u.avatar_content_type,
   u.created_at,
   u.updated_at
 FROM access_tokens AS access
@@ -36,6 +79,9 @@ SELECT
   u.id AS user_id,
   u.username,
   u.display_name,
+  u.gender,
+  u.region,
+  u.avatar_content_type,
   u.created_at,
   u.updated_at
 FROM refresh_tokens AS refresh

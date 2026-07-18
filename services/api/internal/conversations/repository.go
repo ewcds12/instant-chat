@@ -149,7 +149,7 @@ func rollback(tx *sql.Tx, cause error) error {
 func conversationFromPairRow(row store.GetDirectConversationByPairRow) Conversation {
 	return Conversation{
 		ID: row.ID, Kind: row.Kind,
-		Peer:      Peer{ID: row.PeerUserID, Username: row.PeerUsername, DisplayName: row.PeerDisplayName, CreatedAt: row.PeerCreatedAt},
+		Peer:      Peer{ID: row.PeerUserID, Username: row.PeerUsername, DisplayName: row.PeerDisplayName, HasAvatar: row.PeerAvatarContentType.Valid, CreatedAt: row.PeerCreatedAt},
 		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, UnreadCount: uint64(row.UnreadCount),
 		LastMessage: lastMessage(
 			row.LastMessageSequence,
@@ -163,7 +163,7 @@ func conversationFromPairRow(row store.GetDirectConversationByPairRow) Conversat
 func conversationFromListRow(row store.ListConversationsForUserRow) Conversation {
 	return Conversation{
 		ID: row.ID, Kind: row.Kind,
-		Peer:      Peer{ID: row.PeerUserID, Username: row.PeerUsername, DisplayName: row.PeerDisplayName, CreatedAt: row.PeerCreatedAt},
+		Peer:      Peer{ID: row.PeerUserID, Username: row.PeerUsername, DisplayName: row.PeerDisplayName, HasAvatar: row.PeerAvatarContentType.Valid, CreatedAt: row.PeerCreatedAt},
 		CreatedAt: row.CreatedAt, UpdatedAt: row.UpdatedAt, UnreadCount: uint64(row.UnreadCount),
 		LastMessage: lastMessage(
 			row.LastMessageSequence,

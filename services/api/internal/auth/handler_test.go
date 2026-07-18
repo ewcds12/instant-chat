@@ -39,6 +39,18 @@ func (s *stubAuthService) CurrentUser(_ context.Context, accessToken string) (Us
 	return s.session.User, nil
 }
 
+func (s *stubAuthService) UpdateProfile(context.Context, uint64, ProfileInput) (User, error) {
+	return s.session.User, nil
+}
+
+func (s *stubAuthService) UpdateAvatar(context.Context, uint64, AvatarUpload) (User, error) {
+	return s.session.User, nil
+}
+
+func (s *stubAuthService) Avatar(context.Context, uint64) (Avatar, error) {
+	return Avatar{}, nil
+}
+
 func (s *stubAuthService) Logout(context.Context, string, string) error {
 	return nil
 }

@@ -162,6 +162,16 @@ void main() {
       280,
     );
 
+    await tester.tap(find.byKey(const Key('profile-account-card')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('profile-sheet')), findsOneWidget);
+    expect(find.text('Profile Photo'), findsNothing);
+    expect(find.text('Gender'), findsOneWidget);
+    expect(find.text('Region'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('profile-sheet-close')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('profile-sheet')), findsNothing);
+
     await tester.enterText(
       find.byKey(const Key('conversation-search')),
       'nobody',

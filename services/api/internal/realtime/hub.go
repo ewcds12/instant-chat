@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"sync"
 
+	"github.com/ewcds12/instant-chat/services/api/internal/auth"
 	"github.com/ewcds12/instant-chat/services/api/internal/messages"
 )
 
@@ -15,6 +16,23 @@ type client struct {
 	userID uint64
 	send   chan []byte
 	cancel context.CancelFunc
+}
+
+// PublishProfile sends a changed public identity to connected conversation peers.
+func (h *Hub) PublishProfile(ctx context.Context, user auth.User) {
+	userIDs, err := h.repository.ListProfileRecipientIDs(ctx, user.ID)
+	if err != nil {
+		slog.Error("profile recipients lookup failed", "user_id", user.ID, "error", err)
+		return
+	}
+	payload, err := json.Marshal(profileUpdatedEvent(user))
+	if err != nil {
+		slog.Error("profile event encoding failed", "user_id", user.ID, "error", err)
+		return
+	}
+	for _, userID := range userIDs {
+		h.publishToUser(userID, payload)
+	}
 }
 
 // Hub tracks authenticated connections and publishes persisted messages.

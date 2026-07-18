@@ -55,6 +55,7 @@ class Conversation {
   }
 
   Conversation copyWith({
+    PublicUser? peer,
     DateTime? updatedAt,
     int? unreadCount,
     ConversationLastMessage? lastMessage,
@@ -62,7 +63,7 @@ class Conversation {
     return Conversation(
       id: id,
       kind: kind,
-      peer: peer,
+      peer: peer ?? this.peer,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       unreadCount: unreadCount ?? this.unreadCount,
