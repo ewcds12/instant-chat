@@ -229,11 +229,11 @@ void main() {
             as BoxDecoration;
     expect(
       incomingDecoration.borderRadius,
-      const BorderRadius.all(Radius.circular(20)),
+      const BorderRadius.all(Radius.circular(RetroMetrics.cornerLarge)),
     );
     expect(
       outgoingDecoration.borderRadius,
-      const BorderRadius.all(Radius.circular(20)),
+      const BorderRadius.all(Radius.circular(RetroMetrics.cornerLarge)),
     );
   });
 
