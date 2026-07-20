@@ -14,10 +14,13 @@ abstract final class RetroMetrics {
   static const maxAuthPanelWidth = 420.0;
   static const maxPanelWidth = 760.0;
   static const maxProfilePanelWidth = 480.0;
+  static const maxProfilePhotoCropPanelWidth = 420.0;
   static const profileHeaderHeight = 48.0;
   static const profileAvatarRadius = 42.0;
   static const profileAvatarTextSize = 30.0;
   static const profilePhotoButtonHeight = 32.0;
+  static const profilePhotoCropPreviewSize = 260.0;
+  static const profilePhotoCropOutputSize = 512;
   static const profileRowHeight = 54.0;
   static const profileBackdropBlur = 3.0;
   static const messageHistoryHorizontalInset = 20.0;

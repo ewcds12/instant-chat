@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ import 'package:instant_chat/features/profile/presentation/profile_details.dart'
 import 'package:instant_chat/features/profile/presentation/profile_editor.dart';
 import 'package:instant_chat/features/profile/presentation/profile_feedback.dart';
 import 'package:instant_chat/features/profile/presentation/profile_identity.dart';
+import 'package:instant_chat/features/profile/presentation/profile_photo_cropper.dart';
 import 'package:instant_chat/features/profile/presentation/profile_provider.dart';
 
 Future<void> showProfileSheet({
@@ -142,11 +144,25 @@ class _ProfileSheetState extends ConsumerState<ProfileSheet> {
     if (!mounted || path == null) {
       return;
     }
-    await _save(
-      () => ref
-          .read(profileGatewayProvider)
-          .uploadAvatar(accessToken: session.accessToken, imagePath: path),
+    final croppedPath = await showProfilePhotoCropper(
+      context: context,
+      imagePath: path,
     );
+    if (!mounted || croppedPath == null) {
+      return;
+    }
+    try {
+      await _save(
+        () => ref
+            .read(profileGatewayProvider)
+            .uploadAvatar(
+              accessToken: session.accessToken,
+              imagePath: croppedPath,
+            ),
+      );
+    } finally {
+      await File(croppedPath).delete();
+    }
   }
 
   Future<void> _editText(AuthSession session, ProfileField field) async {
