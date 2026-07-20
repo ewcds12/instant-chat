@@ -45,5 +45,12 @@ class RunnerTests: XCTestCase {
       XCTAssertEqual(button.frame.minX, originalFrames[index].minX + 12)
       XCTAssertEqual(button.frame.minY, originalFrames[index].minY - 8)
     }
+
+    MainFlutterWindow.repositionWindowControls(in: window)
+
+    for (index, button) in buttons.enumerated() {
+      XCTAssertEqual(button.frame.minX, originalFrames[index].minX + 12)
+      XCTAssertEqual(button.frame.minY, originalFrames[index].minY - 8)
+    }
   }
 }

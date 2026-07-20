@@ -4,6 +4,8 @@ import FlutterMacOS
 class MainFlutterWindow: NSWindow {
   static let initialFrameSize = NSSize(width: 1300, height: 780)
   private static let trafficLightOffset = NSPoint(x: 12, y: -8)
+  private static let standardTrafficLightOrigin = NSPoint(x: 7, y: 6)
+  private static let trafficLightSpacing = CGFloat(20)
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -19,12 +21,17 @@ class MainFlutterWindow: NSWindow {
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     super.awakeFromNib()
-    DispatchQueue.main.async { [weak self] in
-      guard let self else {
-        return
-      }
-      Self.repositionWindowControls(in: self)
-    }
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(repositionWindowControlsAfterResize),
+      name: NSWindow.didResizeNotification,
+      object: self
+    )
+    scheduleInitialWindowControlReposition()
+  }
+
+  deinit {
+    NotificationCenter.default.removeObserver(self)
   }
 
   static func configureWindowChrome(_ window: NSWindow) {
@@ -40,13 +47,27 @@ class MainFlutterWindow: NSWindow {
       window.standardWindowButton(.miniaturizeButton),
       window.standardWindowButton(.zoomButton),
     ]
-    for button in buttons.compactMap({ $0 }) {
+    for (index, button) in buttons.compactMap({ $0 }).enumerated() {
       button.setFrameOrigin(
         NSPoint(
-          x: button.frame.minX + trafficLightOffset.x,
-          y: button.frame.minY + trafficLightOffset.y
+          x: standardTrafficLightOrigin.x + trafficLightOffset.x +
+            (CGFloat(index) * trafficLightSpacing),
+          y: standardTrafficLightOrigin.y + trafficLightOffset.y
         )
       )
+    }
+  }
+
+  @objc private func repositionWindowControlsAfterResize() {
+    Self.repositionWindowControls(in: self)
+  }
+
+  private func scheduleInitialWindowControlReposition() {
+    DispatchQueue.main.async { [weak self] in
+      guard let self else {
+        return
+      }
+      Self.repositionWindowControls(in: self)
     }
   }
 }
