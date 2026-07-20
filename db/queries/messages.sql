@@ -76,6 +76,25 @@ SET next_sequence = next_sequence + 1,
     updated_at = CURRENT_TIMESTAMP(6)
 WHERE id = ?;
 
+-- name: RecallMessage :execresult
+UPDATE messages
+SET recalled_at = CURRENT_TIMESTAMP(6)
+WHERE id = sqlc.arg(message_id)
+  AND conversation_id = sqlc.arg(conversation_id)
+  AND sender_id = sqlc.arg(user_id)
+  AND recalled_at IS NULL
+  AND created_at >= CURRENT_TIMESTAMP(6) - INTERVAL 5 MINUTE;
+
+-- name: HideMessageForUser :exec
+INSERT IGNORE INTO message_deletions (message_id, user_id)
+SELECT message.id, sqlc.arg(user_id)
+FROM messages AS message
+JOIN conversation_members AS membership
+  ON membership.conversation_id = message.conversation_id
+WHERE message.id = sqlc.arg(message_id)
+  AND message.conversation_id = sqlc.arg(conversation_id)
+  AND membership.user_id = sqlc.arg(user_id);
+
 -- name: IsConversationMember :one
 SELECT EXISTS (
   SELECT 1
@@ -110,6 +129,13 @@ JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = sqlc.arg(user_id)
+  )
 ORDER BY message.sequence DESC
 LIMIT ?;
 
@@ -140,6 +166,13 @@ LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence < sqlc.arg(before_sequence)
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = sqlc.arg(user_id)
+  )
 ORDER BY message.sequence DESC
 LIMIT ?;
 
@@ -170,6 +203,13 @@ LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence > sqlc.arg(after_sequence)
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = sqlc.arg(user_id)
+  )
 ORDER BY message.sequence ASC
 LIMIT ?;
 
@@ -190,6 +230,13 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE image.id = sqlc.arg(image_id)
   AND membership.user_id = sqlc.arg(user_id)
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = sqlc.arg(user_id)
+  )
 LIMIT 1;
 
 -- name: GetMessageFileForMember :one
@@ -204,4 +251,11 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE file.id = sqlc.arg(file_id)
   AND membership.user_id = sqlc.arg(user_id)
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = sqlc.arg(user_id)
+  )
 LIMIT 1;

@@ -9,11 +9,12 @@ import (
 
 func (r *MySQLRepository) listLatest(
 	ctx context.Context,
-	conversationID uint64,
+	userID, conversationID uint64,
 	limit int,
 ) ([]Message, error) {
 	rows, err := r.queries.ListLatestMessages(ctx, store.ListLatestMessagesParams{
 		ConversationID: conversationID,
+		UserID:         userID,
 		Limit:          int32(limit),
 	})
 	if err != nil {
@@ -28,12 +29,13 @@ func (r *MySQLRepository) listLatest(
 
 func (r *MySQLRepository) listBefore(
 	ctx context.Context,
-	conversationID, before uint64,
+	userID, conversationID, before uint64,
 	limit int,
 ) ([]Message, error) {
 	rows, err := r.queries.ListMessagesBefore(ctx, store.ListMessagesBeforeParams{
 		ConversationID: conversationID,
 		BeforeSequence: before,
+		UserID:         userID,
 		Limit:          int32(limit),
 	})
 	if err != nil {

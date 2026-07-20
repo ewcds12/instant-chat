@@ -109,6 +109,26 @@ func TestHubDoesNotDeliverToNonMember(t *testing.T) {
 	}
 }
 
+func TestHubDeliversMessageRecallToConversationMember(t *testing.T) {
+	hub := NewHub(fakeMemberRepository{userIDs: []uint64{7, 8}})
+	_, cancel := context.WithCancel(context.Background())
+	connected := hub.add(7, cancel)
+	defer hub.remove(connected)
+
+	hub.PublishRecall(context.Background(), messages.Recall{ConversationID: 11, MessageID: 21})
+
+	var event eventEnvelope
+	if err := json.Unmarshal(<-connected.send, &event); err != nil {
+		t.Fatalf("decode event: %v", err)
+	}
+	if event.Type != "message.recalled" || event.Payload.Recall == nil {
+		t.Fatalf("event = %+v", event)
+	}
+	if event.Payload.Recall.ConversationID != "11" || event.Payload.Recall.MessageID != "21" {
+		t.Fatalf("recall payload = %+v", event.Payload.Recall)
+	}
+}
+
 func TestHubDeliversProfileUpdateToConversationPeer(t *testing.T) {
 	hub := NewHub(fakeMemberRepository{userIDs: []uint64{7, 8}})
 	_, cancel := context.WithCancel(context.Background())

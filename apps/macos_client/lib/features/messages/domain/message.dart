@@ -46,6 +46,13 @@ class Message {
   }
 }
 
+class MessageRecall {
+  const MessageRecall({required this.conversationId, required this.messageId});
+
+  final String conversationId;
+  final String messageId;
+}
+
 enum MessageKind {
   text('text'),
   image('image'),

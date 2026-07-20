@@ -17,6 +17,8 @@ type messageService interface {
 	SendFile(context.Context, uint64, uint64, string, FileUpload) (Message, bool, error)
 	Image(context.Context, uint64, uint64) (ImageFile, error)
 	File(context.Context, uint64, uint64) (MessageFile, error)
+	Recall(context.Context, uint64, uint64, uint64) error
+	Delete(context.Context, uint64, uint64, uint64) error
 	List(context.Context, uint64, uint64, *uint64, *uint64, int) (Page, error)
 }
 
@@ -263,6 +265,8 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 		httpapi.WriteError(w, http.StatusNotFound, "image_not_found", "Image was not found.", requestID)
 	case errors.Is(err, ErrFileNotFound):
 		httpapi.WriteError(w, http.StatusNotFound, "file_not_found", "File was not found.", requestID)
+	case errors.Is(err, ErrRecallUnavailable):
+		httpapi.WriteError(w, http.StatusConflict, "recall_unavailable", "This message can no longer be recalled.", requestID)
 	default:
 		slog.Error("message request failed", "request_id", requestID, "error", err)
 		httpapi.WriteError(

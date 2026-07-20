@@ -31,6 +31,18 @@ abstract interface class MessageGateway {
     required String filePath,
   });
 
+  Future<void> recall({
+    required String accessToken,
+    required String conversationId,
+    required String messageId,
+  });
+
+  Future<void> delete({
+    required String accessToken,
+    required String conversationId,
+    required String messageId,
+  });
+
   Future<List<int>> downloadFile({
     required String accessToken,
     required MessageFile file,

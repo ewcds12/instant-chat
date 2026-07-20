@@ -516,6 +516,52 @@ paths:
           $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/InternalError"
+  /conversations/{conversation_id}/messages/{message_id}:
+    delete:
+      operationId: deleteMessageForCurrentUser
+      summary: Hide one message only for the current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/MessageID"
+      responses:
+        "204":
+          description: Message hidden for the current user
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /conversations/{conversation_id}/messages/{message_id}/recall:
+    post:
+      operationId: recallMessage
+      summary: Recall the sender's message within five minutes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/ConversationID"
+        - $ref: "#/components/parameters/MessageID"
+      responses:
+        "204":
+          description: Message recalled for every conversation member
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /conversations/{conversation_id}/read:
     post:
       operationId: markConversationRead
@@ -694,6 +740,7 @@ paths:
         - bearerAuth: []
       x-websocket-events:
         - $ref: "#/components/schemas/MessageCreatedEvent"
+        - $ref: "#/components/schemas/MessageRecalledEvent"
       responses:
         "101":
           description: WebSocket connection established
@@ -721,6 +768,12 @@ components:
         $ref: "#/components/schemas/ResourceID"
     ConversationID:
       name: conversation_id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ResourceID"
+    MessageID:
+      name: message_id
       in: path
       required: true
       schema:
@@ -1273,6 +1326,45 @@ components:
           properties:
             message:
               $ref: "#/components/schemas/Message"
+    MessageRecalledEvent:
+      type: object
+      additionalProperties: false
+      required:
+        - event_id
+        - type
+        - version
+        - occurred_at
+        - payload
+      properties:
+        event_id:
+          type: string
+          pattern: "^message-recalled:[1-9][0-9]*$"
+        type:
+          type: string
+          const: message.recalled
+        version:
+          type: integer
+          const: 1
+        occurred_at:
+          type: string
+          format: date-time
+        payload:
+          type: object
+          additionalProperties: false
+          required:
+            - recall
+          properties:
+            recall:
+              type: object
+              additionalProperties: false
+              required:
+                - conversation_id
+                - message_id
+              properties:
+                conversation_id:
+                  $ref: "#/components/schemas/ResourceID"
+                message_id:
+                  $ref: "#/components/schemas/ResourceID"
     Session:
       type: object
       additionalProperties: false

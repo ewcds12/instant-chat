@@ -214,6 +214,13 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE file.id = ?
   AND membership.user_id = ?
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = ?
+  )
 LIMIT 1
 `
 
@@ -230,7 +237,7 @@ type GetMessageFileForMemberRow struct {
 }
 
 func (q *Queries) GetMessageFileForMember(ctx context.Context, arg GetMessageFileForMemberParams) (GetMessageFileForMemberRow, error) {
-	row := q.db.QueryRowContext(ctx, getMessageFileForMember, arg.FileID, arg.UserID)
+	row := q.db.QueryRowContext(ctx, getMessageFileForMember, arg.FileID, arg.UserID, arg.UserID)
 	var i GetMessageFileForMemberRow
 	err := row.Scan(
 		&i.Filename,
@@ -252,6 +259,13 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE image.id = ?
   AND membership.user_id = ?
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = ?
+  )
 LIMIT 1
 `
 
@@ -267,10 +281,37 @@ type GetMessageImageForMemberRow struct {
 }
 
 func (q *Queries) GetMessageImageForMember(ctx context.Context, arg GetMessageImageForMemberParams) (GetMessageImageForMemberRow, error) {
-	row := q.db.QueryRowContext(ctx, getMessageImageForMember, arg.ImageID, arg.UserID)
+	row := q.db.QueryRowContext(ctx, getMessageImageForMember, arg.ImageID, arg.UserID, arg.UserID)
 	var i GetMessageImageForMemberRow
 	err := row.Scan(&i.ContentType, &i.ByteSize, &i.Data)
 	return i, err
+}
+
+const hideMessageForUser = `-- name: HideMessageForUser :exec
+INSERT IGNORE INTO message_deletions (message_id, user_id)
+SELECT message.id, ?
+FROM messages AS message
+JOIN conversation_members AS membership
+  ON membership.conversation_id = message.conversation_id
+WHERE message.id = ?
+  AND message.conversation_id = ?
+  AND membership.user_id = ?
+`
+
+type HideMessageForUserParams struct {
+	UserID         uint64 `db:"user_id"`
+	MessageID      uint64 `db:"message_id"`
+	ConversationID uint64 `db:"conversation_id"`
+}
+
+func (q *Queries) HideMessageForUser(ctx context.Context, arg HideMessageForUserParams) error {
+	_, err := q.db.ExecContext(ctx, hideMessageForUser,
+		arg.UserID,
+		arg.MessageID,
+		arg.ConversationID,
+		arg.UserID,
+	)
+	return err
 }
 
 const isConversationMember = `-- name: IsConversationMember :one
@@ -350,12 +391,20 @@ JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = ?
+  )
 ORDER BY message.sequence DESC
 LIMIT ?
 `
 
 type ListLatestMessagesParams struct {
 	ConversationID uint64 `db:"conversation_id"`
+	UserID         uint64 `db:"user_id"`
 	Limit          int32  `db:"limit"`
 }
 
@@ -382,7 +431,7 @@ type ListLatestMessagesRow struct {
 }
 
 func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessagesParams) ([]ListLatestMessagesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listLatestMessages, arg.ConversationID, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, listLatestMessages, arg.ConversationID, arg.UserID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -451,6 +500,13 @@ LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
   AND message.sequence > ?
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = ?
+  )
 ORDER BY message.sequence ASC
 LIMIT ?
 `
@@ -458,6 +514,7 @@ LIMIT ?
 type ListMessagesAfterParams struct {
 	ConversationID uint64 `db:"conversation_id"`
 	AfterSequence  uint64 `db:"after_sequence"`
+	UserID         uint64 `db:"user_id"`
 	Limit          int32  `db:"limit"`
 }
 
@@ -484,7 +541,12 @@ type ListMessagesAfterRow struct {
 }
 
 func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterParams) ([]ListMessagesAfterRow, error) {
-	rows, err := q.db.QueryContext(ctx, listMessagesAfter, arg.ConversationID, arg.AfterSequence, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, listMessagesAfter,
+		arg.ConversationID,
+		arg.AfterSequence,
+		arg.UserID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -553,6 +615,13 @@ LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
   AND message.sequence < ?
+  AND message.recalled_at IS NULL
+  AND NOT EXISTS (
+    SELECT 1
+    FROM message_deletions AS deletion
+    WHERE deletion.message_id = message.id
+      AND deletion.user_id = ?
+  )
 ORDER BY message.sequence DESC
 LIMIT ?
 `
@@ -560,6 +629,7 @@ LIMIT ?
 type ListMessagesBeforeParams struct {
 	ConversationID uint64 `db:"conversation_id"`
 	BeforeSequence uint64 `db:"before_sequence"`
+	UserID         uint64 `db:"user_id"`
 	Limit          int32  `db:"limit"`
 }
 
@@ -586,7 +656,12 @@ type ListMessagesBeforeRow struct {
 }
 
 func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error) {
-	rows, err := q.db.QueryContext(ctx, listMessagesBefore, arg.ConversationID, arg.BeforeSequence, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, listMessagesBefore,
+		arg.ConversationID,
+		arg.BeforeSequence,
+		arg.UserID,
+		arg.Limit,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -649,4 +724,24 @@ func (q *Queries) LockConversationForMessage(ctx context.Context, arg LockConver
 	var next_sequence uint64
 	err := row.Scan(&next_sequence)
 	return next_sequence, err
+}
+
+const recallMessage = `-- name: RecallMessage :execresult
+UPDATE messages
+SET recalled_at = CURRENT_TIMESTAMP(6)
+WHERE id = ?
+  AND conversation_id = ?
+  AND sender_id = ?
+  AND recalled_at IS NULL
+  AND created_at >= CURRENT_TIMESTAMP(6) - INTERVAL 5 MINUTE
+`
+
+type RecallMessageParams struct {
+	MessageID      uint64 `db:"message_id"`
+	ConversationID uint64 `db:"conversation_id"`
+	UserID         uint64 `db:"user_id"`
+}
+
+func (q *Queries) RecallMessage(ctx context.Context, arg RecallMessageParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, recallMessage, arg.MessageID, arg.ConversationID, arg.UserID)
 }

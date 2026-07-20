@@ -19,6 +19,8 @@ class StubMessageGateway implements MessageGateway {
   String? sentFilePath;
   String? downloadedFileID;
   String? downloadedImageID;
+  String? recalledMessageID;
+  String? deletedMessageID;
 
   @override
   Future<MessagePage> list({
@@ -107,6 +109,24 @@ class StubMessageGateway implements MessageGateway {
   }
 
   @override
+  Future<void> recall({
+    required String accessToken,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    recalledMessageID = messageId;
+  }
+
+  @override
+  Future<void> delete({
+    required String accessToken,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    deletedMessageID = messageId;
+  }
+
+  @override
   Future<List<int>> downloadFile({
     required String accessToken,
     required MessageFile file,
@@ -159,6 +179,9 @@ class StubRealtimeConnection implements RealtimeConnection {
   Stream<Message> get messages => const Stream.empty();
 
   @override
+  Stream<MessageRecall> get recalls => const Stream.empty();
+
+  @override
   Stream<PublicUser> get profiles => const Stream.empty();
 
   @override
@@ -170,6 +193,7 @@ class StubRealtimeConnection implements RealtimeConnection {
 
 class StreamRealtimeConnection implements RealtimeConnection {
   final _messages = StreamController<Message>.broadcast();
+  final _recalls = StreamController<MessageRecall>.broadcast();
   final _profiles = StreamController<PublicUser>.broadcast();
 
   @override
@@ -179,6 +203,9 @@ class StreamRealtimeConnection implements RealtimeConnection {
   Stream<Message> get messages => _messages.stream;
 
   @override
+  Stream<MessageRecall> get recalls => _recalls.stream;
+
+  @override
   Stream<PublicUser> get profiles => _profiles.stream;
 
   @override
@@ -186,9 +213,12 @@ class StreamRealtimeConnection implements RealtimeConnection {
 
   void emit(Message message) => _messages.add(message);
 
+  void emitRecall(MessageRecall recall) => _recalls.add(recall);
+
   @override
   Future<void> close() async {
     await _messages.close();
+    await _recalls.close();
     await _profiles.close();
   }
 }

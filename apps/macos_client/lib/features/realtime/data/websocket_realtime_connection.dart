@@ -15,6 +15,8 @@ class WebSocketRealtimeConnection implements RealtimeConnection {
   final Uri uri;
   final String accessToken;
   final _messages = StreamController<Message>.broadcast();
+
+  final _recalls = StreamController<MessageRecall>.broadcast();
   final _profiles = StreamController<PublicUser>.broadcast();
   final _connections = StreamController<int>.broadcast();
   final _stopSignal = Completer<void>();
@@ -26,6 +28,9 @@ class WebSocketRealtimeConnection implements RealtimeConnection {
 
   @override
   Stream<Message> get messages => _messages.stream;
+
+  @override
+  Stream<MessageRecall> get recalls => _recalls.stream;
 
   @override
   Stream<PublicUser> get profiles => _profiles.stream;
@@ -49,6 +54,8 @@ class WebSocketRealtimeConnection implements RealtimeConnection {
     await _socket?.close(WebSocketStatus.normalClosure);
     await _runner;
     await _messages.close();
+
+    await _recalls.close();
     await _profiles.close();
     await _connections.close();
   }
@@ -108,12 +115,36 @@ class WebSocketRealtimeConnection implements RealtimeConnection {
       if (message != null) {
         _messages.add(message);
       }
+      final recall = decodeRealtimeRecall(raw);
+      if (recall != null) {
+        _recalls.add(recall);
+      }
       final profile = decodeRealtimeProfile(raw);
       if (profile != null) {
         _profiles.add(profile);
       }
     }
   }
+}
+
+MessageRecall? decodeRealtimeRecall(String raw) {
+  final Object? decoded = jsonDecode(raw);
+  final event = _object(decoded, 'event');
+  _requiredString(event, 'event_id');
+  _requiredDateTime(event, 'occurred_at');
+  final type = _requiredString(event, 'type');
+  if (type != 'message.recalled') {
+    return null;
+  }
+  if (event['version'] != 1) {
+    throw const FormatException('Unsupported message.recalled version.');
+  }
+  final payload = _object(event['payload'], 'payload');
+  final recall = _object(payload['recall'], 'recall');
+  return MessageRecall(
+    conversationId: _requiredString(recall, 'conversation_id'),
+    messageId: _requiredString(recall, 'message_id'),
+  );
 }
 
 PublicUser? decodeRealtimeProfile(String raw) {

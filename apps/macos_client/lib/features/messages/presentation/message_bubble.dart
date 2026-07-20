@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_file_card.dart';
+import 'package:instant_chat/features/messages/presentation/message_context_menu.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
@@ -15,6 +16,8 @@ class MessageBubble extends StatelessWidget {
     required this.accessToken,
     required this.onOpenFile,
     required this.onDownloadImage,
+    required this.onRecall,
+    required this.onDelete,
     super.key,
   });
 
@@ -25,16 +28,24 @@ class MessageBubble extends StatelessWidget {
   final String accessToken;
   final ValueChanged<MessageFile> onOpenFile;
   final Future<void> Function(MessageImage image) onDownloadImage;
+  final Future<bool> Function(Message message) onRecall;
+  final Future<bool> Function(Message message) onDelete;
 
   @override
   Widget build(BuildContext context) {
-    final content = _MessageContent(
+    final content = MessageContextMenu(
       message: message,
       isMine: isMine,
-      imageMessages: imageMessages,
-      accessToken: accessToken,
-      onOpenFile: onOpenFile,
-      onDownloadImage: onDownloadImage,
+      onRecall: onRecall,
+      onDelete: onDelete,
+      child: _MessageContent(
+        message: message,
+        isMine: isMine,
+        imageMessages: imageMessages,
+        accessToken: accessToken,
+        onOpenFile: onOpenFile,
+        onDownloadImage: onDownloadImage,
+      ),
     );
     final avatar = _MessageSenderAvatar(
       message: message,
@@ -138,7 +149,7 @@ class _MessageContent extends StatelessWidget {
                 ),
               ],
             ),
-            child: SelectableText(
+            child: Text(
               message.body,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: isMine ? colors.onPrimary : colors.onSurface,

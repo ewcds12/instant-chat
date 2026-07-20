@@ -53,6 +53,7 @@ class ConversationsState {
 class ConversationsController extends AsyncNotifier<ConversationsState> {
   ConversationGateway get _gateway => ref.read(conversationGatewayProvider);
   StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<MessageRecall>? _recallSubscription;
   StreamSubscription<PublicUser>? _profileSubscription;
   StreamSubscription<int>? _connectionSubscription;
   Timer? _recoveryTimer;
@@ -73,6 +74,9 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
     if (_messageSubscription == null) {
       final realtime = ref.read(realtimeConnectionProvider);
       _messageSubscription = realtime.messages.listen(_onRealtimeMessage);
+      _recallSubscription = realtime.recalls.listen(
+        (_) => _queueSynchronization(),
+      );
       _profileSubscription = realtime.profiles.listen(_onRealtimeProfile);
       _connectionSubscription = realtime.connections.listen(
         (_) => _queueSynchronization(),
@@ -145,6 +149,8 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
   void recordMessage(Message message) {
     _onRealtimeMessage(message);
   }
+
+  void refreshAfterMessageRemoval() => _queueSynchronization();
 
   void _onRealtimeMessage(Message message) {
     final current = state.asData?.value;
@@ -247,6 +253,7 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
   void _closeRealtimeRecovery() {
     _recoveryTimer?.cancel();
     unawaited(_messageSubscription?.cancel());
+    unawaited(_recallSubscription?.cancel());
     unawaited(_profileSubscription?.cancel());
     unawaited(_connectionSubscription?.cancel());
   }

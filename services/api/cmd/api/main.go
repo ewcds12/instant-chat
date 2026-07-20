@@ -124,6 +124,14 @@ func run() error {
 		"GET /api/v1/conversations/{conversation_id}/messages",
 		protected(messageHandler.List),
 	)
+	mux.Handle(
+		"POST /api/v1/conversations/{conversation_id}/messages/{message_id}/recall",
+		authHandler.RequireUser(messageLimiter.Handler(http.HandlerFunc(messageHandler.Recall))),
+	)
+	mux.Handle(
+		"DELETE /api/v1/conversations/{conversation_id}/messages/{message_id}",
+		authHandler.RequireUser(messageLimiter.Handler(http.HandlerFunc(messageHandler.Delete))),
+	)
 	mux.Handle("GET /api/v1/message-images/{image_id}", protected(messageHandler.Image))
 	mux.Handle("GET /api/v1/message-files/{file_id}", protected(messageHandler.File))
 	mux.Handle("GET /api/v1/realtime", protected(realtimeHandler.Connect))

@@ -1,0 +1,80 @@
+part of 'messages_controller.dart';
+
+mixin _MessageActions on AsyncNotifier<MessagesState> {
+  MessageGateway get _gateway;
+  String get _accessToken;
+  String get conversationId;
+  bool get _realtimeReady;
+  List<MessageRecall> get _pendingRecalls;
+  Future<bool> recall(Message message) => _removeFromServer(
+    message,
+    () => _gateway.recall(
+      accessToken: _accessToken,
+      conversationId: conversationId,
+      messageId: message.id,
+    ),
+  );
+
+  Future<bool> delete(Message message) => _removeFromServer(
+    message,
+    () => _gateway.delete(
+      accessToken: _accessToken,
+      conversationId: conversationId,
+      messageId: message.id,
+    ),
+  );
+
+  void _receiveRecall(MessageRecall recall) {
+    if (recall.conversationId != conversationId) {
+      return;
+    }
+    if (!_realtimeReady || !state.hasValue) {
+      _pendingRecalls.add(recall);
+      return;
+    }
+    _removeMessage(recall.messageId);
+  }
+
+  Future<bool> _removeFromServer(
+    Message message,
+    Future<void> Function() request,
+  ) async {
+    try {
+      await request();
+      if (!ref.mounted) {
+        return false;
+      }
+      _removeMessage(message.id);
+      return true;
+    } on ApiFailure catch (failure) {
+      _setActionFailure(failure.message);
+    } on FormatException {
+      _setActionFailure('The server returned an invalid response.');
+    }
+    return false;
+  }
+
+  void _removeMessage(String messageId) {
+    final current = state.asData?.value;
+    if (current == null) {
+      return;
+    }
+    final messages = current.messages
+        .where((message) => message.id != messageId)
+        .toList(growable: false);
+    if (messages.length == current.messages.length) {
+      return;
+    }
+    state = AsyncData(current.copyWith(messages: messages, clearError: true));
+    ref
+        .read(conversationsControllerProvider.notifier)
+        .refreshAfterMessageRemoval();
+  }
+
+  void _setActionFailure(String message) {
+    final current = state.asData?.value;
+    if (current != null) {
+      state = AsyncData(current.copyWith(errorMessage: message));
+    }
+  }
+}

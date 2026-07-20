@@ -23,6 +23,13 @@ SELECT
     WHERE unread_message.conversation_id = conversation.id
       AND unread_message.sender_id <> sqlc.arg(current_user_id)
       AND unread_message.sequence > membership.last_read_sequence
+      AND unread_message.recalled_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM message_deletions AS deletion
+        WHERE deletion.message_id = unread_message.id
+          AND deletion.user_id = sqlc.arg(current_user_id)
+      )
   ) AS unread_count,
   latest_message.sequence AS last_message_sequence,
   latest_message.kind AS last_message_kind,
@@ -38,8 +45,20 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = conversation.id
   AND membership.user_id = sqlc.arg(current_user_id)
 LEFT JOIN messages AS latest_message
-  ON latest_message.conversation_id = conversation.id
-  AND latest_message.sequence = conversation.next_sequence - 1
+  ON latest_message.id = (
+    SELECT visible_message.id
+    FROM messages AS visible_message
+    WHERE visible_message.conversation_id = conversation.id
+      AND visible_message.recalled_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM message_deletions AS deletion
+        WHERE deletion.message_id = visible_message.id
+          AND deletion.user_id = sqlc.arg(current_user_id)
+      )
+    ORDER BY visible_message.sequence DESC
+    LIMIT 1
+  )
 LEFT JOIN message_files AS latest_file ON latest_file.id = latest_message.file_id
 JOIN users AS other_user
   ON other_user.id = CASE
@@ -62,6 +81,13 @@ SELECT
     WHERE unread_message.conversation_id = conversation.id
       AND unread_message.sender_id <> sqlc.arg(current_user_id)
       AND unread_message.sequence > membership.last_read_sequence
+      AND unread_message.recalled_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM message_deletions AS deletion
+        WHERE deletion.message_id = unread_message.id
+          AND deletion.user_id = sqlc.arg(current_user_id)
+      )
   ) AS unread_count,
   latest_message.sequence AS last_message_sequence,
   latest_message.kind AS last_message_kind,
@@ -75,8 +101,20 @@ SELECT
 FROM conversation_members AS membership
 JOIN conversations AS conversation ON conversation.id = membership.conversation_id
 LEFT JOIN messages AS latest_message
-  ON latest_message.conversation_id = conversation.id
-  AND latest_message.sequence = conversation.next_sequence - 1
+  ON latest_message.id = (
+    SELECT visible_message.id
+    FROM messages AS visible_message
+    WHERE visible_message.conversation_id = conversation.id
+      AND visible_message.recalled_at IS NULL
+      AND NOT EXISTS (
+        SELECT 1
+        FROM message_deletions AS deletion
+        WHERE deletion.message_id = visible_message.id
+          AND deletion.user_id = sqlc.arg(current_user_id)
+      )
+    ORDER BY visible_message.sequence DESC
+    LIMIT 1
+  )
 LEFT JOIN message_files AS latest_file ON latest_file.id = latest_message.file_id
 JOIN users AS other_user
   ON other_user.id = CASE

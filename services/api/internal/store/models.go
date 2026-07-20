@@ -57,6 +57,13 @@ type Message struct {
 	Kind            string        `db:"kind"`
 	ImageID         sql.NullInt64 `db:"image_id"`
 	FileID          sql.NullInt64 `db:"file_id"`
+	RecalledAt      sql.NullTime  `db:"recalled_at"`
+}
+
+type MessageDeletion struct {
+	MessageID uint64    `db:"message_id"`
+	UserID    uint64    `db:"user_id"`
+	DeletedAt time.Time `db:"deleted_at"`
 }
 
 type MessageFile struct {

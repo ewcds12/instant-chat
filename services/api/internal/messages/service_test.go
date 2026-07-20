@@ -11,6 +11,8 @@ type fakeRepository struct {
 	sentBody     string
 	imageUpload  *ImageUpload
 	fileUpload   *FileUpload
+	recalledID   uint64
+	deletedID    uint64
 	listedLimit  int
 	messages     []Message
 	idempotent   bool
@@ -93,6 +95,7 @@ func (f *fakeRepository) ListAfter(
 
 type fakePublisher struct {
 	messages []Message
+	recalls  []Recall
 }
 
 func (f *fakePublisher) PublishMessage(_ context.Context, message Message) {

@@ -85,6 +85,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 onLoadOlder: () => ref.read(provider.notifier).loadOlder(),
                 onOpenFile: (file) => _openFile(provider, file),
                 onDownloadImage: (image) => _downloadImage(provider, image),
+                onRecall: (message) =>
+                    ref.read(provider.notifier).recall(message),
+                onDelete: (message) =>
+                    ref.read(provider.notifier).delete(message),
               );
             },
           ),

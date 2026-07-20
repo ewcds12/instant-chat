@@ -73,6 +73,28 @@ func (h *Hub) PublishMessage(ctx context.Context, message messages.Message) {
 	}
 }
 
+// PublishRecall removes a recalled message from every connected conversation member.
+func (h *Hub) PublishRecall(ctx context.Context, recall messages.Recall) {
+	userIDs, err := h.repository.ListConversationMemberIDs(ctx, recall.ConversationID)
+	if err != nil {
+		slog.Error(
+			"realtime recall recipient lookup failed",
+			"conversation_id", recall.ConversationID,
+			"message_id", recall.MessageID,
+			"error", err,
+		)
+		return
+	}
+	payload, err := json.Marshal(messageRecalledEvent(recall))
+	if err != nil {
+		slog.Error("realtime recall event encoding failed", "message_id", recall.MessageID, "error", err)
+		return
+	}
+	for _, userID := range userIDs {
+		h.publishToUser(userID, payload)
+	}
+}
+
 // Close disconnects every client during server shutdown.
 func (h *Hub) Close() {
 	h.mu.Lock()

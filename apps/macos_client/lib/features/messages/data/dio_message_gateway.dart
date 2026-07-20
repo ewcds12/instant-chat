@@ -97,6 +97,36 @@ class DioMessageGateway implements MessageGateway {
   }
 
   @override
+  Future<void> recall({
+    required String accessToken,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    final response = await apiRequest(
+      () => _dio.post<Object?>(
+        '/api/v1/conversations/$conversationId/messages/$messageId/recall',
+        options: _options(accessToken),
+      ),
+    );
+    expectStatus(response, {204});
+  }
+
+  @override
+  Future<void> delete({
+    required String accessToken,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    final response = await apiRequest(
+      () => _dio.delete<Object?>(
+        '/api/v1/conversations/$conversationId/messages/$messageId',
+        options: _options(accessToken),
+      ),
+    );
+    expectStatus(response, {204});
+  }
+
+  @override
   Future<List<int>> downloadFile({
     required String accessToken,
     required MessageFile file,

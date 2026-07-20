@@ -14,6 +14,10 @@ import 'package:instant_chat/features/messages/presentation/message_recovery.dar
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 
+part 'messages_controller_actions.dart';
+part 'messages_controller_downloads.dart';
+part 'messages_controller_sync.dart';
+
 final messageGatewayProvider = Provider<MessageGateway>(
   (ref) => DioMessageGateway(ref.watch(dioProvider)),
 );
@@ -23,19 +27,29 @@ final messageRecoveryIntervalProvider = Provider<Duration?>(
 final messagesControllerProvider = AsyncNotifierProvider.autoDispose
     .family<MessagesController, MessagesState, String>(MessagesController.new);
 
-class MessagesController extends AsyncNotifier<MessagesState> {
+class MessagesController extends AsyncNotifier<MessagesState>
+    with _MessageActions, _MessageDownloads, _MessageSync {
   MessagesController(this.conversationId);
 
+  @override
   final String conversationId;
   final _pendingRealtime = <Message>[];
+  @override
+  final _pendingRecalls = <MessageRecall>[];
   StreamSubscription<Message>? _messageSubscription;
+  StreamSubscription<MessageRecall>? _recallSubscription;
   StreamSubscription<int>? _connectionSubscription;
+  @override
   late final MessageRecovery _recovery;
+  @override
   var _active = true;
+  @override
   var _realtimeReady = false;
 
+  @override
   MessageGateway get _gateway => ref.read(messageGatewayProvider);
 
+  @override
   String get _accessToken {
     final session = ref.read(authControllerProvider).requireValue.session;
     if (session == null) {
@@ -52,13 +66,16 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     );
     final realtime = ref.read(realtimeConnectionProvider);
     _messageSubscription = realtime.messages.listen(_receiveRealtime);
-    _connectionSubscription = realtime.connections.listen(
-      (_) => _recovery.queue(),
-    );
+    _recallSubscription = realtime.recalls.listen(_receiveRecall);
+    _connectionSubscription = realtime.connections.listen((_) {
+      _recovery.queue();
+      unawaited(_refreshLatest());
+    });
     ref.onDispose(() {
       _active = false;
       _recovery.close();
       unawaited(_messageSubscription?.cancel());
+      unawaited(_recallSubscription?.cancel());
       unawaited(_connectionSubscription?.cancel());
     });
     final page = await _gateway.list(
@@ -112,12 +129,6 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     }
     return _send(failed);
   }
-
-  Future<List<int>> downloadFile(MessageFile file) =>
-      _gateway.downloadFile(accessToken: _accessToken, file: file);
-
-  Future<List<int>> downloadImage(MessageImage image) =>
-      _gateway.downloadImage(accessToken: _accessToken, image: image);
 
   Future<void> loadOlder() async {
     final current = state.requireValue;
@@ -219,6 +230,10 @@ class MessagesController extends AsyncNotifier<MessagesState> {
       _applyMessages(List.of(_pendingRealtime));
       _pendingRealtime.clear();
     }
+    for (final recall in _pendingRecalls) {
+      _removeMessage(recall.messageId);
+    }
+    _pendingRecalls.clear();
     _recovery.start();
   }
 
@@ -237,45 +252,12 @@ class MessagesController extends AsyncNotifier<MessagesState> {
     _applyMessages([message]);
   }
 
+  @override
   void _applyMessages(Iterable<Message> incoming) {
     final current = state.requireValue;
     state = AsyncData(
       current.copyWith(messages: reconcileMessages(current.messages, incoming)),
     );
-  }
-
-  Future<void> _syncNewer() async {
-    if (!_recovery.begin()) {
-      return;
-    }
-    var after = _recovery.consumeAfter(
-      latestSequence(state.requireValue.messages),
-    );
-    try {
-      while (_active) {
-        final page = await _gateway.list(
-          accessToken: _accessToken,
-          conversationId: conversationId,
-          after: after,
-          limit: 100,
-        );
-        if (!_active) {
-          return;
-        }
-        _applyMessages(page.messages);
-        final next = page.nextCursor;
-        if (next == null) {
-          return;
-        }
-        after = next;
-      }
-    } on ApiFailure {
-      // The fallback synchronization retries transient recovery failures.
-    } on FormatException {
-      // A malformed recovery page is retried by the fallback synchronization.
-    } finally {
-      _recovery.finish();
-    }
   }
 
   void _setSendFailure(

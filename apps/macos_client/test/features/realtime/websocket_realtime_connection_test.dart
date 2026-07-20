@@ -82,6 +82,23 @@ void main() {
     expect(profile?.avatarUrl, '/api/v1/users/7/avatar?v=1');
   });
 
+  test('decodes a versioned message.recalled event', () {
+    final recall = decodeRealtimeRecall(
+      jsonEncode({
+        'event_id': 'message-recalled:21',
+        'type': 'message.recalled',
+        'version': 1,
+        'occurred_at': '2026-07-16T13:00:00Z',
+        'payload': {
+          'recall': {'conversation_id': '11', 'message_id': '21'},
+        },
+      }),
+    );
+
+    expect(recall?.conversationId, '11');
+    expect(recall?.messageId, '21');
+  });
+
   test('reconnects after the socket closes and resumes delivery', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     var connections = 0;

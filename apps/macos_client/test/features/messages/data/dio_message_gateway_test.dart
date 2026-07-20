@@ -147,6 +147,27 @@ void main() {
     expect(adapter.query['after'], '8');
     expect(adapter.query['limit'], 100);
   });
+
+  test('recall and delete use their message action endpoints', () async {
+    final adapter = _StubAdapter(statusCode: 204, body: <String, Object?>{});
+    final gateway = DioMessageGateway(_createDio(adapter));
+
+    await gateway.recall(
+      accessToken: 'access-token',
+      conversationId: '11',
+      messageId: '21',
+    );
+    expect(adapter.method, 'POST');
+    expect(adapter.path, '/api/v1/conversations/11/messages/21/recall');
+
+    await gateway.delete(
+      accessToken: 'access-token',
+      conversationId: '11',
+      messageId: '21',
+    );
+    expect(adapter.method, 'DELETE');
+    expect(adapter.path, '/api/v1/conversations/11/messages/21');
+  });
 }
 
 final _message = {

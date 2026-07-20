@@ -15,6 +15,8 @@ class MessageHistory extends StatelessWidget {
     required this.onLoadOlder,
     required this.onOpenFile,
     required this.onDownloadImage,
+    required this.onRecall,
+    required this.onDelete,
     super.key,
   });
 
@@ -25,6 +27,8 @@ class MessageHistory extends StatelessWidget {
   final VoidCallback onLoadOlder;
   final ValueChanged<MessageFile> onOpenFile;
   final Future<void> Function(MessageImage image) onDownloadImage;
+  final Future<bool> Function(Message message) onRecall;
+  final Future<bool> Function(Message message) onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -105,6 +109,8 @@ class MessageHistory extends StatelessWidget {
                   accessToken: accessToken,
                   onOpenFile: onOpenFile,
                   onDownloadImage: onDownloadImage,
+                  onRecall: onRecall,
+                  onDelete: onDelete,
                 );
                 if (index != 0) {
                   return bubble;

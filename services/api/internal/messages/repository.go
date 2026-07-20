@@ -88,6 +88,49 @@ func (r *MySQLRepository) File(ctx context.Context, userID, fileID uint64) (Mess
 	}, nil
 }
 
+// Recall removes a recent message only when requested by its sender.
+func (r *MySQLRepository) Recall(
+	ctx context.Context,
+	userID, conversationID, messageID uint64,
+) error {
+	result, err := r.queries.RecallMessage(ctx, store.RecallMessageParams{
+		MessageID: messageID, ConversationID: conversationID, UserID: userID,
+	})
+	if err != nil {
+		return fmt.Errorf("recall message: %w", err)
+	}
+	changed, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read recalled message count: %w", err)
+	}
+	if changed == 0 {
+		return ErrRecallUnavailable
+	}
+	return nil
+}
+
+// Delete hides a message only from the requesting conversation member.
+func (r *MySQLRepository) Delete(
+	ctx context.Context,
+	userID, conversationID, messageID uint64,
+) error {
+	member, err := r.queries.IsConversationMember(ctx, store.IsConversationMemberParams{
+		ConversationID: conversationID, UserID: userID,
+	})
+	if err != nil {
+		return fmt.Errorf("check conversation membership: %w", err)
+	}
+	if !member {
+		return ErrConversationNotFound
+	}
+	if err := r.queries.HideMessageForUser(ctx, store.HideMessageForUserParams{
+		MessageID: messageID, ConversationID: conversationID, UserID: userID,
+	}); err != nil {
+		return fmt.Errorf("hide message for user: %w", err)
+	}
+	return nil
+}
+
 func (r *MySQLRepository) send(
 	ctx context.Context,
 	userID, conversationID uint64,
@@ -170,9 +213,9 @@ func (r *MySQLRepository) List(
 		return nil, ErrConversationNotFound
 	}
 	if before == nil {
-		return r.listLatest(ctx, conversationID, limit)
+		return r.listLatest(ctx, userID, conversationID, limit)
 	}
-	return r.listBefore(ctx, conversationID, *before, limit)
+	return r.listBefore(ctx, userID, conversationID, *before, limit)
 }
 
 // ListAfter returns ascending rows newer than a server sequence.
@@ -194,6 +237,7 @@ func (r *MySQLRepository) ListAfter(
 	rows, err := r.queries.ListMessagesAfter(ctx, store.ListMessagesAfterParams{
 		ConversationID: conversationID,
 		AfterSequence:  after,
+		UserID:         userID,
 		Limit:          int32(limit),
 	})
 	if err != nil {

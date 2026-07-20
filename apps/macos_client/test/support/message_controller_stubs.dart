@@ -57,6 +57,8 @@ class FakeMessageGateway implements MessageGateway {
   String? sentFilePath;
   String? downloadedFileID;
   String? downloadedImageID;
+  String? recalledMessageID;
+  String? deletedMessageID;
   var listIndex = 0;
   var failNextSend = false;
 
@@ -157,6 +159,24 @@ class FakeMessageGateway implements MessageGateway {
   }
 
   @override
+  Future<void> recall({
+    required String accessToken,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    recalledMessageID = messageId;
+  }
+
+  @override
+  Future<void> delete({
+    required String accessToken,
+    required String conversationId,
+    required String messageId,
+  }) async {
+    deletedMessageID = messageId;
+  }
+
+  @override
   Future<List<int>> downloadFile({
     required String accessToken,
     required MessageFile file,
@@ -177,6 +197,7 @@ class FakeMessageGateway implements MessageGateway {
 
 class FakeRealtimeConnection implements RealtimeConnection {
   final _messages = StreamController<Message>.broadcast();
+  final _recalls = StreamController<MessageRecall>.broadcast();
   final _profiles = StreamController<PublicUser>.broadcast();
   final _connections = StreamController<int>.broadcast();
   var _generation = 0;
@@ -188,6 +209,9 @@ class FakeRealtimeConnection implements RealtimeConnection {
   Stream<Message> get messages => _messages.stream;
 
   @override
+  Stream<MessageRecall> get recalls => _recalls.stream;
+
+  @override
   Stream<PublicUser> get profiles => _profiles.stream;
 
   @override
@@ -197,9 +221,12 @@ class FakeRealtimeConnection implements RealtimeConnection {
 
   void emitMessage(Message message) => _messages.add(message);
 
+  void emitRecall(MessageRecall recall) => _recalls.add(recall);
+
   @override
   Future<void> close() async {
     await _messages.close();
+    await _recalls.close();
     await _profiles.close();
     await _connections.close();
   }

@@ -229,6 +229,58 @@ void main() {
       ['3', '4'],
     );
   });
+
+  test('recall and delete remove the message from the local history', () async {
+    final messageGateway = FakeMessageGateway(
+      pages: [
+        MessagePage(messages: [testMessage('5')], nextCursor: null),
+        const MessagePage(messages: [], nextCursor: null),
+      ],
+    );
+    final conversationGateway = FakeConversationGateway(
+      createdConversation: _conversation,
+      conversations: [_conversation],
+    );
+    final realtime = FakeRealtimeConnection();
+    final container = ProviderContainer(
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => StubAuthController(AuthState(session: testAuthSession)),
+        ),
+        messageGatewayProvider.overrideWithValue(messageGateway),
+        conversationGatewayProvider.overrideWithValue(conversationGateway),
+        realtimeConnectionProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(realtime.close);
+    await container.read(authControllerProvider.future);
+    final conversations = container.listen(
+      conversationsControllerProvider,
+      (_, _) {},
+    );
+    final subscription = container.listen(
+      messagesControllerProvider('11'),
+      (_, _) {},
+    );
+    addTearDown(conversations.close);
+    addTearDown(subscription.close);
+    await container.read(conversationsControllerProvider.future);
+    final provider = messagesControllerProvider('11');
+    await container.read(provider.future);
+
+    final first = container.read(provider).requireValue.messages.single;
+    expect(await container.read(provider.notifier).recall(first), isTrue);
+    expect(messageGateway.recalledMessageID, first.id);
+    expect(container.read(provider).requireValue.messages, isEmpty);
+
+    realtime.emitMessage(testMessage('6'));
+    await flushEvents();
+    final next = container.read(provider).requireValue.messages.single;
+    expect(await container.read(provider.notifier).delete(next), isTrue);
+    expect(messageGateway.deletedMessageID, next.id);
+    expect(container.read(provider).requireValue.messages, isEmpty);
+  });
 }
 
 final _conversation = Conversation(

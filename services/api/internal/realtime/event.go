@@ -18,6 +18,7 @@ type eventEnvelope struct {
 
 type eventPayload struct {
 	Message *messageEvent `json:"message,omitempty"`
+	Recall  *recallEvent  `json:"recall,omitempty"`
 	User    *profileEvent `json:"user,omitempty"`
 }
 
@@ -109,6 +110,22 @@ func messageCreatedEvent(message messages.Message) eventEnvelope {
 		Version:    1,
 		OccurredAt: message.CreatedAt.UTC(),
 		Payload:    eventPayload{Message: &body},
+	}
+}
+
+type recallEvent struct {
+	ConversationID string `json:"conversation_id"`
+	MessageID      string `json:"message_id"`
+}
+
+func messageRecalledEvent(recall messages.Recall) eventEnvelope {
+	return eventEnvelope{
+		EventID: "message-recalled:" + strconv.FormatUint(recall.MessageID, 10),
+		Type:    "message.recalled", Version: 1, OccurredAt: time.Now().UTC(),
+		Payload: eventPayload{Recall: &recallEvent{
+			ConversationID: strconv.FormatUint(recall.ConversationID, 10),
+			MessageID:      strconv.FormatUint(recall.MessageID, 10),
+		}},
 	}
 }
 

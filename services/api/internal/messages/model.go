@@ -14,6 +14,8 @@ var (
 	ErrImageNotFound = errors.New("message image not found")
 	// ErrFileNotFound hides whether a file exists from non-members.
 	ErrFileNotFound = errors.New("message file not found")
+	// ErrRecallUnavailable indicates that a message cannot be recalled anymore.
+	ErrRecallUnavailable = errors.New("message recall is unavailable")
 )
 
 const (
@@ -55,6 +57,12 @@ type Message struct {
 	Image           *ImageAttachment
 	File            *FileAttachment
 	CreatedAt       time.Time
+}
+
+// Recall identifies a message that was removed for every conversation member.
+type Recall struct {
+	ConversationID uint64
+	MessageID      uint64
 }
 
 // ImageAttachment is the public metadata for one image message attachment.
@@ -127,6 +135,8 @@ type Repository interface {
 	) (Message, bool, error)
 	Image(ctx context.Context, userID, imageID uint64) (ImageFile, error)
 	File(ctx context.Context, userID, fileID uint64) (MessageFile, error)
+	Recall(ctx context.Context, userID, conversationID, messageID uint64) error
+	Delete(ctx context.Context, userID, conversationID, messageID uint64) error
 	List(
 		ctx context.Context,
 		userID, conversationID uint64,
@@ -143,4 +153,5 @@ type Repository interface {
 // Publisher delivers newly persisted messages without affecting REST success.
 type Publisher interface {
 	PublishMessage(ctx context.Context, message Message)
+	PublishRecall(ctx context.Context, recall Recall)
 }
