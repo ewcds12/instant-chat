@@ -127,12 +127,7 @@ class _MessageContent extends StatelessWidget {
                     )
                   : null,
               border: isMine ? null : Border.all(color: colors.outlineVariant),
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(20),
-                topRight: const Radius.circular(20),
-                bottomLeft: Radius.circular(isMine ? 20 : 4),
-                bottomRight: Radius.circular(isMine ? 4 : 20),
-              ),
+              borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(
                   color: isMine

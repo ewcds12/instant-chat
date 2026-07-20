@@ -29,7 +29,7 @@ void main() {
       ),
     );
 
-    expect(find.text('[Image]'), findsOneWidget);
+    expect(find.text('[Photo]'), findsOneWidget);
     expect(find.text('[File]'), findsOneWidget);
     expect(find.text('holiday.png'), findsNothing);
     expect(find.text('notes.pdf'), findsNothing);

@@ -137,7 +137,7 @@ String _lastMessagePreview(ConversationLastMessage? message) {
     return 'No messages yet';
   }
   return switch (message.kind) {
-    'image' => '[Image]',
+    'image' => '[Photo]',
     'file' => '[File]',
     _ => message.body.replaceAll(RegExp(r'\s+'), ' ').trim(),
   };

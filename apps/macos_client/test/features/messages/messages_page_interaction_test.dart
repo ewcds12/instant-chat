@@ -212,6 +212,29 @@ void main() {
       firstOutgoingBubble.right,
       moreOrLessEquals(terminalOutgoingBubble.right),
     );
+
+    final incomingDecoration =
+        tester
+                .widget<Container>(
+                  find.byKey(const Key('message-bubble-peer-1')),
+                )
+                .decoration!
+            as BoxDecoration;
+    final outgoingDecoration =
+        tester
+                .widget<Container>(
+                  find.byKey(const Key('message-bubble-mine-1')),
+                )
+                .decoration!
+            as BoxDecoration;
+    expect(
+      incomingDecoration.borderRadius,
+      const BorderRadius.all(Radius.circular(20)),
+    );
+    expect(
+      outgoingDecoration.borderRadius,
+      const BorderRadius.all(Radius.circular(20)),
+    );
   });
 
   testWidgets('opens image preview and switches images with arrow keys', (
