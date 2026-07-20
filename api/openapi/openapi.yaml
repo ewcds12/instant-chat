@@ -1274,6 +1274,14 @@ components:
           oneOf:
             - $ref: "#/components/schemas/MessageFile"
             - type: "null"
+        recalled_at:
+          description: >
+            The time the message was recalled. Recalled messages have no body
+            or attachment metadata and are rendered as an action notice.
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
         created_at:
           type: string
           format: date-time

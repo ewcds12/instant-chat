@@ -6,14 +6,31 @@ mixin _MessageActions on AsyncNotifier<MessagesState> {
   String get conversationId;
   bool get _realtimeReady;
   List<MessageRecall> get _pendingRecalls;
-  Future<bool> recall(Message message) => _removeFromServer(
-    message,
-    () => _gateway.recall(
-      accessToken: _accessToken,
-      conversationId: conversationId,
-      messageId: message.id,
-    ),
-  );
+  Future<bool> recall(Message message) async {
+    try {
+      await _gateway.recall(
+        accessToken: _accessToken,
+        conversationId: conversationId,
+        messageId: message.id,
+      );
+      if (!ref.mounted) {
+        return false;
+      }
+      _markMessageRecalled(
+        MessageRecall(
+          conversationId: conversationId,
+          messageId: message.id,
+          recalledAt: DateTime.now().toUtc(),
+        ),
+      );
+      return true;
+    } on ApiFailure catch (failure) {
+      _setActionFailure(failure.message);
+    } on FormatException {
+      _setActionFailure('The server returned an invalid response.');
+    }
+    return false;
+  }
 
   Future<bool> delete(Message message) => _removeFromServer(
     message,
@@ -32,7 +49,7 @@ mixin _MessageActions on AsyncNotifier<MessagesState> {
       _pendingRecalls.add(recall);
       return;
     }
-    _removeMessage(recall.messageId);
+    _markMessageRecalled(recall);
   }
 
   Future<bool> _removeFromServer(
@@ -63,6 +80,30 @@ mixin _MessageActions on AsyncNotifier<MessagesState> {
         .where((message) => message.id != messageId)
         .toList(growable: false);
     if (messages.length == current.messages.length) {
+      return;
+    }
+    state = AsyncData(current.copyWith(messages: messages, clearError: true));
+    ref
+        .read(conversationsControllerProvider.notifier)
+        .refreshAfterMessageRemoval();
+  }
+
+  void _markMessageRecalled(MessageRecall recall) {
+    final current = state.asData?.value;
+    if (current == null) {
+      return;
+    }
+    var found = false;
+    final messages = current.messages
+        .map((message) {
+          if (message.id != recall.messageId) {
+            return message;
+          }
+          found = true;
+          return message.recalled(recall.recalledAt);
+        })
+        .toList(growable: false);
+    if (!found) {
       return;
     }
     state = AsyncData(current.copyWith(messages: messages, clearError: true));

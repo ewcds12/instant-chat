@@ -231,7 +231,7 @@ class MessagesController extends AsyncNotifier<MessagesState>
       _pendingRealtime.clear();
     }
     for (final recall in _pendingRecalls) {
-      _removeMessage(recall.messageId);
+      _markMessageRecalled(recall);
     }
     _pendingRecalls.clear();
     _recovery.start();

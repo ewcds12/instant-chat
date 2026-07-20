@@ -3,6 +3,7 @@ import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_bubble.dart';
+import 'package:instant_chat/features/messages/presentation/message_recall_stamp.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 import 'package:instant_chat/features/messages/presentation/message_timestamp.dart';
 
@@ -101,17 +102,22 @@ class MessageHistory extends StatelessWidget {
               },
               itemBuilder: (context, index) {
                 final message = value.messages[index];
-                final bubble = MessageBubble(
-                  message: message,
-                  isMine: message.sender.id == currentUserId,
-                  showSenderAvatar: true,
-                  imageMessages: imageMessages,
-                  accessToken: accessToken,
-                  onOpenFile: onOpenFile,
-                  onDownloadImage: onDownloadImage,
-                  onRecall: onRecall,
-                  onDelete: onDelete,
-                );
+                final bubble = message.recalledAt == null
+                    ? MessageBubble(
+                        message: message,
+                        isMine: message.sender.id == currentUserId,
+                        showSenderAvatar: true,
+                        imageMessages: imageMessages,
+                        accessToken: accessToken,
+                        onOpenFile: onOpenFile,
+                        onDownloadImage: onDownloadImage,
+                        onRecall: onRecall,
+                        onDelete: onDelete,
+                      )
+                    : MessageRecallStamp(
+                        message: message,
+                        isMine: message.sender.id == currentUserId,
+                      );
                 if (index != 0) {
                   return bubble;
                 }

@@ -12,6 +12,7 @@ class Message {
     required this.body,
     required this.image,
     this.file,
+    this.recalledAt,
     required this.createdAt,
   });
 
@@ -24,6 +25,7 @@ class Message {
   final String body;
   final MessageImage? image;
   final MessageFile? file;
+  final DateTime? recalledAt;
   final DateTime createdAt;
 
   factory Message.fromJson(Map<String, Object?> json) {
@@ -41,16 +43,36 @@ class Message {
       body: _requiredBody(json),
       image: MessageImage.fromJsonOrNull(json['image']),
       file: MessageFile.fromJsonOrNull(json['file']),
+      recalledAt: _optionalDateTime(json, 'recalled_at'),
       createdAt: requiredDateTime(json, 'created_at'),
     );
   }
+
+  Message recalled(DateTime timestamp) => Message(
+    id: id,
+    conversationId: conversationId,
+    sender: sender,
+    clientMessageId: clientMessageId,
+    sequence: sequence,
+    kind: kind,
+    body: '',
+    image: null,
+    file: null,
+    recalledAt: timestamp,
+    createdAt: createdAt,
+  );
 }
 
 class MessageRecall {
-  const MessageRecall({required this.conversationId, required this.messageId});
+  const MessageRecall({
+    required this.conversationId,
+    required this.messageId,
+    required this.recalledAt,
+  });
 
   final String conversationId;
   final String messageId;
+  final DateTime recalledAt;
 }
 
 enum MessageKind {
@@ -155,6 +177,21 @@ String _requiredBody(Map<String, Object?> json) {
     throw const FormatException('body must be a string');
   }
   return value;
+}
+
+DateTime? _optionalDateTime(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
+  if (value is! String || value.isEmpty) {
+    throw FormatException('$key must be an RFC 3339 timestamp or null');
+  }
+  final parsed = DateTime.tryParse(value);
+  if (parsed == null) {
+    throw FormatException('$key must be an RFC 3339 timestamp or null');
+  }
+  return parsed.toUtc();
 }
 
 Map<String, Object?> _stringKeyed(Map<Object?, Object?> value) {

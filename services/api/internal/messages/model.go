@@ -56,10 +56,11 @@ type Message struct {
 	Body            string
 	Image           *ImageAttachment
 	File            *FileAttachment
+	RecalledAt      *time.Time
 	CreatedAt       time.Time
 }
 
-// Recall identifies a message that was removed for every conversation member.
+// Recall identifies a message that was recalled for every conversation member.
 type Recall struct {
 	ConversationID uint64
 	MessageID      uint64

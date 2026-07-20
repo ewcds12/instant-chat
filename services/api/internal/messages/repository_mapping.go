@@ -13,7 +13,7 @@ func messageFromClientRow(row store.GetMessageByClientIDRow) Message {
 		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
-		row.FileByteSize, row.CreatedAt,
+		row.FileByteSize, row.RecalledAt, row.CreatedAt,
 	)
 }
 
@@ -23,7 +23,7 @@ func messageFromLatestRow(row store.ListLatestMessagesRow) Message {
 		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
-		row.FileByteSize, row.CreatedAt,
+		row.FileByteSize, row.RecalledAt, row.CreatedAt,
 	)
 }
 
@@ -33,7 +33,7 @@ func messageFromBeforeRow(row store.ListMessagesBeforeRow) Message {
 		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
-		row.FileByteSize, row.CreatedAt,
+		row.FileByteSize, row.RecalledAt, row.CreatedAt,
 	)
 }
 
@@ -43,7 +43,7 @@ func messageFromAfterRow(row store.ListMessagesAfterRow) Message {
 		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
-		row.FileByteSize, row.CreatedAt,
+		row.FileByteSize, row.RecalledAt, row.CreatedAt,
 	)
 }
 
@@ -63,6 +63,7 @@ func newMessage(
 	fileFilename sql.NullString,
 	fileContentType sql.NullString,
 	fileByteSize sql.NullInt32,
+	recalledAt sql.NullTime,
 	createdAt time.Time,
 ) Message {
 	message := Message{
@@ -76,6 +77,12 @@ func newMessage(
 		Kind:            kind,
 		Body:            body,
 		CreatedAt:       createdAt,
+	}
+	if recalledAt.Valid {
+		value := recalledAt.Time.UTC()
+		message.RecalledAt = &value
+		message.Body = ""
+		return message
 	}
 	if kind == KindImage && imageID.Valid {
 		message.Image = &ImageAttachment{

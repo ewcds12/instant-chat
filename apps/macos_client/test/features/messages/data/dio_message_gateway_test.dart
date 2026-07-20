@@ -47,6 +47,33 @@ void main() {
     expect(message.body, 'Hello.');
   });
 
+  test('list preserves recalled messages as action stamps', () async {
+    final adapter = _StubAdapter(
+      statusCode: 200,
+      body: {
+        'messages': [
+          {
+            ..._message,
+            'body': '',
+            'image': null,
+            'file': null,
+            'recalled_at': '2026-07-16T13:05:00Z',
+          },
+        ],
+        'next_cursor': null,
+      },
+    );
+    final gateway = DioMessageGateway(_createDio(adapter));
+
+    final page = await gateway.list(
+      accessToken: 'access-token',
+      conversationId: '11',
+    );
+
+    expect(page.messages.single.recalledAt, DateTime.utc(2026, 7, 16, 13, 5));
+    expect(page.messages.single.body, isEmpty);
+  });
+
   test('sendImage posts a multipart image message', () async {
     final image = File('${Directory.systemTemp.path}/instant-chat-test.png');
     await image.writeAsBytes([1, 2, 3]);

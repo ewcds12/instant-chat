@@ -131,7 +131,7 @@ MessageRecall? decodeRealtimeRecall(String raw) {
   final Object? decoded = jsonDecode(raw);
   final event = _object(decoded, 'event');
   _requiredString(event, 'event_id');
-  _requiredDateTime(event, 'occurred_at');
+  final recalledAt = _requiredDateTime(event, 'occurred_at');
   final type = _requiredString(event, 'type');
   if (type != 'message.recalled') {
     return null;
@@ -144,6 +144,7 @@ MessageRecall? decodeRealtimeRecall(String raw) {
   return MessageRecall(
     conversationId: _requiredString(recall, 'conversation_id'),
     messageId: _requiredString(recall, 'message_id'),
+    recalledAt: recalledAt,
   );
 }
 

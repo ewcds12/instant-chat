@@ -150,7 +150,7 @@ func (s *Service) File(ctx context.Context, userID, fileID uint64) (MessageFile,
 	return s.repository.File(ctx, userID, fileID)
 }
 
-// Recall removes the sender's recent message for every conversation member.
+// Recall marks the sender's recent message as recalled for every conversation member.
 func (s *Service) Recall(
 	ctx context.Context,
 	userID, conversationID, messageID uint64,

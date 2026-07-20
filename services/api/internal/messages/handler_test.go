@@ -177,6 +177,18 @@ func TestResponseFromMessageIncludesSenderAvatarURL(t *testing.T) {
 	}
 }
 
+func TestResponseFromMessageIncludesRecallTime(t *testing.T) {
+	message := testMessage()
+	recalledAt := time.Date(2026, 7, 16, 13, 5, 0, 0, time.UTC)
+	message.RecalledAt = &recalledAt
+
+	response := responseFromMessage(message)
+
+	if response.RecalledAt == nil || !response.RecalledAt.Equal(recalledAt) {
+		t.Fatalf("recalled at = %v, want %v", response.RecalledAt, recalledAt)
+	}
+}
+
 func TestHandlerSendImageReturnsCreatedMessage(t *testing.T) {
 	service := &stubMessageService{}
 	handler := authenticated(http.HandlerFunc(NewHandler(service).SendImage))

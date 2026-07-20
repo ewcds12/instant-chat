@@ -73,7 +73,7 @@ func (h *Hub) PublishMessage(ctx context.Context, message messages.Message) {
 	}
 }
 
-// PublishRecall removes a recalled message from every connected conversation member.
+// PublishRecall sends a recalled-message notice to every connected conversation member.
 func (h *Hub) PublishRecall(ctx context.Context, recall messages.Recall) {
 	userIDs, err := h.repository.ListConversationMemberIDs(ctx, recall.ConversationID)
 	if err != nil {

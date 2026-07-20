@@ -136,6 +136,7 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
@@ -172,6 +173,7 @@ type GetMessageByClientIDRow struct {
 	FileFilename            sql.NullString `db:"file_filename"`
 	FileContentType         sql.NullString `db:"file_content_type"`
 	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	RecalledAt              sql.NullTime   `db:"recalled_at"`
 	CreatedAt               time.Time      `db:"created_at"`
 }
 
@@ -197,6 +199,7 @@ func (q *Queries) GetMessageByClientID(ctx context.Context, arg GetMessageByClie
 		&i.FileFilename,
 		&i.FileContentType,
 		&i.FileByteSize,
+		&i.RecalledAt,
 		&i.CreatedAt,
 	)
 	return i, err
@@ -385,13 +388,13 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
-  AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
     FROM message_deletions AS deletion
@@ -427,6 +430,7 @@ type ListLatestMessagesRow struct {
 	FileFilename            sql.NullString `db:"file_filename"`
 	FileContentType         sql.NullString `db:"file_content_type"`
 	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	RecalledAt              sql.NullTime   `db:"recalled_at"`
 	CreatedAt               time.Time      `db:"created_at"`
 }
 
@@ -458,6 +462,7 @@ func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessages
 			&i.FileFilename,
 			&i.FileContentType,
 			&i.FileByteSize,
+			&i.RecalledAt,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -493,6 +498,7 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
@@ -500,7 +506,6 @@ LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
   AND message.sequence > ?
-  AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
     FROM message_deletions AS deletion
@@ -537,6 +542,7 @@ type ListMessagesAfterRow struct {
 	FileFilename            sql.NullString `db:"file_filename"`
 	FileContentType         sql.NullString `db:"file_content_type"`
 	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	RecalledAt              sql.NullTime   `db:"recalled_at"`
 	CreatedAt               time.Time      `db:"created_at"`
 }
 
@@ -573,6 +579,7 @@ func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterPa
 			&i.FileFilename,
 			&i.FileContentType,
 			&i.FileByteSize,
+			&i.RecalledAt,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err
@@ -608,6 +615,7 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
@@ -615,7 +623,6 @@ LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = ?
   AND message.sequence < ?
-  AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
     FROM message_deletions AS deletion
@@ -652,6 +659,7 @@ type ListMessagesBeforeRow struct {
 	FileFilename            sql.NullString `db:"file_filename"`
 	FileContentType         sql.NullString `db:"file_content_type"`
 	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	RecalledAt              sql.NullTime   `db:"recalled_at"`
 	CreatedAt               time.Time      `db:"created_at"`
 }
 
@@ -688,6 +696,7 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.FileFilename,
 			&i.FileContentType,
 			&i.FileByteSize,
+			&i.RecalledAt,
 			&i.CreatedAt,
 		); err != nil {
 			return nil, err

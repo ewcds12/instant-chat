@@ -97,6 +97,7 @@ void main() {
 
     expect(recall?.conversationId, '11');
     expect(recall?.messageId, '21');
+    expect(recall?.recalledAt, DateTime.utc(2026, 7, 16, 13));
   });
 
   test('reconnects after the socket closes and resumes delivery', () async {

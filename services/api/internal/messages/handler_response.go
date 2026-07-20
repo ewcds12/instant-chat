@@ -24,6 +24,7 @@ type messageResponse struct {
 	Body            string         `json:"body"`
 	Image           *imageResponse `json:"image"`
 	File            *fileResponse  `json:"file"`
+	RecalledAt      *time.Time     `json:"recalled_at"`
 	CreatedAt       time.Time      `json:"created_at"`
 }
 
@@ -56,6 +57,7 @@ func responseFromMessage(message Message) messageResponse {
 		Sequence:        strconv.FormatUint(message.Sequence, 10),
 		Kind:            message.Kind,
 		Body:            message.Body,
+		RecalledAt:      message.RecalledAt,
 		CreatedAt:       message.CreatedAt.UTC(),
 	}
 	if response.Kind == "" {

@@ -28,6 +28,7 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
@@ -123,13 +124,13 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
-  AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
     FROM message_deletions AS deletion
@@ -159,6 +160,7 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
@@ -166,7 +168,6 @@ LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence < sqlc.arg(before_sequence)
-  AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
     FROM message_deletions AS deletion
@@ -196,6 +197,7 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
@@ -203,7 +205,6 @@ LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence > sqlc.arg(after_sequence)
-  AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
     FROM message_deletions AS deletion

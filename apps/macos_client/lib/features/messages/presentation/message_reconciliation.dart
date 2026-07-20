@@ -6,7 +6,12 @@ List<Message> reconcileMessages(
 ) {
   final byClientID = <String, Message>{};
   for (final message in [...current, ...incoming]) {
-    byClientID['${message.sender.id}:${message.clientMessageId}'] = message;
+    final key = '${message.sender.id}:${message.clientMessageId}';
+    final existing = byClientID[key];
+    if (existing?.recalledAt != null && message.recalledAt == null) {
+      continue;
+    }
+    byClientID[key] = message;
   }
   final messages = byClientID.values.toList();
   messages.sort(
