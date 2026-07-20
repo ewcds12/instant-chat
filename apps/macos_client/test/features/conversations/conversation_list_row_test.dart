@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversation_list_row.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
@@ -33,6 +34,30 @@ void main() {
     expect(find.text('[File]'), findsOneWidget);
     expect(find.text('holiday.png'), findsNothing);
     expect(find.text('notes.pdf'), findsNothing);
+  });
+
+  testWidgets('uses a neutral selected conversation card', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: RetroTheme.data,
+        home: Scaffold(
+          body: ConversationListRow(
+            conversation: _conversation('text', ''),
+            selected: true,
+            accessToken: 'access-token',
+            onOpen: () {},
+          ),
+        ),
+      ),
+    );
+
+    final card = tester.widget<Container>(find.byType(Container).first);
+    final decoration = card.decoration! as BoxDecoration;
+    expect(decoration.color, RetroTheme.data.colorScheme.surfaceContainerHigh);
+    expect(
+      (decoration.border! as Border).top.color,
+      RetroTheme.data.colorScheme.outlineVariant,
+    );
   });
 }
 

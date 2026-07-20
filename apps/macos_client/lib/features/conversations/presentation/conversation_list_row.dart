@@ -39,15 +39,13 @@ class ConversationListRow extends StatelessWidget {
 
   BoxDecoration _decoration(ColorScheme colors) {
     return BoxDecoration(
-      color: selected ? RetroColors.primaryLight : Colors.transparent,
-      border: selected
-          ? Border.all(color: colors.primary.withValues(alpha: 0.24))
-          : null,
+      color: selected ? colors.surfaceContainerHigh : Colors.transparent,
+      border: selected ? Border.all(color: colors.outlineVariant) : null,
       borderRadius: BorderRadius.circular(RetroMetrics.cornerLarge),
       boxShadow: selected
           ? [
               BoxShadow(
-                color: colors.primary.withValues(alpha: 0.08),
+                color: colors.scrim.withValues(alpha: 0.06),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -72,11 +70,9 @@ class ConversationListRow extends StatelessWidget {
       ? CircleAvatar(
           radius: 20,
           backgroundColor: selected
-              ? colors.primary
+              ? colors.surfaceContainerHighest
               : colors.surfaceContainerHigh,
-          foregroundColor: selected
-              ? colors.onPrimary
-              : colors.onSurfaceVariant,
+          foregroundColor: colors.onSurfaceVariant,
           child: Text(_initials(conversation.peer.displayName)),
         )
       : ProfileAvatar(

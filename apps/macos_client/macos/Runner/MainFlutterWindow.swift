@@ -2,7 +2,7 @@ import Cocoa
 import FlutterMacOS
 
 class MainFlutterWindow: NSWindow {
-  static let initialFrameSize = NSSize(width: 1300, height: 780)
+  static let initialFrameSize = NSSize(width: 1300, height: 750)
   private static let trafficLightOffset = NSPoint(x: 12, y: -8)
   private static let standardTrafficLightOrigin = NSPoint(x: 7, y: 6)
   private static let trafficLightSpacing = CGFloat(20)

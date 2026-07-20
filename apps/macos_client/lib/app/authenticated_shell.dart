@@ -247,11 +247,11 @@ class _SidebarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final foreground = selected ? colors.primary : colors.onSurfaceVariant;
+    final foreground = selected ? colors.onSurface : colors.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.only(bottom: 6),
       child: Material(
-        color: selected ? RetroColors.primaryLight : Colors.transparent,
+        color: selected ? colors.surfaceContainerHigh : Colors.transparent,
         borderRadius: BorderRadius.circular(14),
         child: InkWell(
           borderRadius: BorderRadius.circular(14),
