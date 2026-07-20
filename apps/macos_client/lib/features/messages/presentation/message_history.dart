@@ -4,6 +4,7 @@ import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_bubble.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
+import 'package:instant_chat/features/messages/presentation/message_timestamp.dart';
 
 class MessageHistory extends StatelessWidget {
   const MessageHistory({
@@ -51,6 +52,7 @@ class MessageHistory extends StatelessWidget {
         ),
       );
     }
+    final now = DateTime.now();
     return LiquidGradientBackground(
       child: Column(
         children: [
@@ -77,10 +79,25 @@ class MessageHistory extends StatelessWidget {
                 28,
               ),
               itemCount: value.messages.length,
-              separatorBuilder: (_, _) => const SizedBox(height: 13),
+              separatorBuilder: (_, index) {
+                final nextMessage = value.messages[index + 1];
+                if (!shouldShowMessageTimestamp(
+                  previousTimestamp: value.messages[index].createdAt,
+                  timestamp: nextMessage.createdAt,
+                )) {
+                  return const SizedBox(height: 13);
+                }
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: MessageTimestamp(
+                    timestamp: nextMessage.createdAt,
+                    now: now,
+                  ),
+                );
+              },
               itemBuilder: (context, index) {
                 final message = value.messages[index];
-                return MessageBubble(
+                final bubble = MessageBubble(
                   message: message,
                   isMine: message.sender.id == currentUserId,
                   showSenderAvatar: true,
@@ -88,6 +105,16 @@ class MessageHistory extends StatelessWidget {
                   accessToken: accessToken,
                   onOpenFile: onOpenFile,
                   onDownloadImage: onDownloadImage,
+                );
+                if (index != 0) {
+                  return bubble;
+                }
+                return Column(
+                  children: [
+                    MessageTimestamp(timestamp: message.createdAt, now: now),
+                    const SizedBox(height: 16),
+                    bubble,
+                  ],
                 );
               },
             ),

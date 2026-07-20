@@ -110,18 +110,27 @@ void main() {
     expect(find.byKey(const Key('message-bubble-image-1')), findsNothing);
   });
 
-  testWidgets('does not render message timestamps or a day divider', (
-    tester,
-  ) async {
-    final now = DateTime.now();
+  testWidgets('shows contextual message timestamps', (tester) async {
     final gateway = StubMessageGateway(
       _session.user,
       initialMessages: [
         _message(
-          'timeless',
-          'Without timestamps',
+          'first',
+          'First timestamp',
           sequence: '1',
-          createdAt: now.toUtc(),
+          createdAt: DateTime(2026, 7, 20, 15),
+        ),
+        _message(
+          'nearby',
+          'Nearby timestamp',
+          sequence: '2',
+          createdAt: DateTime(2026, 7, 20, 15, 4),
+        ),
+        _message(
+          'delayed',
+          'Delayed timestamp',
+          sequence: '3',
+          createdAt: DateTime(2026, 7, 20, 15, 9),
         ),
       ],
     );
@@ -129,12 +138,11 @@ void main() {
     addTearDown(container.dispose);
 
     await tester.pumpWidget(_messagesPage(container));
-    await _pumpUntil(tester, find.byKey(const Key('message-bubble-timeless')));
+    await _pumpUntil(tester, find.byKey(const Key('message-bubble-delayed')));
 
-    final time =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-    expect(find.text('Today'), findsNothing);
-    expect(find.text(time), findsNothing);
+    expect(find.text('15:00'), findsOneWidget);
+    expect(find.text('15:04'), findsNothing);
+    expect(find.text('15:09'), findsOneWidget);
   });
 
   testWidgets('shows an avatar next to every message', (tester) async {
