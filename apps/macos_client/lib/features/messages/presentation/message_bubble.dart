@@ -138,7 +138,7 @@ class _MessageContent extends StatelessWidget {
                     )
                   : null,
               border: isMine ? null : Border.all(color: colors.outlineVariant),
-              borderRadius: BorderRadius.circular(RetroMetrics.cornerLarge),
+              borderRadius: BorderRadius.circular(10),
               boxShadow: [
                 BoxShadow(
                   color: isMine
