@@ -69,6 +69,7 @@ type Repository interface {
 	ListRequests(ctx context.Context, userID uint64) ([]Request, error)
 	AcceptRequest(ctx context.Context, userID, requestID uint64) (Contact, error)
 	RejectRequest(ctx context.Context, userID, requestID uint64) error
+	CancelRequest(ctx context.Context, userID, requestID uint64) error
 	ListContacts(ctx context.Context, userID uint64) ([]Contact, error)
 	RemoveContact(ctx context.Context, userID, contactUserID uint64) error
 	AreContacts(ctx context.Context, firstUserID, secondUserID uint64) (bool, error)

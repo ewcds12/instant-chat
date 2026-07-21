@@ -15,7 +15,8 @@ The authentication, contacts, direct conversations, and persisted message founda
 - The account card opens an in-app Profile sheet where users can set a profile photo, Name, Gender, Region, and ID. Changes persist to MySQL, are restored with the session, and update connected peers through the authenticated realtime channel.
 - The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, and a persistent desktop master-detail layout.
 - The resizable macOS window opens at 1,180 by 660 points.
-- Users can search by exact username, send contact requests, accept or reject incoming requests, remove contacts, and open a direct conversation.
+- The Contacts workspace provides an alphabetical directory with local name and ID filtering, exact ID lookup for new people, a selected-contact detail panel, contact-request workflows, safe removal confirmation, and direct-message entry points.
+- The Requests workspace separates incoming and sent requests, supports accept, decline, and sender-authorized cancellation, and opens the newly accepted contact in the Contacts workspace.
 - Direct channels load cursor-paginated history, receive realtime messages, automatically recover sequence gaps on opening, reconnecting, detecting an out-of-order event, or through a two-second active-channel fallback check, show persisted unread counts, mark viewed messages as read, update conversation-card previews in realtime with the same reconnect and two-second recovery safeguards, and can send or retry text, image, and file messages without creating duplicates.
 - Image messages support PNG, JPEG, GIF, and WebP files up to 15 MB. Image bytes are stored behind authenticated API endpoints and are available only to conversation members; the macOS image preview can save the current image through the native Save dialog.
 - File messages support files up to 25 MB. File bytes are stored behind authenticated API endpoints and are available only to conversation members.
@@ -126,6 +127,7 @@ POST /api/v1/contact-requests
 GET  /api/v1/contact-requests
 POST /api/v1/contact-requests/{request_id}/accept
 POST /api/v1/contact-requests/{request_id}/reject
+POST /api/v1/contact-requests/{request_id}/cancel
 GET  /api/v1/contacts
 DELETE /api/v1/contacts/{user_id}
 POST /api/v1/conversations

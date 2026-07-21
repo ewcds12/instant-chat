@@ -20,6 +20,20 @@ final contactsControllerProvider =
       ContactsController.new,
     );
 
+final selectedContactUserIdProvider =
+    NotifierProvider.autoDispose<SelectedContactUserId, String?>(
+      SelectedContactUserId.new,
+    );
+
+class SelectedContactUserId extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void select(String? userId) {
+    state = userId;
+  }
+}
+
 class ContactsState {
   const ContactsState({
     required this.contacts,
@@ -119,18 +133,36 @@ class ContactsController extends AsyncNotifier<ContactsState> {
     );
   }
 
-  Future<void> accept(String requestId) {
+  Future<bool> accept(String requestId) async {
+    final current = state.requireValue;
+    state = AsyncData(current.copyWith(isSubmitting: true, clearError: true));
+    try {
+      await _gateway.acceptRequest(
+        accessToken: _accessToken,
+        requestId: requestId,
+      );
+      state = AsyncData(await _load());
+      return true;
+    } on ApiFailure catch (failure) {
+      _setFailure(current, failure.message);
+    } on FormatException {
+      _setFailure(current, 'The server returned an invalid response.');
+    }
+    return false;
+  }
+
+  Future<void> reject(String requestId) {
     return _mutate(
-      () => _gateway.acceptRequest(
+      () => _gateway.rejectRequest(
         accessToken: _accessToken,
         requestId: requestId,
       ),
     );
   }
 
-  Future<void> reject(String requestId) {
+  Future<void> cancel(String requestId) {
     return _mutate(
-      () => _gateway.rejectRequest(
+      () => _gateway.cancelRequest(
         accessToken: _accessToken,
         requestId: requestId,
       ),

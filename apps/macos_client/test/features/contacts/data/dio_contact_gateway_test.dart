@@ -57,6 +57,16 @@ void main() {
       ),
     );
   });
+
+  test('cancelRequest posts to the outgoing request endpoint', () async {
+    final adapter = _StubAdapter(statusCode: 204, body: '');
+    final gateway = DioContactGateway(_createDio(adapter));
+
+    await gateway.cancelRequest(accessToken: 'access-token', requestId: '9');
+
+    expect(adapter.path, '/api/v1/contact-requests/9/cancel');
+    expect(adapter.authorization, 'Bearer access-token');
+  });
 }
 
 final _publicUser = {

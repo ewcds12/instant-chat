@@ -25,6 +25,11 @@ abstract interface class ContactGateway {
     required String requestId,
   });
 
+  Future<void> cancelRequest({
+    required String accessToken,
+    required String requestId,
+  });
+
   Future<List<Contact>> listContacts(String accessToken);
 
   Future<void> removeContact({

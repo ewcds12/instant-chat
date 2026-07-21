@@ -112,6 +112,12 @@ WHERE id = sqlc.arg(relationship_id)
     OR higher_user_id = sqlc.arg(current_user_id)
   );
 
+-- name: CancelContactRelationship :execresult
+DELETE FROM contact_relationships
+WHERE id = sqlc.arg(relationship_id)
+  AND status = 'pending'
+  AND requested_by_user_id = sqlc.arg(current_user_id);
+
 -- name: RemoveAcceptedContact :execresult
 DELETE FROM contact_relationships
 WHERE lower_user_id = sqlc.arg(lower_user_id)

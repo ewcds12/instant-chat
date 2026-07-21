@@ -41,6 +41,41 @@ void main() {
     expect(gateway.sentUsername, 'other_user');
     expect(gateway.listContactsCalls, 2);
   });
+
+  test(
+    'accept reports success and cancel removes an outgoing request',
+    () async {
+      final gateway = _FakeContactGateway();
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          contactGatewayProvider.overrideWithValue(gateway),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(authControllerProvider.future);
+      final subscription = container.listen(
+        contactsControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      await container.read(contactsControllerProvider.future);
+
+      final accepted = await container
+          .read(contactsControllerProvider.notifier)
+          .accept('incoming-1');
+      await container
+          .read(contactsControllerProvider.notifier)
+          .cancel('outgoing-1');
+
+      expect(accepted, isTrue);
+      expect(gateway.acceptedRequestId, 'incoming-1');
+      expect(gateway.canceledRequestId, 'outgoing-1');
+    },
+  );
 }
 
 final _session = AuthSession(
@@ -66,6 +101,8 @@ final _otherUser = PublicUser(
 class _FakeContactGateway implements ContactGateway {
   String? searchedUsername;
   String? sentUsername;
+  String? acceptedRequestId;
+  String? canceledRequestId;
   int listContactsCalls = 0;
 
   @override
@@ -106,8 +143,13 @@ class _FakeContactGateway implements ContactGateway {
   Future<Contact> acceptRequest({
     required String accessToken,
     required String requestId,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    acceptedRequestId = requestId;
+    return Contact(
+      relationshipId: 'relationship-1',
+      user: _otherUser,
+      connectedAt: DateTime.utc(2026, 7, 16),
+    );
   }
 
   @override
@@ -116,6 +158,14 @@ class _FakeContactGateway implements ContactGateway {
     required String requestId,
   }) {
     throw UnimplementedError();
+  }
+
+  @override
+  Future<void> cancelRequest({
+    required String accessToken,
+    required String requestId,
+  }) async {
+    canceledRequestId = requestId;
   }
 
   @override

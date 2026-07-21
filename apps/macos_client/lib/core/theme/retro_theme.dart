@@ -15,6 +15,14 @@ abstract final class RetroMetrics {
   static const maxPanelWidth = 760.0;
   static const maxProfilePanelWidth = 480.0;
   static const maxProfilePhotoCropPanelWidth = 420.0;
+  static const contactDirectoryWidth = conversationColumnWidth;
+  static const contactLayoutBreakpoint = 760.0;
+  static const contactAvatarRadius = 24.0;
+  static const contactDirectoryAvatarRadius = 20.0;
+  static const contactDetailAvatarRadius = 36.0;
+  static const contactRowHeight = 62.0;
+  static const contactSearchHeight = 36.0;
+  static const contactDetailHeaderHeight = 66.0;
   static const profileHeaderHeight = 48.0;
   static const profileAvatarRadius = 42.0;
   static const profileAvatarTextSize = 30.0;

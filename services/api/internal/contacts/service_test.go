@@ -8,11 +8,13 @@ import (
 )
 
 type fakeRepository struct {
-	user             PublicUser
-	findError        error
-	createdRequester uint64
-	createdAddressee uint64
-	requests         []Request
+	user              PublicUser
+	findError         error
+	createdRequester  uint64
+	createdAddressee  uint64
+	canceledUserID    uint64
+	canceledRequestID uint64
+	requests          []Request
 }
 
 func (f *fakeRepository) FindUserByUsername(context.Context, string) (PublicUser, error) {
@@ -34,6 +36,12 @@ func (f *fakeRepository) AcceptRequest(context.Context, uint64, uint64) (Contact
 }
 
 func (f *fakeRepository) RejectRequest(context.Context, uint64, uint64) error { return nil }
+
+func (f *fakeRepository) CancelRequest(_ context.Context, userID, requestID uint64) error {
+	f.canceledUserID = userID
+	f.canceledRequestID = requestID
+	return nil
+}
 
 func (f *fakeRepository) ListContacts(context.Context, uint64) ([]Contact, error) { return nil, nil }
 
@@ -78,6 +86,16 @@ func TestServiceListRequestsSeparatesDirection(t *testing.T) {
 	}
 	if len(lists.Outgoing) != 1 || lists.Outgoing[0].ID != 1 || len(lists.Incoming) != 1 || lists.Incoming[0].ID != 2 {
 		t.Fatalf("request lists = %+v", lists)
+	}
+}
+
+func TestServiceCancelRequestUsesCurrentRequester(t *testing.T) {
+	repository := &fakeRepository{}
+
+	err := NewService(repository).CancelRequest(context.Background(), 7, 9)
+
+	if err != nil || repository.canceledUserID != 7 || repository.canceledRequestID != 9 {
+		t.Fatalf("error = %v, user ID = %d, request ID = %d", err, repository.canceledUserID, repository.canceledRequestID)
 	}
 }
 

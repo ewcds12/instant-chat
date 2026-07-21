@@ -64,6 +64,11 @@ func (s *Service) RejectRequest(ctx context.Context, userID, requestID uint64) e
 	return s.repository.RejectRequest(ctx, userID, requestID)
 }
 
+// CancelRequest cancels an outgoing request that remains pending.
+func (s *Service) CancelRequest(ctx context.Context, userID, requestID uint64) error {
+	return s.repository.CancelRequest(ctx, userID, requestID)
+}
+
 // ListContacts returns accepted contacts ordered by display name.
 func (s *Service) ListContacts(ctx context.Context, userID uint64) ([]Contact, error) {
 	return s.repository.ListContacts(ctx, userID)

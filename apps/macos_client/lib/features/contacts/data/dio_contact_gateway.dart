@@ -89,6 +89,20 @@ class DioContactGateway implements ContactGateway {
   }
 
   @override
+  Future<void> cancelRequest({
+    required String accessToken,
+    required String requestId,
+  }) async {
+    final response = await apiRequest(
+      () => _dio.post<Object?>(
+        '/api/v1/contact-requests/$requestId/cancel',
+        options: _options(accessToken),
+      ),
+    );
+    expectStatus(response, {204});
+  }
+
+  @override
   Future<List<Contact>> listContacts(String accessToken) async {
     final response = await apiRequest(
       () =>

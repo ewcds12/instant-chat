@@ -18,6 +18,7 @@ type contactService interface {
 	ListRequests(ctx context.Context, userID uint64) (RequestLists, error)
 	AcceptRequest(ctx context.Context, userID, requestID uint64) (Contact, error)
 	RejectRequest(ctx context.Context, userID, requestID uint64) error
+	CancelRequest(ctx context.Context, userID, requestID uint64) error
 	ListContacts(ctx context.Context, userID uint64) ([]Contact, error)
 	RemoveContact(ctx context.Context, userID, contactUserID uint64) error
 }
@@ -118,6 +119,19 @@ func (h *Handler) RejectRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := h.service.RejectRequest(r.Context(), currentUserID(r), requestID); err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// CancelRequest cancels an outgoing contact request.
+func (h *Handler) CancelRequest(w http.ResponseWriter, r *http.Request) {
+	requestID, ok := pathID(w, r, "request_id")
+	if !ok {
+		return
+	}
+	if err := h.service.CancelRequest(r.Context(), currentUserID(r), requestID); err != nil {
 		writeServiceError(w, r, err)
 		return
 	}

@@ -14,7 +14,9 @@ import (
 )
 
 type stubContactService struct {
-	requesterID uint64
+	requesterID       uint64
+	canceledUserID    uint64
+	canceledRequestID uint64
 }
 
 func (s *stubContactService) SearchUser(context.Context, string) (PublicUser, error) {
@@ -38,6 +40,12 @@ func (s *stubContactService) AcceptRequest(context.Context, uint64, uint64) (Con
 }
 
 func (s *stubContactService) RejectRequest(context.Context, uint64, uint64) error { return nil }
+
+func (s *stubContactService) CancelRequest(_ context.Context, userID, requestID uint64) error {
+	s.canceledUserID = userID
+	s.canceledRequestID = requestID
+	return nil
+}
 
 func (s *stubContactService) ListContacts(context.Context, uint64) ([]Contact, error) {
 	return []Contact{}, nil
@@ -90,5 +98,22 @@ func TestHandlerSendRequestUsesAuthenticatedUser(t *testing.T) {
 	}
 	if response.ID != "9" || response.User.Username != "other_user" {
 		t.Fatalf("response = %+v", response)
+	}
+}
+
+func TestHandlerCancelRequestUsesAuthenticatedRequester(t *testing.T) {
+	service := &stubContactService{}
+	contactHandler := NewHandler(service)
+	authHandler := auth.NewHandler(stubAuthService{})
+	handler := httpapi.RequestIDMiddleware(authHandler.RequireUser(http.HandlerFunc(contactHandler.CancelRequest)))
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/contact-requests/9/cancel", nil)
+	request.SetPathValue("request_id", "9")
+	request.Header.Set("Authorization", "Bearer access")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNoContent || service.canceledUserID != 7 || service.canceledRequestID != 9 {
+		t.Fatalf("status = %d, user ID = %d, request ID = %d", recorder.Code, service.canceledUserID, service.canceledRequestID)
 	}
 }

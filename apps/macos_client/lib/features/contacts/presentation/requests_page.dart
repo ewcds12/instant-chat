@@ -2,24 +2,37 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
+import 'package:instant_chat/features/contacts/presentation/request_section.dart';
 
-class RequestsPage extends ConsumerWidget {
-  const RequestsPage({super.key});
+class RequestsPage extends ConsumerStatefulWidget {
+  const RequestsPage({required this.onOpenContact, super.key});
+
+  final ValueChanged<String> onOpenContact;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RequestsPage> createState() => _RequestsPageState();
+}
+
+class _RequestsPageState extends ConsumerState<RequestsPage> {
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(contactsControllerProvider);
+    final session = ref.watch(authControllerProvider).asData?.value.session;
+    if (session == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (_, _) => Center(
         child: FilledButton(
           onPressed: () => ref.invalidate(contactsControllerProvider),
-          child: const Text('Try again'),
+          child: const Text('Try Again'),
         ),
       ),
-      data: (contacts) => LiquidGradientBackground(
+      data: (requests) => LiquidGradientBackground(
         child: Padding(
           padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
           child: GlassPanel(
@@ -28,68 +41,86 @@ class RequestsPage extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'Requests',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        'Requests',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: 'Refresh requests',
+                      onPressed: requests.isSubmitting
+                          ? null
+                          : () => ref
+                                .read(contactsControllerProvider.notifier)
+                                .refresh(),
+                      icon: const Icon(Icons.refresh_rounded),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: RetroMetrics.spaceSmall),
-                const Text('Incoming requests require your approval.'),
-                if (contacts.errorMessage case final message?) ...[
-                  const SizedBox(height: RetroMetrics.spaceSmall),
-                  Text(
-                    message,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
+                Text(
+                  'Review new contact requests and track the ones you sent.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
+                ),
+                if (requests.errorMessage case final message?) ...[
+                  const SizedBox(height: RetroMetrics.spaceMedium),
+                  _RequestError(message: message),
                 ],
                 const SizedBox(height: RetroMetrics.spaceLarge),
                 Expanded(
-                  child: ListView(
-                    children: [
-                      _SectionTitle(
-                        label: 'Incoming',
-                        count: contacts.incoming.length,
-                      ),
-                      const SizedBox(height: RetroMetrics.spaceSmall),
-                      if (contacts.incoming.isEmpty)
-                        const _EmptyRow(label: 'No incoming requests')
-                      else
-                        ...contacts.incoming.map(
-                          (request) => Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: RetroMetrics.spaceSmall,
-                            ),
-                            child: _IncomingRow(
-                              request: request,
-                              disabled: contacts.isSubmitting,
-                              onAccept: () => ref
-                                  .read(contactsControllerProvider.notifier)
-                                  .accept(request.id),
-                              onReject: () => ref
-                                  .read(contactsControllerProvider.notifier)
-                                  .reject(request.id),
-                            ),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final incoming = RequestSection(
+                        title: 'Incoming',
+                        description: 'People waiting for your approval.',
+                        requests: requests.incoming,
+                        accessToken: session.accessToken,
+                        isIncoming: true,
+                        disabled: requests.isSubmitting,
+                        onAccept: _accept,
+                        onDecline: (request) => ref
+                            .read(contactsControllerProvider.notifier)
+                            .reject(request.id),
+                        onCancel: (_) {},
+                      );
+                      final outgoing = RequestSection(
+                        title: 'Sent',
+                        description: 'Requests waiting for a response.',
+                        requests: requests.outgoing,
+                        accessToken: session.accessToken,
+                        isIncoming: false,
+                        disabled: requests.isSubmitting,
+                        onAccept: (_) {},
+                        onDecline: (_) {},
+                        onCancel: (request) =>
+                            _confirmCancel(context, ref, request),
+                      );
+                      if (constraints.maxWidth <
+                          RetroMetrics.contactLayoutBreakpoint) {
+                        return ListView(
+                          children: [
+                            incoming,
+                            const SizedBox(height: RetroMetrics.spaceLarge),
+                            outgoing,
+                          ],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: incoming),
+                          const VerticalDivider(
+                            width: RetroMetrics.spaceLarge * 2,
                           ),
-                        ),
-                      const SizedBox(height: RetroMetrics.spaceLarge),
-                      _SectionTitle(
-                        label: 'Outgoing',
-                        count: contacts.outgoing.length,
-                      ),
-                      const SizedBox(height: RetroMetrics.spaceSmall),
-                      if (contacts.outgoing.isEmpty)
-                        const _EmptyRow(label: 'No outgoing requests')
-                      else
-                        ...contacts.outgoing.map(
-                          (request) => Padding(
-                            padding: const EdgeInsets.only(
-                              bottom: RetroMetrics.spaceSmall,
-                            ),
-                            child: _OutgoingRow(request: request),
-                          ),
-                        ),
-                    ],
+                          Expanded(child: outgoing),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],
@@ -99,112 +130,67 @@ class RequestsPage extends ConsumerWidget {
       ),
     );
   }
-}
 
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.label, required this.count});
-
-  final String label;
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      '$label · $count',
-      style: Theme.of(context).textTheme.titleMedium,
-    );
+  Future<void> _accept(ContactRequest request) async {
+    final accepted = await ref
+        .read(contactsControllerProvider.notifier)
+        .accept(request.id);
+    if (accepted && mounted) {
+      widget.onOpenContact(request.user.id);
+    }
   }
-}
 
-class _IncomingRow extends StatelessWidget {
-  const _IncomingRow({
-    required this.request,
-    required this.disabled,
-    required this.onAccept,
-    required this.onReject,
-  });
-
-  final ContactRequest request;
-  final bool disabled;
-  final VoidCallback onAccept;
-  final VoidCallback onReject;
-
-  @override
-  Widget build(BuildContext context) {
-    return _RequestFrame(
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '${request.user.displayName} · @${request.user.username}',
-            ),
-          ),
+  Future<void> _confirmCancel(
+    BuildContext context,
+    WidgetRef ref,
+    ContactRequest request,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancel Request?'),
+        content: Text(
+          'Cancel the request sent to ${request.user.displayName}?',
+        ),
+        actions: [
           TextButton(
-            onPressed: disabled ? null : onReject,
-            child: const Text('Decline'),
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Keep Request'),
           ),
-          const SizedBox(width: RetroMetrics.spaceSmall),
           FilledButton(
-            onPressed: disabled ? null : onAccept,
-            child: const Text('Accept'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Cancel Request'),
           ),
         ],
       ),
     );
+    if (!mounted || confirmed != true) {
+      return;
+    }
+    await ref.read(contactsControllerProvider.notifier).cancel(request.id);
   }
 }
 
-class _OutgoingRow extends StatelessWidget {
-  const _OutgoingRow({required this.request});
+class _RequestError extends StatelessWidget {
+  const _RequestError({required this.message});
 
-  final ContactRequest request;
+  final String message;
 
   @override
   Widget build(BuildContext context) {
-    return _RequestFrame(
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '${request.user.displayName} · @${request.user.username}',
-            ),
-          ),
-          Text(
-            'Pending',
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(RetroMetrics.spaceSmall),
+      decoration: BoxDecoration(
+        color: colors.errorContainer,
+        borderRadius: BorderRadius.circular(RetroMetrics.corner),
       ),
-    );
-  }
-}
-
-class _EmptyRow extends StatelessWidget {
-  const _EmptyRow({required this.label});
-
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return _RequestFrame(child: Text(label));
-  }
-}
-
-class _RequestFrame extends StatelessWidget {
-  const _RequestFrame({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassPanel(
-      tint: RetroColors.glass,
-      padding: const EdgeInsets.all(RetroMetrics.spaceMedium),
-      radius: 14,
-      shadows: const [],
-      child: child,
+      child: Text(
+        message,
+        style: Theme.of(
+          context,
+        ).textTheme.bodySmall?.copyWith(color: colors.onErrorContainer),
+      ),
     );
   }
 }

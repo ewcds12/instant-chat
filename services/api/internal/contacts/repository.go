@@ -91,6 +91,17 @@ func (r *MySQLRepository) RejectRequest(ctx context.Context, userID, requestID u
 	return requireOneRow(result, ErrRequestNotFound)
 }
 
+// CancelRequest removes an outgoing pending request.
+func (r *MySQLRepository) CancelRequest(ctx context.Context, userID, requestID uint64) error {
+	result, err := r.queries.CancelContactRelationship(ctx, store.CancelContactRelationshipParams{
+		RelationshipID: requestID, CurrentUserID: userID,
+	})
+	if err != nil {
+		return fmt.Errorf("cancel contact request: %w", err)
+	}
+	return requireOneRow(result, ErrRequestNotFound)
+}
+
 // ListContacts returns accepted relationships involving the user.
 func (r *MySQLRepository) ListContacts(ctx context.Context, userID uint64) ([]Contact, error) {
 	rows, err := r.queries.ListAcceptedContacts(ctx, store.ListAcceptedContactsParams{CurrentUserID: userID})

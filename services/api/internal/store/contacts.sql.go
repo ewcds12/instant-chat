@@ -37,6 +37,22 @@ func (q *Queries) AcceptContactRelationship(ctx context.Context, arg AcceptConta
 	)
 }
 
+const cancelContactRelationship = `-- name: CancelContactRelationship :execresult
+DELETE FROM contact_relationships
+WHERE id = ?
+  AND status = 'pending'
+  AND requested_by_user_id = ?
+`
+
+type CancelContactRelationshipParams struct {
+	RelationshipID uint64 `db:"relationship_id"`
+	CurrentUserID  uint64 `db:"current_user_id"`
+}
+
+func (q *Queries) CancelContactRelationship(ctx context.Context, arg CancelContactRelationshipParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, cancelContactRelationship, arg.RelationshipID, arg.CurrentUserID)
+}
+
 const contactRelationshipStatus = `-- name: ContactRelationshipStatus :one
 SELECT status
 FROM contact_relationships
