@@ -2,18 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
-import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
 class MessageHeader extends StatelessWidget {
   const MessageHeader({
     required this.conversation,
-    required this.accessToken,
     required this.onSearch,
     super.key,
   });
 
   final Conversation conversation;
-  final String accessToken;
   final VoidCallback onSearch;
 
   @override
@@ -25,6 +22,7 @@ class MessageHeader extends StatelessWidget {
       borderColor: Colors.transparent,
       shadows: const [],
       child: Container(
+        key: const Key('message-header'),
         height: 66,
         padding: const EdgeInsets.symmetric(horizontal: 18),
         decoration: BoxDecoration(
@@ -32,13 +30,6 @@ class MessageHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ProfileAvatar(
-              name: conversation.peer.displayName,
-              accessToken: accessToken,
-              avatarUrl: conversation.peer.avatarUrl,
-              radius: 19,
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,

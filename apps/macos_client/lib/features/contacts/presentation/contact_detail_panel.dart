@@ -58,7 +58,6 @@ class _ContactDetail extends StatelessWidget {
       children: [
         _ContactDetailHeader(
           contact: contact,
-          accessToken: accessToken,
           disabled: disabled,
           onRemove: onRemove,
         ),
@@ -81,19 +80,16 @@ class _ContactDetail extends StatelessWidget {
 class _ContactDetailHeader extends StatelessWidget {
   const _ContactDetailHeader({
     required this.contact,
-    required this.accessToken,
     required this.disabled,
     required this.onRemove,
   });
 
   final Contact contact;
-  final String accessToken;
   final bool disabled;
   final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
-    final user = contact.user;
     final colors = Theme.of(context).colorScheme;
     return GlassPanel(
       radius: 0,
@@ -109,13 +105,6 @@ class _ContactDetailHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
-            ProfileAvatar(
-              name: user.displayName,
-              accessToken: accessToken,
-              avatarUrl: user.avatarUrl,
-              radius: 19,
-            ),
-            const SizedBox(width: 12),
             Expanded(child: _HeaderIdentity(contact: contact)),
             PopupMenuButton<_ContactMenuAction>(
               tooltip: 'Contact options',

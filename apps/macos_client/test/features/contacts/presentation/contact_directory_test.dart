@@ -9,6 +9,7 @@ import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_directory_list.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_page.dart';
+import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 void main() {
@@ -79,6 +80,13 @@ void main() {
       expect(
         tester.getSize(find.byKey(const Key('contact-detail-header'))).height,
         RetroMetrics.contactDetailHeaderHeight,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const Key('contact-detail-header')),
+          matching: find.byType(ProfileAvatar),
+        ),
+        findsNothing,
       );
       expect(
         tester.getSize(find.byKey(const Key('contact-detail-message'))).height,

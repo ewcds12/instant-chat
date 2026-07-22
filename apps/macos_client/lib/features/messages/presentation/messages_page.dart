@@ -59,7 +59,6 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       children: [
         MessageHeader(
           conversation: widget.conversation,
-          accessToken: session.accessToken,
           onSearch: () =>
               showMessageSearch(context, state.value?.messages ?? const []),
         ),

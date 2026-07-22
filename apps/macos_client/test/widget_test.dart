@@ -10,6 +10,7 @@ import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
+import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 import 'package:instant_chat/features/system_status/domain/service_health.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
@@ -216,6 +217,13 @@ void main() {
     expect(find.byTooltip('More options'), findsNothing);
     expect(find.byTooltip('Add attachment'), findsOneWidget);
     expect(find.byTooltip('Insert emoji'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('message-header')),
+        matching: find.byType(ProfileAvatar),
+      ),
+      findsNothing,
+    );
     await tester.enterText(find.byKey(const Key('message-composer')), 'Hello.');
     await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();
