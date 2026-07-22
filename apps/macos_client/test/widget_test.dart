@@ -215,7 +215,7 @@ void main() {
     expect(find.byTooltip('Search messages'), findsOneWidget);
     expect(find.byTooltip('More options'), findsNothing);
     expect(find.byTooltip('Add attachment'), findsOneWidget);
-    expect(find.byTooltip('Insert emoji'), findsOneWidget);
+    expect(find.byTooltip('Insert emoji'), findsNothing);
     await tester.enterText(find.byKey(const Key('message-composer')), 'Hello.');
     await tester.testTextInput.receiveAction(TextInputAction.send);
     await tester.pumpAndSettle();

@@ -32,6 +32,15 @@ void main() {
       ),
     );
 
+    expect(find.byTooltip('Insert emoji'), findsNothing);
+    expect(
+      tester.getSize(find.byKey(const Key('message-composer-bar'))).height,
+      greaterThanOrEqualTo(RetroMetrics.composerBarHeight),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('message-send-button'))),
+      const Size.square(RetroMetrics.composerSendDiameter),
+    );
     await tester.tap(find.byTooltip('Add attachment'));
     await tester.pumpAndSettle();
     expect(find.text('Photo…'), findsOneWidget);

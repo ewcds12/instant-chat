@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/presentation/message_attachment_menu.dart';
 
@@ -44,36 +43,49 @@ class _MessageComposerState extends State<MessageComposer>
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return GlassPanel(
-      radius: 0,
-      tint: RetroColors.glassStrong,
-      borderColor: Colors.transparent,
-      shadows: const [],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        RetroMetrics.composerHorizontalInset,
+        RetroMetrics.composerTopInset,
+        RetroMetrics.composerHorizontalInset,
+        RetroMetrics.composerBottomInset,
+      ),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+        key: const Key('message-composer-bar'),
+        constraints: const BoxConstraints(
+          minHeight: RetroMetrics.composerBarHeight,
+        ),
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: colors.outlineVariant)),
+          color: colors.surface.withValues(alpha: 0.9),
+          border: Border.all(color: colors.outlineVariant),
+          borderRadius: BorderRadius.circular(RetroMetrics.cornerPill),
+          boxShadow: [
+            BoxShadow(
+              color: colors.shadow,
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             CompositedTransformTarget(
               link: _menuLink,
               child: Tooltip(
                 message: 'Add attachment',
                 child: SizedBox.square(
-                  dimension: RetroMetrics.composerControlHeight,
-                  child: IconButton.outlined(
+                  dimension: RetroMetrics.composerBarHeight,
+                  child: IconButton(
                     onPressed: widget.disabled ? null : _toggleMenu,
-                    icon: const Icon(Icons.add_rounded, size: 18),
+                    icon: const Icon(Icons.add_rounded, size: 24),
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
             Expanded(child: _ComposerField(widget: widget)),
-            const SizedBox(width: 12),
+            const SizedBox(width: RetroMetrics.spaceSmall),
             _SendButton(disabled: widget.disabled, onSend: widget.onSend),
+            const SizedBox(width: 6),
           ],
         ),
       ),
@@ -168,7 +180,6 @@ class _ComposerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return TextField(
       key: const Key('message-composer'),
       controller: widget.controller,
@@ -183,46 +194,20 @@ class _ComposerField extends StatelessWidget {
         hintText: 'Message ${widget.recipientName}',
         counterText: '',
         isDense: true,
-        fillColor: RetroColors.glass,
+        filled: false,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
+          horizontal: RetroMetrics.spaceSmall,
           vertical: 10,
         ),
-        suffixIconConstraints: const BoxConstraints(
-          minWidth: RetroMetrics.composerControlHeight,
-          minHeight: RetroMetrics.composerControlHeight,
-        ),
-        suffixIcon: IconButton(
-          tooltip: 'Insert emoji',
-          onPressed: widget.disabled ? null : _insertEmoji,
-          icon: const Icon(Icons.sentiment_satisfied_alt, size: 17),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(22),
-          borderSide: BorderSide(color: colors.outlineVariant),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(22),
-          borderSide: BorderSide(color: colors.primary),
-        ),
+        border: InputBorder.none,
+        enabledBorder: InputBorder.none,
+        focusedBorder: InputBorder.none,
       ),
       onSubmitted: (_) {
         if (!widget.disabled) {
           widget.onSend();
         }
       },
-    );
-  }
-
-  void _insertEmoji() {
-    final selection = widget.controller.selection;
-    final offset = selection.isValid
-        ? selection.start
-        : widget.controller.text.length;
-    final updated = widget.controller.text.replaceRange(offset, offset, '🙂');
-    widget.controller.value = TextEditingValue(
-      text: updated,
-      selection: TextSelection.collapsed(offset: offset + 2),
     );
   }
 }
@@ -238,10 +223,11 @@ class _SendButton extends StatelessWidget {
     return Tooltip(
       message: 'Send message',
       child: SizedBox.square(
-        dimension: RetroMetrics.composerControlHeight,
+        key: const Key('message-send-button'),
+        dimension: RetroMetrics.composerSendDiameter,
         child: FilledButton(
           style: FilledButton.styleFrom(
-            minimumSize: const Size.square(RetroMetrics.composerControlHeight),
+            minimumSize: const Size.square(RetroMetrics.composerSendDiameter),
             padding: EdgeInsets.zero,
             shape: const CircleBorder(),
           ),
@@ -251,7 +237,7 @@ class _SendButton extends StatelessWidget {
                   dimension: 18,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Icon(Icons.send_rounded, size: 18),
+              : const Icon(Icons.arrow_upward_rounded, size: 20),
         ),
       ),
     );

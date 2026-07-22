@@ -11,6 +11,11 @@ abstract final class RetroMetrics {
   static const sidebarWidth = 180.0;
   static const conversationColumnWidth = 280.0;
   static const composerControlHeight = 38.0;
+  static const composerBarHeight = 44.0;
+  static const composerSendDiameter = 34.0;
+  static const composerHorizontalInset = 20.0;
+  static const composerTopInset = 4.0;
+  static const composerBottomInset = 12.0;
   static const maxAuthPanelWidth = 420.0;
   static const maxPanelWidth = 760.0;
   static const maxProfilePanelWidth = 480.0;

@@ -64,52 +64,65 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
               showMessageSearch(context, state.value?.messages ?? const []),
         ),
         Expanded(
-          child: state.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, _) =>
-                _LoadFailure(onRetry: () => ref.invalidate(provider)),
-            data: (value) {
-              _viewportTracker.schedule(value, _historyScroll, () => mounted);
-              _readTracker.schedule(
-                state: value,
-                markRead: (sequence) => ref
-                    .read(conversationsControllerProvider.notifier)
-                    .markRead(widget.conversation.id, sequence),
-              );
-              return MessageHistory(
-                value: value,
-                scrollController: _historyScroll,
-                accessToken: session.accessToken,
-                currentUserId: session.user.id,
-                onLoadOlder: () => ref.read(provider.notifier).loadOlder(),
-                onOpenFile: (file) => _openFile(provider, file),
-                onDownloadImage: (image) => _downloadImage(provider, image),
-                onRecall: (message) =>
-                    ref.read(provider.notifier).recall(message),
-                onDelete: (message) =>
-                    ref.read(provider.notifier).delete(message),
-              );
-            },
+          child: Column(
+            children: [
+              Expanded(
+                child: state.when(
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                  error: (_, _) =>
+                      _LoadFailure(onRetry: () => ref.invalidate(provider)),
+                  data: (value) {
+                    _viewportTracker.schedule(
+                      value,
+                      _historyScroll,
+                      () => mounted,
+                    );
+                    _readTracker.schedule(
+                      state: value,
+                      markRead: (sequence) => ref
+                          .read(conversationsControllerProvider.notifier)
+                          .markRead(widget.conversation.id, sequence),
+                    );
+                    return MessageHistory(
+                      value: value,
+                      scrollController: _historyScroll,
+                      accessToken: session.accessToken,
+                      currentUserId: session.user.id,
+                      onLoadOlder: () =>
+                          ref.read(provider.notifier).loadOlder(),
+                      onOpenFile: (file) => _openFile(provider, file),
+                      onDownloadImage: (image) =>
+                          _downloadImage(provider, image),
+                      onRecall: (message) =>
+                          ref.read(provider.notifier).recall(message),
+                      onDelete: (message) =>
+                          ref.read(provider.notifier).delete(message),
+                    );
+                  },
+                ),
+              ),
+              if (state.value case final value?) ...[
+                if (value.errorMessage case final message?)
+                  _ErrorBar(message: message),
+                if (value.failedMessage != null)
+                  _RetryBar(
+                    disabled: value.isSending,
+                    onRetry: () => ref.read(provider.notifier).retry(),
+                  ),
+                MessageComposer(
+                  controller: _composer,
+                  focusNode: _composerFocus,
+                  disabled: value.isSending,
+                  recipientName: widget.conversation.peer.displayName,
+                  onSend: () => _send(provider),
+                  onPickImage: () => _pickAndSendImage(provider),
+                  onPickFile: () => _pickAndSendFile(provider),
+                ),
+              ],
+            ],
           ),
         ),
-        if (state.value case final value?) ...[
-          if (value.errorMessage case final message?)
-            _ErrorBar(message: message),
-          if (value.failedMessage != null)
-            _RetryBar(
-              disabled: value.isSending,
-              onRetry: () => ref.read(provider.notifier).retry(),
-            ),
-          MessageComposer(
-            controller: _composer,
-            focusNode: _composerFocus,
-            disabled: value.isSending,
-            recipientName: widget.conversation.peer.displayName,
-            onSend: () => _send(provider),
-            onPickImage: () => _pickAndSendImage(provider),
-            onPickFile: () => _pickAndSendFile(provider),
-          ),
-        ],
       ],
     );
   }
