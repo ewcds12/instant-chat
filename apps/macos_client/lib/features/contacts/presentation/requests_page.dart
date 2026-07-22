@@ -33,51 +33,35 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
         ),
       ),
       data: (requests) => LiquidGradientBackground(
-        child: Padding(
-          padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-          child: GlassPanel(
-            tint: RetroColors.glassStrong,
-            padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Requests',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Refresh requests',
-                      onPressed: requests.isSubmitting
-                          ? null
-                          : () => ref
-                                .read(contactsControllerProvider.notifier)
-                                .refresh(),
-                      icon: const Icon(Icons.refresh_rounded),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: RetroMetrics.spaceSmall),
-                Text(
-                  'Review new contact requests and track the ones you sent.',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+        child: Column(
+          children: [
+            _RequestsHeader(
+              isRefreshing: requests.isSubmitting,
+              onRefresh: () =>
+                  ref.read(contactsControllerProvider.notifier).refresh(),
+            ),
+            Expanded(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: RetroMetrics.maxPanelWidth,
                   ),
-                ),
-                if (requests.errorMessage case final message?) ...[
-                  const SizedBox(height: RetroMetrics.spaceMedium),
-                  _RequestError(message: message),
-                ],
-                const SizedBox(height: RetroMetrics.spaceLarge),
-                Expanded(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final incoming = RequestSection(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(
+                      RetroMetrics.spaceLarge,
+                      RetroMetrics.spaceLarge,
+                      RetroMetrics.spaceLarge,
+                      RetroMetrics.spaceLarge * 2,
+                    ),
+                    children: [
+                      if (requests.errorMessage case final message?) ...[
+                        _RequestError(message: message),
+                        const SizedBox(height: RetroMetrics.spaceMedium),
+                      ],
+                      RequestSection(
                         title: 'Incoming',
-                        description: 'People waiting for your approval.',
+                        countLabel: '${requests.incoming.length} pending',
                         requests: requests.incoming,
                         accessToken: session.accessToken,
                         isIncoming: true,
@@ -87,10 +71,11 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
                             .read(contactsControllerProvider.notifier)
                             .reject(request.id),
                         onCancel: (_) {},
-                      );
-                      final outgoing = RequestSection(
+                      ),
+                      const SizedBox(height: RetroMetrics.spaceLarge),
+                      RequestSection(
                         title: 'Sent',
-                        description: 'Requests waiting for a response.',
+                        countLabel: '${requests.outgoing.length} pending',
                         requests: requests.outgoing,
                         accessToken: session.accessToken,
                         isIncoming: false,
@@ -99,33 +84,13 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
                         onDecline: (_) {},
                         onCancel: (request) =>
                             _confirmCancel(context, ref, request),
-                      );
-                      if (constraints.maxWidth <
-                          RetroMetrics.contactLayoutBreakpoint) {
-                        return ListView(
-                          children: [
-                            incoming,
-                            const SizedBox(height: RetroMetrics.spaceLarge),
-                            outgoing,
-                          ],
-                        );
-                      }
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: incoming),
-                          const VerticalDivider(
-                            width: RetroMetrics.spaceLarge * 2,
-                          ),
-                          Expanded(child: outgoing),
-                        ],
-                      );
-                    },
+                      ),
+                    ],
                   ),
                 ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -168,6 +133,54 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
       return;
     }
     await ref.read(contactsControllerProvider.notifier).cancel(request.id);
+  }
+}
+
+class _RequestsHeader extends StatelessWidget {
+  const _RequestsHeader({required this.isRefreshing, required this.onRefresh});
+
+  final bool isRefreshing;
+  final VoidCallback onRefresh;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: 0.76),
+        border: Border(bottom: BorderSide(color: colors.outlineVariant)),
+      ),
+      child: SizedBox(
+        height: RetroMetrics.contactDetailHeaderHeight,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: RetroMetrics.spaceLarge,
+          ),
+          child: Row(
+            children: [
+              Text('Requests', style: Theme.of(context).textTheme.titleLarge),
+              const Spacer(),
+              SizedBox(
+                width: RetroMetrics.composerControlHeight,
+                height: RetroMetrics.composerControlHeight,
+                child: IconButton(
+                  tooltip: 'Refresh requests',
+                  padding: EdgeInsets.zero,
+                  onPressed: isRefreshing ? null : onRefresh,
+                  icon: isRefreshing
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.refresh_rounded, size: 20),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -45,7 +45,7 @@ void main() {
 
     expect(find.text('Incoming'), findsOneWidget);
     expect(find.text('Sent'), findsOneWidget);
-    expect(find.text('Pending'), findsOneWidget);
+    expect(find.text('1 pending'), findsNWidgets(2));
 
     await tester.tap(find.text('Accept'));
     await tester.pump();
