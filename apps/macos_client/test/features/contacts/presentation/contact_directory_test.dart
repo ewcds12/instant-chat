@@ -75,6 +75,7 @@ void main() {
             .height,
         RetroMetrics.contactSearchHeight,
       );
+      expect(find.byTooltip('Refresh contacts'), findsNothing);
       expect(
         tester.getSize(find.byKey(const Key('contact-detail-header'))).height,
         RetroMetrics.contactDetailHeaderHeight,

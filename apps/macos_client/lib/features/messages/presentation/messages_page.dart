@@ -62,7 +62,6 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
           accessToken: session.accessToken,
           onSearch: () =>
               showMessageSearch(context, state.value?.messages ?? const []),
-          onRefresh: () => ref.invalidate(provider),
         ),
         Expanded(
           child: state.when(

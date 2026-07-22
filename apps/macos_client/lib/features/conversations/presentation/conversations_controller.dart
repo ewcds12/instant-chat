@@ -93,10 +93,7 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
     return ConversationsState(conversations: await _gateway.list(_accessToken));
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(build);
-  }
+  Future<void> refreshSilently() async => _queueSynchronization();
 
   Future<void> create(String contactUserId) async {
     final current = state.requireValue;

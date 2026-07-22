@@ -35,11 +35,7 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
       data: (requests) => LiquidGradientBackground(
         child: Column(
           children: [
-            _RequestsHeader(
-              isRefreshing: requests.isSubmitting,
-              onRefresh: () =>
-                  ref.read(contactsControllerProvider.notifier).refresh(),
-            ),
+            const _RequestsHeader(),
             Expanded(
               child: Align(
                 alignment: Alignment.topCenter,
@@ -137,10 +133,7 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
 }
 
 class _RequestsHeader extends StatelessWidget {
-  const _RequestsHeader({required this.isRefreshing, required this.onRefresh});
-
-  final bool isRefreshing;
-  final VoidCallback onRefresh;
+  const _RequestsHeader();
 
   @override
   Widget build(BuildContext context) {
@@ -159,23 +152,6 @@ class _RequestsHeader extends StatelessWidget {
           child: Row(
             children: [
               Text('Requests', style: Theme.of(context).textTheme.titleLarge),
-              const Spacer(),
-              SizedBox(
-                width: RetroMetrics.composerControlHeight,
-                height: RetroMetrics.composerControlHeight,
-                child: IconButton(
-                  tooltip: 'Refresh requests',
-                  padding: EdgeInsets.zero,
-                  onPressed: isRefreshing ? null : onRefresh,
-                  icon: isRefreshing
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.refresh_rounded, size: 20),
-                ),
-              ),
             ],
           ),
         ),

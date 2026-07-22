@@ -75,6 +75,7 @@ class ContactsState {
 class ContactsController extends AsyncNotifier<ContactsState> {
   ContactGateway get _gateway => ref.read(contactGatewayProvider);
   StreamSubscription<PublicUser>? _profileSubscription;
+  Future<void>? _silentRefresh;
 
   String get _accessToken {
     final session = ref.read(authControllerProvider).requireValue.session;
@@ -96,9 +97,18 @@ class ContactsController extends AsyncNotifier<ContactsState> {
     return _load();
   }
 
-  Future<void> refresh() async {
-    state = const AsyncLoading();
-    state = await AsyncValue.guard(_load);
+  Future<void> refreshSilently() {
+    final inFlight = _silentRefresh;
+    if (inFlight != null) {
+      return inFlight;
+    }
+    final current = state.asData?.value;
+    if (current == null || current.isSubmitting) {
+      return Future.value();
+    }
+    final refresh = _refreshSnapshot(current);
+    _silentRefresh = refresh.whenComplete(() => _silentRefresh = null);
+    return _silentRefresh!;
   }
 
   Future<void> search(String username) async {
@@ -183,6 +193,21 @@ class ContactsController extends AsyncNotifier<ContactsState> {
       incoming: requests.incoming,
       outgoing: requests.outgoing,
     );
+  }
+
+  Future<void> _refreshSnapshot(ContactsState current) async {
+    try {
+      final refreshed = await _load();
+      final latest = state.asData?.value;
+      if (!ref.mounted || latest == null || latest.isSubmitting) {
+        return;
+      }
+      state = AsyncData(refreshed.copyWith(searchResult: latest.searchResult));
+    } on ApiFailure {
+      // Keep the visible snapshot intact for a background navigation refresh.
+    } on FormatException {
+      // Keep the visible snapshot intact for a background navigation refresh.
+    }
   }
 
   Future<void> _mutate(Future<Object?> Function() action) async {

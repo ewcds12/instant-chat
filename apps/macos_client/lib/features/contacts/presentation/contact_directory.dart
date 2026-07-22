@@ -19,7 +19,6 @@ class ContactDirectory extends StatelessWidget {
     required this.onQueryChanged,
     required this.onSearchExactId,
     required this.onSendRequest,
-    required this.onRefresh,
     required this.onSelect,
     super.key,
   });
@@ -35,7 +34,6 @@ class ContactDirectory extends StatelessWidget {
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onSearchExactId;
   final VoidCallback onSendRequest;
-  final VoidCallback onRefresh;
   final ValueChanged<Contact> onSelect;
 
   @override
@@ -50,27 +48,15 @@ class ContactDirectory extends StatelessWidget {
         children: [
           Padding(
             padding: const EdgeInsets.fromLTRB(12, 18, 12, 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SizedBox(
-                    key: const Key('contact-directory-search-box'),
-                    height: RetroMetrics.contactSearchHeight,
-                    child: _DirectorySearchField(
-                      controller: searchController,
-                      disabled: isSubmitting,
-                      onChanged: onQueryChanged,
-                      onSubmit: onSearchExactId,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: RetroMetrics.spaceSmall),
-                IconButton(
-                  tooltip: 'Refresh contacts',
-                  onPressed: isSubmitting ? null : onRefresh,
-                  icon: const Icon(Icons.refresh_rounded, size: 18),
-                ),
-              ],
+            child: SizedBox(
+              key: const Key('contact-directory-search-box'),
+              height: RetroMetrics.contactSearchHeight,
+              child: _DirectorySearchField(
+                controller: searchController,
+                disabled: isSubmitting,
+                onChanged: onQueryChanged,
+                onSubmit: onSearchExactId,
+              ),
             ),
           ),
           if (isSubmitting) const LinearProgressIndicator(minHeight: 1),

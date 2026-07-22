@@ -63,8 +63,6 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                 onSendRequest: () => ref
                     .read(contactsControllerProvider.notifier)
                     .sendSearchResult(),
-                onRefresh: () =>
-                    ref.read(contactsControllerProvider.notifier).refresh(),
                 onSelect: (contact) => ref
                     .read(selectedContactUserIdProvider.notifier)
                     .select(contact.user.id),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/shell_navigation_refresh.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
@@ -41,7 +42,13 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
             _AppSidebar(
               session: widget.session,
               selectedIndex: _selectedIndex,
-              onSelect: (index) => setState(() => _selectedIndex = index),
+              onSelect: (index) {
+                if (index == _selectedIndex) {
+                  refreshShellPage(ref, index);
+                  return;
+                }
+                setState(() => _selectedIndex = index);
+              },
               onOpenProfile: () =>
                   showProfileSheet(context: context, session: widget.session),
             ),

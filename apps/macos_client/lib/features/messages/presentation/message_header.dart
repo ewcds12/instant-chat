@@ -9,14 +9,12 @@ class MessageHeader extends StatelessWidget {
     required this.conversation,
     required this.accessToken,
     required this.onSearch,
-    required this.onRefresh,
     super.key,
   });
 
   final Conversation conversation;
   final String accessToken;
   final VoidCallback onSearch;
-  final VoidCallback onRefresh;
 
   @override
   Widget build(BuildContext context) {
@@ -68,26 +66,9 @@ class MessageHeader extends StatelessWidget {
               onPressed: onSearch,
               icon: const Icon(Icons.search_rounded, size: 19),
             ),
-            PopupMenuButton<_HeaderAction>(
-              tooltip: 'More options',
-              icon: const Icon(Icons.more_horiz_rounded, size: 19),
-              onSelected: (action) {
-                if (action == _HeaderAction.refresh) {
-                  onRefresh();
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: _HeaderAction.refresh,
-                  child: Text('Refresh messages'),
-                ),
-              ],
-            ),
           ],
         ),
       ),
     );
   }
 }
-
-enum _HeaderAction { refresh }

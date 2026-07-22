@@ -46,6 +46,7 @@ void main() {
     expect(find.text('Incoming'), findsOneWidget);
     expect(find.text('Sent'), findsOneWidget);
     expect(find.text('1 pending'), findsNWidgets(2));
+    expect(find.byTooltip('Refresh requests'), findsNothing);
 
     await tester.tap(find.text('Accept'));
     await tester.pump();
