@@ -71,12 +71,12 @@ class MessageViewportTracker {
         )
         .then(
           (_) => WidgetsBinding.instance.addPostFrameCallback(
-            (_) => _snapToBottom(controller, isActive),
+            (_) => snapToBottom(controller, isActive),
           ),
         );
   }
 
-  void _snapToBottom(ScrollController controller, bool Function() isActive) {
+  void snapToBottom(ScrollController controller, bool Function() isActive) {
     if (!isActive() || !controller.hasClients) {
       return;
     }

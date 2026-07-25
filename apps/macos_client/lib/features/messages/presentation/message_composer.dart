@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/presentation/message_attachment_menu.dart';
+import 'package:instant_chat/features/messages/presentation/message_composer_controls.dart';
 
 class MessageComposer extends StatefulWidget {
   const MessageComposer({
@@ -29,6 +30,7 @@ class MessageComposer extends StatefulWidget {
 class _MessageComposerState extends State<MessageComposer>
     with TickerProviderStateMixin {
   final _menuLink = LayerLink();
+  final _fieldKey = GlobalKey();
   OverlayEntry? _menuEntry;
   AnimationController? _menuController;
   var _closingMenu = false;
@@ -50,46 +52,157 @@ class _MessageComposerState extends State<MessageComposer>
         RetroMetrics.composerHorizontalInset,
         RetroMetrics.composerBottomInset,
       ),
-      child: Container(
-        key: const Key('message-composer-bar'),
-        constraints: const BoxConstraints(
-          minHeight: RetroMetrics.composerBarHeight,
-        ),
-        decoration: BoxDecoration(
-          color: colors.surface.withValues(alpha: 0.9),
-          border: Border.all(color: colors.outlineVariant),
-          borderRadius: BorderRadius.circular(RetroMetrics.cornerPill),
-          boxShadow: [
-            BoxShadow(
-              color: colors.shadow,
-              blurRadius: 18,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            CompositedTransformTarget(
-              link: _menuLink,
-              child: Tooltip(
-                message: 'Add attachment',
-                child: SizedBox.square(
-                  dimension: RetroMetrics.composerBarHeight,
-                  child: IconButton(
-                    onPressed: widget.disabled ? null : _toggleMenu,
-                    icon: const Icon(Icons.add_rounded, size: 24),
-                  ),
-                ),
-              ),
-            ),
-            Expanded(child: _ComposerField(widget: widget)),
-            const SizedBox(width: RetroMetrics.spaceSmall),
-            _SendButton(disabled: widget.disabled, onSend: widget.onSend),
-            const SizedBox(width: 6),
-          ],
+      child: LayoutBuilder(
+        builder: (context, constraints) => AnimatedBuilder(
+          animation: widget.controller,
+          builder: (context, _) =>
+              _buildBar(context, colors, constraints.maxWidth),
         ),
       ),
     );
+  }
+
+  Widget _buildBar(BuildContext context, ColorScheme colors, double width) {
+    final expanded = _needsExpandedLayout(context, width);
+    return Container(
+      key: const Key('message-composer-bar'),
+      constraints: const BoxConstraints(
+        minHeight: RetroMetrics.composerBarHeight,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surface.withValues(alpha: 0.9),
+        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(RetroMetrics.composerCornerRadius),
+        boxShadow: [
+          BoxShadow(
+            color: colors.shadow,
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: expanded ? _buildExpandedLayout() : _buildCollapsedLayout(),
+    );
+  }
+
+  Widget _buildCollapsedLayout() {
+    return Padding(
+      key: const Key('message-composer-collapsed'),
+      padding: const EdgeInsets.symmetric(
+        horizontal: RetroMetrics.composerActionInset,
+      ),
+      child: Row(
+        children: [
+          _buildAttachmentButton(),
+          const SizedBox(width: RetroMetrics.composerActionInset),
+          Expanded(child: _buildField(expanded: false)),
+          const SizedBox(width: RetroMetrics.spaceSmall),
+          _buildSendButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildExpandedLayout() {
+    return Column(
+      key: const Key('message-composer-expanded'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildField(expanded: true),
+        SizedBox(
+          key: const Key('message-composer-actions'),
+          height: RetroMetrics.composerExpandedActionHeight,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              0,
+              0,
+              RetroMetrics.composerActionInset,
+              RetroMetrics.composerActionInset,
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                _buildAttachmentButton(),
+                const Spacer(),
+                _buildSendButton(),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildField({required bool expanded}) {
+    return MessageComposerField(
+      fieldKey: _fieldKey,
+      controller: widget.controller,
+      focusNode: widget.focusNode,
+      disabled: widget.disabled,
+      expanded: expanded,
+      recipientName: widget.recipientName,
+      onSend: widget.onSend,
+    );
+  }
+
+  Widget _buildAttachmentButton() {
+    return CompositedTransformTarget(
+      link: _menuLink,
+      child: Tooltip(
+        message: 'Add attachment',
+        child: SizedBox.square(
+          key: const Key('message-attachment-button'),
+          dimension: RetroMetrics.composerSendDiameter,
+          child: Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: widget.disabled ? null : _toggleMenu,
+              child: const Center(child: Icon(Icons.add_rounded, size: 20)),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSendButton() {
+    return MessageComposerSendButton(
+      disabled: widget.disabled,
+      onSend: widget.onSend,
+    );
+  }
+
+  bool _needsExpandedLayout(BuildContext context, double width) {
+    final text = widget.controller.text;
+    if (text.isEmpty) {
+      return false;
+    }
+    if (text.contains('\n')) {
+      return true;
+    }
+    final chromeWidth =
+        (RetroMetrics.composerActionInset * 3) +
+        (RetroMetrics.composerSendDiameter * 2) +
+        RetroMetrics.spaceSmall +
+        (RetroMetrics.spaceSmall * 2);
+    final textWidth = width - chromeWidth;
+    if (textWidth <= 0) {
+      return true;
+    }
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: MessageComposerField.textStyle(context),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 1,
+    )..layout(maxWidth: textWidth);
+    return painter.didExceedMaxLines;
   }
 
   void _toggleMenu() {
@@ -170,76 +283,5 @@ class _MessageComposerState extends State<MessageComposer>
       entry.remove();
       controller.dispose();
     });
-  }
-}
-
-class _ComposerField extends StatelessWidget {
-  const _ComposerField({required this.widget});
-
-  final MessageComposer widget;
-
-  @override
-  Widget build(BuildContext context) {
-    return TextField(
-      key: const Key('message-composer'),
-      controller: widget.controller,
-      focusNode: widget.focusNode,
-      enabled: !widget.disabled,
-      minLines: 1,
-      maxLines: 5,
-      maxLength: 4000,
-      textInputAction: TextInputAction.send,
-      style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14),
-      decoration: InputDecoration(
-        hintText: 'Message ${widget.recipientName}',
-        counterText: '',
-        isDense: true,
-        filled: false,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: RetroMetrics.spaceSmall,
-          vertical: 10,
-        ),
-        border: InputBorder.none,
-        enabledBorder: InputBorder.none,
-        focusedBorder: InputBorder.none,
-      ),
-      onSubmitted: (_) {
-        if (!widget.disabled) {
-          widget.onSend();
-        }
-      },
-    );
-  }
-}
-
-class _SendButton extends StatelessWidget {
-  const _SendButton({required this.disabled, required this.onSend});
-
-  final bool disabled;
-  final VoidCallback onSend;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: 'Send message',
-      child: SizedBox.square(
-        key: const Key('message-send-button'),
-        dimension: RetroMetrics.composerSendDiameter,
-        child: FilledButton(
-          style: FilledButton.styleFrom(
-            minimumSize: const Size.square(RetroMetrics.composerSendDiameter),
-            padding: EdgeInsets.zero,
-            shape: const CircleBorder(),
-          ),
-          onPressed: disabled ? null : onSend,
-          child: disabled
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.arrow_upward_rounded, size: 20),
-        ),
-      ),
-    );
   }
 }

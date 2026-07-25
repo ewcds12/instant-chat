@@ -109,14 +109,22 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     disabled: value.isSending,
                     onRetry: () => ref.read(provider.notifier).retry(),
                   ),
-                MessageComposer(
-                  controller: _composer,
-                  focusNode: _composerFocus,
-                  disabled: value.isSending,
-                  recipientName: widget.conversation.peer.displayName,
-                  onSend: () => _send(provider),
-                  onPickImage: () => _pickAndSendImage(provider),
-                  onPickFile: () => _pickAndSendFile(provider),
+                NotificationListener<SizeChangedLayoutNotification>(
+                  onNotification: (_) {
+                    _snapHistoryToBottom();
+                    return false;
+                  },
+                  child: SizeChangedLayoutNotifier(
+                    child: MessageComposer(
+                      controller: _composer,
+                      focusNode: _composerFocus,
+                      disabled: value.isSending,
+                      recipientName: widget.conversation.peer.displayName,
+                      onSend: () => _send(provider),
+                      onPickImage: () => _pickAndSendImage(provider),
+                      onPickFile: () => _pickAndSendFile(provider),
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -223,6 +231,12 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
         return;
       }
       _composerFocus.requestFocus();
+    });
+  }
+
+  void _snapHistoryToBottom() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _viewportTracker.snapToBottom(_historyScroll, () => mounted);
     });
   }
 }

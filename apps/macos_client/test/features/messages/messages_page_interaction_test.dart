@@ -94,6 +94,51 @@ void main() {
     );
   });
 
+  testWidgets('keeps the history at the bottom when the composer expands', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(900, 520));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final gateway = StubMessageGateway(
+      _session.user,
+      initialMessages: List.generate(
+        28,
+        (index) => _message('$index', 'Message $index', sequence: '$index'),
+      ),
+    );
+    final container = await _container(gateway: gateway);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(tester, find.byKey(const Key('message-history-list')));
+
+    await tester.drag(
+      find.byKey(const Key('message-history-list')),
+      const Offset(0, 420),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const Key('message-composer')));
+    await tester.sendKeyDownEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
+    await tester.pump();
+    await tester.pump();
+
+    final composer = tester.widget<TextField>(
+      find.byKey(const Key('message-composer')),
+    );
+    final listView = tester.widget<ListView>(
+      find.byKey(const Key('message-history-list')),
+    );
+    expect(composer.focusNode?.hasPrimaryFocus, isTrue);
+    expect(
+      listView.controller!.position.pixels,
+      moreOrLessEquals(
+        listView.controller!.position.maxScrollExtent,
+        epsilon: 1,
+      ),
+    );
+  });
+
   testWidgets('renders image messages without a chat bubble', (tester) async {
     final gateway = StubMessageGateway(
       _session.user,
