@@ -1,44 +1,40 @@
-# Message Composer Design QA
+# Clipboard Image Composer Design QA
 
 ## Comparison Target
 
-- Source visual truth: `/var/folders/s_/6kx28ks54k1d3d09hs7xsngm0000gn/T/codex-clipboard-4f57a544-2f5f-4f88-b85f-60b30bb2cffd.png`
-- Implementation capture: `/Users/ewcds/Library/Containers/com.ewcds12.instantchat/Data/tmp/instant-chat-composer-native.png`
-- Combined comparison: `/tmp/instant-chat-composer-comparison.png`
-- Source pixels: 1594 × 292.
-- Implementation pixels: 1556 × 246 at a 2× capture density from a 778 logical-pixel component.
-- State: expanded composer containing the same three-line message as the source.
+- Source visual truth: `/var/folders/s_/6kx28ks54k1d3d09hs7xsngm0000gn/T/codex-clipboard-4eec9eca-3d8f-4772-b1c5-cc164e67206f.png`
+- Implementation capture: `/tmp/instant-chat-pasted-image-draft.jpeg`
+- Combined comparison: `/tmp/instant-chat-paste-comparison.png`
+- Source pixels: 1,536 × 428.
+- Implementation window pixels: 1,150 × 722.
+- State: one clipboard image and `Hello guys` staged in the selected conversation.
 
 ## Full-View Comparison
 
-The implementation matches the source's wide rounded container, top-aligned multiline text, separate bottom action row, left attachment control, and bottom-right circular send control. The implementation intentionally omits the source's model label and microphone because those controls are outside the current product scope.
+The implementation preserves the existing Instant Chat composer shell and follows the source hierarchy: image preview first, text directly below it, and an independent bottom action row. The attachment control remains at bottom left and the send control remains at bottom right as the composer expands.
 
 ## Focused Region Comparison
 
-- Typography: the implementation uses the native macOS font at 13 logical pixels and preserves the source's three-line wrapping at the normalized width.
-- Spacing: the text starts 12 logical pixels from the expanded container edge, while the bottom actions remain independently aligned.
-- Geometry: the 20-pixel corner radius and 28-pixel send control reproduce the source proportions. The send control center follows the outer corner geometry.
-- Color: the existing Instant Chat surface, outline, shadow, and primary tokens remain intact instead of introducing a separate ChatGPT palette.
-- Copy: the composer hint remains contextual to the selected recipient; no new unsupported labels were added.
+- The preview is a square, cover-cropped image with the same corner treatment as the product's existing media surfaces.
+- The remove control overlaps the preview's top-right corner and uses a dark translucent circular surface with a white close icon.
+- Text remains left aligned below the preview and retains keyboard focus while the composer changes height.
+- The composer uses existing macOS surface, outline, shadow, type, and primary-color tokens.
+- The source's model label and microphone are intentionally absent because Instant Chat does not provide those functions.
 
-## Comparison History
+The source screenshot itself was used as the clipboard payload during native verification. Its mostly white center therefore appears mostly white when cover-cropped into the preview; this confirms the real clipboard bytes are rendered rather than substituted with a mock asset.
 
-1. The initial implementation kept every control in one row and detected only explicit newline characters. Long visually wrapped text therefore retained an oversized pill shape.
-2. The first correction introduced separate collapsed and expanded layouts plus visual-wrap detection. A native component capture showed excessive text inset and an oversized send control.
-3. The final correction reduced the expanded text inset, aligned the bottom actions, and matched the source's send-control and corner proportions. The revised combined comparison contains no actionable P0, P1, or P2 mismatch.
+## Interaction Verification
+
+- Native macOS Command+V and the Edit > Paste command detect clipboard bitmap data before text paste.
+- Plain-text clipboard content continues through the standard composer paste path.
+- A second pasted image replaces the first staged image and releases the earlier temporary file.
+- The remove control clears only the image draft and preserves typed text.
+- One send action uploads the image first and then sends non-empty text.
+- Successful upload, removal, replacement, conversation disposal, and inactive async completion release app-owned temporary files.
+- The existing 15 MB image upload validation remains authoritative.
 
 ## Findings
 
-No actionable P0, P1, or P2 findings remain. The shorter bottom action row is an intentional product constraint caused by omitting the unsupported model and microphone controls.
-
-## Verification
-
-- Shift+Enter inserts a newline without sending.
-- Enter sends the message.
-- Visually wrapped text switches to the expanded layout without requiring a newline.
-- The attachment and send controls move to the bottom action row.
-- The composer stops growing after eight lines and scrolls internally.
-- Focus remains in the composer after the layout switches.
-- The message history snaps to its newest item when the composer height changes.
+No actionable P0, P1, or P2 visual or interaction findings remain. Image and text persist as two ordered messages because the current API models one message kind per record; the composer does not imply an unsupported compound-message contract.
 
 Final result: passed

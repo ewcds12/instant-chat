@@ -1,6 +1,38 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+
+bool composerNeedsExpandedLayout(
+  BuildContext context,
+  double width,
+  String text, {
+  required bool hasImage,
+}) {
+  if (hasImage || text.contains('\n')) {
+    return true;
+  }
+  if (text.isEmpty) {
+    return false;
+  }
+  final chromeWidth =
+      (RetroMetrics.composerActionInset * 3) +
+      (RetroMetrics.composerSendDiameter * 2) +
+      RetroMetrics.spaceSmall +
+      (RetroMetrics.spaceSmall * 2);
+  final textWidth = width - chromeWidth;
+  if (textWidth <= 0) {
+    return true;
+  }
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: MessageComposerField.textStyle(context)),
+    textDirection: Directionality.of(context),
+    textScaler: MediaQuery.textScalerOf(context),
+    maxLines: 1,
+  )..layout(maxWidth: textWidth);
+  return painter.didExceedMaxLines;
+}
 
 class MessageComposerField extends StatelessWidget {
   const MessageComposerField({
@@ -11,6 +43,7 @@ class MessageComposerField extends StatelessWidget {
     required this.expanded,
     required this.recipientName,
     required this.onSend,
+    this.onPasteImage,
     super.key,
   });
 
@@ -21,6 +54,7 @@ class MessageComposerField extends StatelessWidget {
   final bool expanded;
   final String recipientName;
   final VoidCallback onSend;
+  final Future<bool> Function()? onPasteImage;
 
   static TextStyle textStyle(BuildContext context) {
     return Theme.of(
@@ -30,47 +64,62 @@ class MessageComposerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Focus(
-      key: fieldKey,
-      onKeyEvent: _handleKeyEvent,
-      child: TextField(
-        key: const Key('message-composer'),
-        controller: controller,
-        focusNode: focusNode,
-        enabled: !disabled,
-        minLines: 1,
-        maxLines: RetroMetrics.composerMaxLines,
-        maxLength: 4000,
-        textInputAction: TextInputAction.send,
-        style: textStyle(context),
-        decoration: InputDecoration(
-          hintText: 'Message $recipientName',
-          counterText: '',
-          isDense: true,
-          filled: false,
-          contentPadding: expanded
-              ? const EdgeInsets.fromLTRB(
-                  RetroMetrics.composerExpandedTextHorizontalInset,
-                  RetroMetrics.composerExpandedTextTopInset,
-                  RetroMetrics.composerExpandedTextHorizontalInset,
-                  RetroMetrics.composerExpandedTextBottomInset,
-                )
-              : const EdgeInsets.symmetric(
-                  horizontal: RetroMetrics.spaceSmall,
-                  vertical: 10,
-                ),
-          border: InputBorder.none,
-          enabledBorder: InputBorder.none,
-          focusedBorder: InputBorder.none,
+    return Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.keyV, meta: true):
+            _PasteComposerIntent(),
+        SingleActivator(LogicalKeyboardKey.keyV, control: true):
+            _PasteComposerIntent(),
+      },
+      child: Actions(
+        actions: {
+          _PasteComposerIntent: _ComposerPasteAction(onPasteImage, controller),
+        },
+        child: Focus(
+          key: fieldKey,
+          onKeyEvent: _handleKeyEvent,
+          child: TextField(
+            key: const Key('message-composer'),
+            controller: controller,
+            focusNode: focusNode,
+            enabled: !disabled,
+            minLines: 1,
+            maxLines: RetroMetrics.composerMaxLines,
+            maxLength: 4000,
+            textInputAction: TextInputAction.send,
+            style: textStyle(context),
+            decoration: InputDecoration(
+              hintText: 'Message $recipientName',
+              counterText: '',
+              isDense: true,
+              filled: false,
+              contentPadding: expanded
+                  ? const EdgeInsets.fromLTRB(
+                      RetroMetrics.composerExpandedTextHorizontalInset,
+                      RetroMetrics.composerExpandedTextTopInset,
+                      RetroMetrics.composerExpandedTextHorizontalInset,
+                      RetroMetrics.composerExpandedTextBottomInset,
+                    )
+                  : const EdgeInsets.symmetric(
+                      horizontal: RetroMetrics.spaceSmall,
+                      vertical: 10,
+                    ),
+              border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+            ),
+            onSubmitted: (_) => _send(),
+          ),
         ),
-        onSubmitted: (_) => _send(),
       ),
     );
   }
 
   KeyEventResult _handleKeyEvent(FocusNode _, KeyEvent event) {
-    if (event is! KeyDownEvent ||
-        event.logicalKey != LogicalKeyboardKey.enter) {
+    if (event is! KeyDownEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey != LogicalKeyboardKey.enter) {
       return KeyEventResult.ignored;
     }
     if (HardwareKeyboard.instance.isShiftPressed) {
@@ -82,12 +131,16 @@ class MessageComposerField extends StatelessWidget {
   }
 
   void _insertLineBreak() {
+    _insertText('\n');
+  }
+
+  void _insertText(String text) {
     final selection = controller.selection;
     final start = selection.isValid ? selection.start : controller.text.length;
     final end = selection.isValid ? selection.end : start;
     controller.value = TextEditingValue(
-      text: controller.text.replaceRange(start, end, '\n'),
-      selection: TextSelection.collapsed(offset: start + 1),
+      text: controller.text.replaceRange(start, end, text),
+      selection: TextSelection.collapsed(offset: start + text.length),
     );
   }
 
@@ -96,6 +149,47 @@ class MessageComposerField extends StatelessWidget {
       onSend();
     }
   }
+}
+
+class _PasteComposerIntent extends Intent {
+  const _PasteComposerIntent();
+}
+
+class _ComposerPasteAction extends Action<_PasteComposerIntent> {
+  _ComposerPasteAction(this.onPasteImage, this.controller);
+
+  final Future<bool> Function()? onPasteImage;
+  final TextEditingController controller;
+
+  @override
+  Object? invoke(_PasteComposerIntent intent) {
+    unawaited(_paste());
+    return null;
+  }
+
+  Future<void> _paste() async {
+    if (await onPasteImage?.call() ?? false) {
+      return;
+    }
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = data?.text;
+    if (text == null || text.isEmpty) {
+      return;
+    }
+    final selection = controller.selection;
+    final start = selection.isValid ? selection.start : controller.text.length;
+    final end = selection.isValid ? selection.end : start;
+    controller.value = TextEditingValue(
+      text: controller.text.replaceRange(start, end, text),
+      selection: TextSelection.collapsed(offset: start + text.length),
+    );
+  }
+
+  @override
+  bool get isActionEnabled => true;
+
+  @override
+  bool consumesKey(_PasteComposerIntent intent) => true;
 }
 
 class MessageComposerSendButton extends StatelessWidget {

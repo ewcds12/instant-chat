@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/platform/macos_clipboard_image.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_file_picker.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
@@ -10,11 +11,13 @@ import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_composer.dart';
 import 'package:instant_chat/features/messages/presentation/message_header.dart';
 import 'package:instant_chat/features/messages/presentation/message_history.dart';
+import 'package:instant_chat/features/messages/presentation/message_image_draft.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_search.dart';
 import 'package:instant_chat/features/messages/presentation/message_read_tracker.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
+import 'package:instant_chat/features/messages/presentation/message_status_bars.dart';
 
 class MessagesPage extends ConsumerStatefulWidget {
   const MessagesPage({required this.conversation, super.key});
@@ -31,9 +34,19 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   final _historyScroll = ScrollController();
   final _readTracker = MessageReadTracker();
   final _viewportTracker = MessageViewportTracker();
+  late final MessageImageDraft _imageDraft;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageDraft = MessageImageDraft(ref.read(localClipboardImageProvider));
+    _composerFocus.addListener(_updateNativePasteState);
+  }
 
   @override
   void dispose() {
+    _composerFocus.removeListener(_updateNativePasteState);
+    _imageDraft.dispose();
     _composer.dispose();
     _composerFocus.dispose();
     _historyScroll.dispose();
@@ -46,6 +59,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     if (oldWidget.conversation.id != widget.conversation.id) {
       _readTracker.reset();
       _viewportTracker.reset();
+      _imageDraft.remove();
     }
   }
 
@@ -69,8 +83,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 child: state.when(
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
-                  error: (_, _) =>
-                      _LoadFailure(onRetry: () => ref.invalidate(provider)),
+                  error: (_, _) => MessageLoadFailure(
+                    onRetry: () => ref.invalidate(provider),
+                  ),
                   data: (value) {
                     _viewportTracker.schedule(
                       value,
@@ -103,9 +118,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
               ),
               if (state.value case final value?) ...[
                 if (value.errorMessage case final message?)
-                  _ErrorBar(message: message),
+                  MessageErrorBar(message: message),
                 if (value.failedMessage != null)
-                  _RetryBar(
+                  MessageRetryBar(
                     disabled: value.isSending,
                     onRetry: () => ref.read(provider.notifier).retry(),
                   ),
@@ -115,14 +130,20 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                     return false;
                   },
                   child: SizeChangedLayoutNotifier(
-                    child: MessageComposer(
-                      controller: _composer,
-                      focusNode: _composerFocus,
-                      disabled: value.isSending,
-                      recipientName: widget.conversation.peer.displayName,
-                      onSend: () => _send(provider),
-                      onPickImage: () => _pickAndSendImage(provider),
-                      onPickFile: () => _pickAndSendFile(provider),
+                    child: AnimatedBuilder(
+                      animation: _imageDraft,
+                      builder: (context, _) => MessageComposer(
+                        controller: _composer,
+                        focusNode: _composerFocus,
+                        disabled: value.isSending,
+                        recipientName: widget.conversation.peer.displayName,
+                        onSend: () => _send(provider),
+                        onPickImage: () => _pickAndSendImage(provider),
+                        onPickFile: () => _pickAndSendFile(provider),
+                        imagePath: _imageDraft.image?.path,
+                        onRemoveImage: _removeDraftImage,
+                        onPasteImage: _imageDraft.paste,
+                      ),
                     ),
                   ),
                 ),
@@ -137,10 +158,28 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   Future<void> _send(
     AsyncNotifierProvider<MessagesController, MessagesState> provider,
   ) async {
-    if (await ref.read(provider.notifier).send(_composer.text)) {
+    final image = _imageDraft.image;
+    final body = _composer.text;
+    if (image != null) {
+      final sent = await ref.read(provider.notifier).sendImage(image.path);
+      if (!mounted || !sent) {
+        return;
+      }
+      _imageDraft.remove(image);
+    }
+    if (body.trim().isEmpty) {
+      _focusComposer();
+      return;
+    }
+    if (await ref.read(provider.notifier).send(body)) {
       _composer.clear();
       _focusComposer();
     }
+  }
+
+  void _removeDraftImage() {
+    _imageDraft.remove();
+    _focusComposer();
   }
 
   Future<void> _pickAndSendImage(
@@ -234,63 +273,13 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     });
   }
 
+  void _updateNativePasteState() {
+    _imageDraft.setPasteEnabled(_composerFocus.hasFocus);
+  }
+
   void _snapHistoryToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _viewportTracker.snapToBottom(_historyScroll, () => mounted);
     });
-  }
-}
-
-class _LoadFailure extends StatelessWidget {
-  const _LoadFailure({required this.onRetry});
-
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: FilledButton(onPressed: onRetry, child: const Text('Try again')),
-    );
-  }
-}
-
-class _ErrorBar extends StatelessWidget {
-  const _ErrorBar({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return ColoredBox(
-      color: colors.errorContainer,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-        child: Text(message, style: TextStyle(color: colors.onErrorContainer)),
-      ),
-    );
-  }
-}
-
-class _RetryBar extends StatelessWidget {
-  const _RetryBar({required this.disabled, required this.onRetry});
-
-  final bool disabled;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18),
-      child: Row(
-        children: [
-          const Expanded(child: Text('Message not sent')),
-          TextButton(
-            onPressed: disabled ? null : onRetry,
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
   }
 }

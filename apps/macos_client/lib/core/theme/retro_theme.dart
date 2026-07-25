@@ -21,6 +21,10 @@ abstract final class RetroMetrics {
   static const composerExpandedTextHorizontalInset = 12.0;
   static const composerExpandedTextTopInset = 18.0;
   static const composerExpandedTextBottomInset = 2.0;
+  static const composerImagePreviewSize = 88.0;
+  static const composerImagePreviewRadius = 14.0;
+  static const composerImagePreviewInset = 12.0;
+  static const composerImageRemoveDiameter = 22.0;
   static const composerHorizontalInset = 20.0;
   static const composerTopInset = 4.0;
   static const composerBottomInset = 12.0;

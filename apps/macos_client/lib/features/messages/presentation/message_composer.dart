@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/presentation/message_attachment_menu.dart';
 import 'package:instant_chat/features/messages/presentation/message_composer_controls.dart';
+import 'package:instant_chat/features/messages/presentation/message_composer_image_preview.dart';
 
 class MessageComposer extends StatefulWidget {
   const MessageComposer({
@@ -12,6 +13,9 @@ class MessageComposer extends StatefulWidget {
     required this.onSend,
     required this.onPickImage,
     required this.onPickFile,
+    this.imagePath,
+    this.onRemoveImage,
+    this.onPasteImage,
     super.key,
   });
 
@@ -22,6 +26,9 @@ class MessageComposer extends StatefulWidget {
   final VoidCallback onSend;
   final VoidCallback onPickImage;
   final VoidCallback onPickFile;
+  final String? imagePath;
+  final VoidCallback? onRemoveImage;
+  final Future<bool> Function()? onPasteImage;
 
   @override
   State<MessageComposer> createState() => _MessageComposerState();
@@ -63,7 +70,12 @@ class _MessageComposerState extends State<MessageComposer>
   }
 
   Widget _buildBar(BuildContext context, ColorScheme colors, double width) {
-    final expanded = _needsExpandedLayout(context, width);
+    final expanded = composerNeedsExpandedLayout(
+      context,
+      width,
+      widget.controller.text,
+      hasImage: widget.imagePath != null,
+    );
     return Container(
       key: const Key('message-composer-bar'),
       constraints: const BoxConstraints(
@@ -109,6 +121,12 @@ class _MessageComposerState extends State<MessageComposer>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (widget.imagePath case final imagePath?)
+          MessageComposerImagePreview(
+            imagePath: imagePath,
+            disabled: widget.disabled,
+            onRemove: widget.onRemoveImage ?? () {},
+          ),
         _buildField(expanded: true),
         SizedBox(
           key: const Key('message-composer-actions'),
@@ -143,6 +161,7 @@ class _MessageComposerState extends State<MessageComposer>
       expanded: expanded,
       recipientName: widget.recipientName,
       onSend: widget.onSend,
+      onPasteImage: widget.onPasteImage,
     );
   }
 
@@ -174,35 +193,6 @@ class _MessageComposerState extends State<MessageComposer>
       disabled: widget.disabled,
       onSend: widget.onSend,
     );
-  }
-
-  bool _needsExpandedLayout(BuildContext context, double width) {
-    final text = widget.controller.text;
-    if (text.isEmpty) {
-      return false;
-    }
-    if (text.contains('\n')) {
-      return true;
-    }
-    final chromeWidth =
-        (RetroMetrics.composerActionInset * 3) +
-        (RetroMetrics.composerSendDiameter * 2) +
-        RetroMetrics.spaceSmall +
-        (RetroMetrics.spaceSmall * 2);
-    final textWidth = width - chromeWidth;
-    if (textWidth <= 0) {
-      return true;
-    }
-    final painter = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: MessageComposerField.textStyle(context),
-      ),
-      textDirection: Directionality.of(context),
-      textScaler: MediaQuery.textScalerOf(context),
-      maxLines: 1,
-    )..layout(maxWidth: textWidth);
-    return painter.didExceedMaxLines;
   }
 
   void _toggleMenu() {
