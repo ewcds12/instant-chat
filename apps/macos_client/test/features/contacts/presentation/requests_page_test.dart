@@ -11,7 +11,7 @@ import 'package:instant_chat/features/contacts/presentation/requests_page.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 void main() {
-  testWidgets('routes an accepted request to its selected contact', (
+  testWidgets('shows only incoming requests and opens an accepted contact', (
     tester,
   ) async {
     String? openedContactId;
@@ -44,20 +44,16 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Incoming'), findsOneWidget);
-    expect(find.text('Sent'), findsOneWidget);
-    expect(find.text('1 pending'), findsNWidgets(2));
+    expect(find.text('Sent'), findsNothing);
+    expect(find.text('1 pending'), findsOneWidget);
+    expect(find.text('Ada Lovelace'), findsOneWidget);
+    expect(find.text('Grace Hopper'), findsNothing);
+    expect(find.text('Cancel'), findsNothing);
     expect(find.byTooltip('Refresh requests'), findsNothing);
 
     await tester.tap(find.text('Accept'));
     await tester.pump();
     expect(openedContactId, 'user-1');
-
-    await tester.tap(find.text('Cancel'));
-    await tester.pumpAndSettle();
-    expect(find.text('Cancel Request?'), findsOneWidget);
-    await tester.tap(find.text('Keep Request'));
-    await tester.pumpAndSettle();
-    expect(find.text('Cancel Request?'), findsNothing);
   });
 }
 

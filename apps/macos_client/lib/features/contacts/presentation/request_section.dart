@@ -9,11 +9,9 @@ class RequestSection extends StatelessWidget {
     required this.countLabel,
     required this.requests,
     required this.accessToken,
-    required this.isIncoming,
     required this.disabled,
     required this.onAccept,
     required this.onDecline,
-    required this.onCancel,
     super.key,
   });
 
@@ -21,11 +19,9 @@ class RequestSection extends StatelessWidget {
   final String countLabel;
   final List<ContactRequest> requests;
   final String accessToken;
-  final bool isIncoming;
   final bool disabled;
   final ValueChanged<ContactRequest> onAccept;
   final ValueChanged<ContactRequest> onDecline;
-  final ValueChanged<ContactRequest> onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -46,17 +42,15 @@ class RequestSection extends StatelessWidget {
         ),
         const SizedBox(height: RetroMetrics.spaceMedium),
         if (requests.isEmpty)
-          _RequestEmptyState(incoming: isIncoming)
+          const _RequestEmptyState()
         else
           for (final request in requests)
             _RequestCard(
               request: request,
               accessToken: accessToken,
-              incoming: isIncoming,
               disabled: disabled,
               onAccept: () => onAccept(request),
               onDecline: () => onDecline(request),
-              onCancel: () => onCancel(request),
             ),
       ],
     );
@@ -67,20 +61,16 @@ class _RequestCard extends StatelessWidget {
   const _RequestCard({
     required this.request,
     required this.accessToken,
-    required this.incoming,
     required this.disabled,
     required this.onAccept,
     required this.onDecline,
-    required this.onCancel,
   });
 
   final ContactRequest request;
   final String accessToken;
-  final bool incoming;
   final bool disabled;
   final VoidCallback onAccept;
   final VoidCallback onDecline;
-  final VoidCallback onCancel;
 
   @override
   Widget build(BuildContext context) {
@@ -101,30 +91,16 @@ class _RequestCard extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(child: _RequestIdentity(request: request)),
-            if (incoming) ...[
-              _RequestAction(
-                label: 'Decline',
-                onPressed: disabled ? null : onDecline,
-              ),
-              const SizedBox(width: RetroMetrics.spaceSmall),
-              _RequestAction(
-                label: 'Accept',
-                onPressed: disabled ? null : onAccept,
-                primary: true,
-              ),
-            ] else ...[
-              Text(
-                'Pending',
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-              ),
-              const SizedBox(width: RetroMetrics.spaceSmall),
-              _RequestAction(
-                label: 'Cancel',
-                onPressed: disabled ? null : onCancel,
-              ),
-            ],
+            _RequestAction(
+              label: 'Decline',
+              onPressed: disabled ? null : onDecline,
+            ),
+            const SizedBox(width: RetroMetrics.spaceSmall),
+            _RequestAction(
+              label: 'Accept',
+              onPressed: disabled ? null : onAccept,
+              primary: true,
+            ),
           ],
         ),
       ),
@@ -194,9 +170,7 @@ class _RequestIdentity extends StatelessWidget {
 }
 
 class _RequestEmptyState extends StatelessWidget {
-  const _RequestEmptyState({required this.incoming});
-
-  final bool incoming;
+  const _RequestEmptyState();
 
   @override
   Widget build(BuildContext context) {
@@ -205,14 +179,10 @@ class _RequestEmptyState extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: RetroMetrics.spaceSmall),
       child: Row(
         children: [
-          Icon(
-            incoming ? Icons.inbox_outlined : Icons.send_outlined,
-            size: 18,
-            color: colors.onSurfaceVariant,
-          ),
+          Icon(Icons.inbox_outlined, size: 18, color: colors.onSurfaceVariant),
           const SizedBox(width: RetroMetrics.spaceSmall),
           Text(
-            incoming ? 'No incoming requests.' : 'No sent requests.',
+            'No incoming requests.',
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),

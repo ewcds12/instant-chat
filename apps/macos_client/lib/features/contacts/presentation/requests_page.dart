@@ -60,26 +60,11 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
                         countLabel: '${requests.incoming.length} pending',
                         requests: requests.incoming,
                         accessToken: session.accessToken,
-                        isIncoming: true,
                         disabled: requests.isSubmitting,
                         onAccept: _accept,
                         onDecline: (request) => ref
                             .read(contactsControllerProvider.notifier)
                             .reject(request.id),
-                        onCancel: (_) {},
-                      ),
-                      const SizedBox(height: RetroMetrics.spaceLarge),
-                      RequestSection(
-                        title: 'Sent',
-                        countLabel: '${requests.outgoing.length} pending',
-                        requests: requests.outgoing,
-                        accessToken: session.accessToken,
-                        isIncoming: false,
-                        disabled: requests.isSubmitting,
-                        onAccept: (_) {},
-                        onDecline: (_) {},
-                        onCancel: (request) =>
-                            _confirmCancel(context, ref, request),
                       ),
                     ],
                   ),
@@ -99,36 +84,6 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
     if (accepted && mounted) {
       widget.onOpenContact(request.user.id);
     }
-  }
-
-  Future<void> _confirmCancel(
-    BuildContext context,
-    WidgetRef ref,
-    ContactRequest request,
-  ) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cancel Request?'),
-        content: Text(
-          'Cancel the request sent to ${request.user.displayName}?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Keep Request'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Cancel Request'),
-          ),
-        ],
-      ),
-    );
-    if (!mounted || confirmed != true) {
-      return;
-    }
-    await ref.read(contactsControllerProvider.notifier).cancel(request.id);
   }
 }
 
