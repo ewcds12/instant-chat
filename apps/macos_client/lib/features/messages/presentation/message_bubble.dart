@@ -56,7 +56,7 @@ class MessageBubble extends StatelessWidget {
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Row(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: isMine
             ? [
                 content,
@@ -180,8 +180,9 @@ class _MessageSenderAvatar extends StatelessWidget {
       width: RetroMetrics.messageAvatarSlotWidth,
       child: showAvatar
           ? Align(
-              alignment: Alignment.bottomCenter,
+              alignment: Alignment.topCenter,
               child: DecoratedBox(
+                key: Key('message-sender-avatar-frame-${message.id}'),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.surface,
                   shape: BoxShape.circle,
