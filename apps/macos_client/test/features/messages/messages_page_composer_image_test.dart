@@ -18,25 +18,12 @@ import '../../support/widget_network_stubs.dart';
 
 void main() {
   testWidgets('pastes and sends an image together with text', (tester) async {
-    final clipboard = _StubClipboardImage('/tmp/copied-image.png');
+    final clipboard = _StubClipboardImage([
+      '/tmp/copied-image.png',
+      '/tmp/copied-image.png',
+    ]);
     final gateway = StubMessageGateway(_session.user);
-    final container = ProviderContainer(
-      overrides: [
-        authControllerProvider.overrideWith(
-          () => _StubAuthController(AuthState(session: _session)),
-        ),
-        localClipboardImageProvider.overrideWithValue(clipboard),
-        messageGatewayProvider.overrideWithValue(gateway),
-        conversationRecoveryIntervalProvider.overrideWithValue(null),
-        messageRecoveryIntervalProvider.overrideWithValue(null),
-        conversationGatewayProvider.overrideWithValue(
-          StubConversationGateway(),
-        ),
-        realtimeConnectionProvider.overrideWithValue(
-          const StubRealtimeConnection(),
-        ),
-      ],
-    );
+    final container = _testContainer(clipboard, gateway);
     addTearDown(container.dispose);
     await container.read(authControllerProvider.future);
     await tester.pumpWidget(_messagesPage(container));
@@ -44,18 +31,15 @@ void main() {
     await tester.tap(find.byKey(const Key('message-composer')));
 
     await _pressPaste(tester);
-    await _pumpUntil(
-      tester,
-      find.byKey(const Key('message-composer-image-preview')),
-    );
+    await _pumpUntil(tester, _previewFor('/tmp/copied-image.png'));
     await tester.enterText(
       find.byKey(const Key('message-composer')),
       'Keep this text',
     );
-    await tester.tap(find.byKey(const Key('message-composer-image-remove')));
+    await tester.tap(_removeFor('/tmp/copied-image.png'));
     await tester.pump();
     expect(
-      find.byKey(const Key('message-composer-image-preview')),
+      find.byKey(const Key('message-composer-image-previews')),
       findsNothing,
     );
     expect(clipboard.releasedPaths, ['/tmp/copied-image.png']);
@@ -65,10 +49,7 @@ void main() {
     expect(fieldAfterRemoval.controller?.text, 'Keep this text');
 
     await _pressPaste(tester);
-    await _pumpUntil(
-      tester,
-      find.byKey(const Key('message-composer-image-preview')),
-    );
+    await _pumpUntil(tester, _previewFor('/tmp/copied-image.png'));
     await tester.enterText(
       find.byKey(const Key('message-composer')),
       'Hello guys!',
@@ -83,7 +64,7 @@ void main() {
       '/tmp/copied-image.png',
     ]);
     expect(
-      find.byKey(const Key('message-composer-image-preview')),
+      find.byKey(const Key('message-composer-image-previews')),
       findsNothing,
     );
     final field = tester.widget<TextField>(
@@ -91,6 +72,89 @@ void main() {
     );
     expect(field.controller?.text, isEmpty);
   });
+
+  testWidgets('stages three images and rejects a fourth', (tester) async {
+    final clipboard = _StubClipboardImage([
+      '/tmp/image-1.png',
+      '/tmp/image-2.png',
+      '/tmp/image-3.png',
+      '/tmp/image-4.png',
+    ]);
+    final gateway = StubMessageGateway(_session.user);
+    final container = _testContainer(clipboard, gateway);
+    addTearDown(container.dispose);
+    await container.read(authControllerProvider.future);
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(tester, find.byKey(const Key('message-composer')));
+    await tester.tap(find.byKey(const Key('message-composer')));
+
+    for (final path in clipboard.paths) {
+      await _pressPaste(tester);
+      await tester.pump();
+      if (path != '/tmp/image-4.png') {
+        await _pumpUntil(tester, _previewFor(path));
+      }
+    }
+
+    expect(_previewFor('/tmp/image-1.png'), findsOneWidget);
+    expect(_previewFor('/tmp/image-2.png'), findsOneWidget);
+    expect(_previewFor('/tmp/image-3.png'), findsOneWidget);
+    expect(_previewFor('/tmp/image-4.png'), findsNothing);
+    expect(find.text('You can attach up to 3 photos.'), findsOneWidget);
+    expect(clipboard.releasedPaths, ['/tmp/image-4.png']);
+
+    await tester.tap(_removeFor('/tmp/image-2.png'));
+    await tester.pump();
+    expect(_previewFor('/tmp/image-2.png'), findsNothing);
+    await tester.enterText(
+      find.byKey(const Key('message-composer')),
+      'Three-photo draft',
+    );
+    await tester.tap(find.byKey(const Key('message-send-button')));
+    await _pumpUntilValue(tester, () => gateway.sentBody);
+
+    expect(gateway.sentImagePaths, ['/tmp/image-1.png', '/tmp/image-3.png']);
+    expect(gateway.sentBody, 'Three-photo draft');
+    expect(clipboard.releasedPaths, [
+      '/tmp/image-4.png',
+      '/tmp/image-2.png',
+      '/tmp/image-1.png',
+      '/tmp/image-3.png',
+    ]);
+    expect(
+      find.byKey(const Key('message-composer-image-previews')),
+      findsNothing,
+    );
+  });
+}
+
+ProviderContainer _testContainer(
+  LocalClipboardImage clipboard,
+  StubMessageGateway gateway,
+) {
+  return ProviderContainer(
+    overrides: [
+      authControllerProvider.overrideWith(
+        () => _StubAuthController(AuthState(session: _session)),
+      ),
+      localClipboardImageProvider.overrideWithValue(clipboard),
+      messageGatewayProvider.overrideWithValue(gateway),
+      conversationRecoveryIntervalProvider.overrideWithValue(null),
+      messageRecoveryIntervalProvider.overrideWithValue(null),
+      conversationGatewayProvider.overrideWithValue(StubConversationGateway()),
+      realtimeConnectionProvider.overrideWithValue(
+        const StubRealtimeConnection(),
+      ),
+    ],
+  );
+}
+
+Finder _previewFor(String path) {
+  return find.byKey(ValueKey('message-composer-image-preview:$path'));
+}
+
+Finder _removeFor(String path) {
+  return find.byKey(ValueKey('message-composer-image-remove:$path'));
 }
 
 Future<void> _pressPaste(WidgetTester tester) async {
@@ -133,14 +197,18 @@ Future<void> _pumpUntilValue(
 }
 
 class _StubClipboardImage implements LocalClipboardImage {
-  _StubClipboardImage(this.path);
+  _StubClipboardImage(this.paths);
 
-  final String path;
+  final List<String> paths;
   final List<String> releasedPaths = [];
+  var _readIndex = 0;
 
   @override
   Future<ClipboardImage?> read() async {
-    return ClipboardImage(path: path, isTemporary: true);
+    if (_readIndex >= paths.length) {
+      return null;
+    }
+    return ClipboardImage(path: paths[_readIndex++], isTemporary: true);
   }
 
   @override

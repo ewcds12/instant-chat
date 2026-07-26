@@ -13,7 +13,7 @@ class MessageComposer extends StatefulWidget {
     required this.onSend,
     required this.onPickImage,
     required this.onPickFile,
-    this.imagePath,
+    this.imagePaths = const [],
     this.onRemoveImage,
     this.onPasteImage,
     super.key,
@@ -26,8 +26,8 @@ class MessageComposer extends StatefulWidget {
   final VoidCallback onSend;
   final VoidCallback onPickImage;
   final VoidCallback onPickFile;
-  final String? imagePath;
-  final VoidCallback? onRemoveImage;
+  final List<String> imagePaths;
+  final ValueChanged<String>? onRemoveImage;
   final Future<bool> Function()? onPasteImage;
 
   @override
@@ -74,7 +74,7 @@ class _MessageComposerState extends State<MessageComposer>
       context,
       width,
       widget.controller.text,
-      hasImage: widget.imagePath != null,
+      hasImage: widget.imagePaths.isNotEmpty,
     );
     return Container(
       key: const Key('message-composer-bar'),
@@ -121,11 +121,11 @@ class _MessageComposerState extends State<MessageComposer>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (widget.imagePath case final imagePath?)
-          MessageComposerImagePreview(
-            imagePath: imagePath,
+        if (widget.imagePaths.isNotEmpty)
+          MessageComposerImagePreviews(
+            imagePaths: widget.imagePaths,
             disabled: widget.disabled,
-            onRemove: widget.onRemoveImage ?? () {},
+            onRemove: widget.onRemoveImage ?? (_) {},
           ),
         _buildField(expanded: true),
         SizedBox(

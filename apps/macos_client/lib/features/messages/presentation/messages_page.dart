@@ -39,7 +39,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   @override
   void initState() {
     super.initState();
-    _imageDraft = MessageImageDraft(ref.read(localClipboardImageProvider));
+    _imageDraft = MessageImageDraft(
+      ref.read(localClipboardImageProvider),
+      onLimitReached: _showImageLimit,
+    );
     _composerFocus.addListener(_updateNativePasteState);
   }
 
@@ -59,7 +62,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     if (oldWidget.conversation.id != widget.conversation.id) {
       _readTracker.reset();
       _viewportTracker.reset();
-      _imageDraft.remove();
+      _imageDraft.clear();
     }
   }
 
@@ -140,7 +143,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         onSend: () => _send(provider),
                         onPickImage: () => _pickAndSendImage(provider),
                         onPickFile: () => _pickAndSendFile(provider),
-                        imagePath: _imageDraft.image?.path,
+                        imagePaths: _imageDraft.images
+                            .map((image) => image.path)
+                            .toList(growable: false),
                         onRemoveImage: _removeDraftImage,
                         onPasteImage: _imageDraft.paste,
                       ),
@@ -158,14 +163,14 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   Future<void> _send(
     AsyncNotifierProvider<MessagesController, MessagesState> provider,
   ) async {
-    final image = _imageDraft.image;
+    final images = List<ClipboardImage>.of(_imageDraft.images);
     final body = _composer.text;
-    if (image != null) {
+    for (final image in images) {
       final sent = await ref.read(provider.notifier).sendImage(image.path);
       if (!mounted || !sent) {
         return;
       }
-      _imageDraft.remove(image);
+      _imageDraft.remove(image.path);
     }
     if (body.trim().isEmpty) {
       _focusComposer();
@@ -177,9 +182,16 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     }
   }
 
-  void _removeDraftImage() {
-    _imageDraft.remove();
+  void _removeDraftImage(String path) {
+    _imageDraft.remove(path);
     _focusComposer();
+  }
+
+  void _showImageLimit() {
+    if (!mounted) {
+      return;
+    }
+    _showSaveError('You can attach up to 3 photos.');
   }
 
   Future<void> _pickAndSendImage(

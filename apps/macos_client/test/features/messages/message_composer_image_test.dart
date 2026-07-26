@@ -8,22 +8,38 @@ void main() {
   testWidgets('shows a pasted image and removes it from the composer', (
     tester,
   ) async {
-    var removed = false;
+    String? removedPath;
     await _pumpComposer(
       tester,
-      imagePath: '/tmp/copied-image.png',
-      onRemoveImage: () => removed = true,
+      imagePaths: const [
+        '/tmp/copied-image-1.png',
+        '/tmp/copied-image-2.png',
+        '/tmp/copied-image-3.png',
+      ],
+      onRemoveImage: (path) => removedPath = path,
     );
 
     expect(
-      find.byKey(const Key('message-composer-image-preview')),
+      find.byKey(const Key('message-composer-image-previews')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const ValueKey(
+          'message-composer-image-preview:/tmp/copied-image-3.png',
+        ),
+      ),
       findsOneWidget,
     );
     expect(find.byKey(const Key('message-composer-expanded')), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key('message-composer-image-remove')));
+    await tester.tap(
+      find.byKey(
+        const ValueKey('message-composer-image-remove:/tmp/copied-image-2.png'),
+      ),
+    );
 
-    expect(removed, isTrue);
+    expect(removedPath, '/tmp/copied-image-2.png');
   });
 
   testWidgets('uses Command+V for image paste before plain text paste', (
@@ -82,8 +98,8 @@ Future<void> _pressPaste(WidgetTester tester) async {
 
 Future<void> _pumpComposer(
   WidgetTester tester, {
-  String? imagePath,
-  VoidCallback? onRemoveImage,
+  List<String> imagePaths = const [],
+  ValueChanged<String>? onRemoveImage,
   Future<bool> Function()? onPasteImage,
 }) async {
   final controller = TextEditingController();
@@ -104,7 +120,7 @@ Future<void> _pumpComposer(
             onSend: () {},
             onPickImage: () {},
             onPickFile: () {},
-            imagePath: imagePath,
+            imagePaths: imagePaths,
             onRemoveImage: onRemoveImage,
             onPasteImage: onPasteImage,
           ),

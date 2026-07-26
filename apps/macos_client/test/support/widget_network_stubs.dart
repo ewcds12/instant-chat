@@ -16,6 +16,7 @@ class StubMessageGateway implements MessageGateway {
   final List<Message> initialMessages;
   String? sentBody;
   String? sentImagePath;
+  final List<String> sentImagePaths = [];
   String? sentFilePath;
   String? downloadedFileID;
   String? downloadedFilePath;
@@ -63,6 +64,7 @@ class StubMessageGateway implements MessageGateway {
     required String imagePath,
   }) async {
     sentImagePath = imagePath;
+    sentImagePaths.add(imagePath);
     return Message(
       id: '22',
       conversationId: conversationId,

@@ -27,10 +27,10 @@ The source screenshot itself was used as the clipboard payload during native ver
 
 - Native macOS Command+V and the Edit > Paste command detect clipboard bitmap data before text paste.
 - Plain-text clipboard content continues through the standard composer paste path.
-- A second pasted image replaces the first staged image and releases the earlier temporary file.
-- The remove control clears only the image draft and preserves typed text.
-- One send action uploads the image first and then sends non-empty text.
-- Successful upload, removal, replacement, conversation disposal, and inactive async completion release app-owned temporary files.
+- Up to three pasted images remain staged in paste order; a fourth is rejected with visible feedback and its temporary file is released.
+- Each remove control clears only its associated image draft and preserves the other images and typed text.
+- One send action uploads every staged image in order and then sends non-empty text.
+- Successful upload, removal, conversation change, page disposal, limit rejection, and inactive async completion release app-owned temporary files.
 - The existing 15 MB image upload validation remains authoritative.
 
 ## Findings
