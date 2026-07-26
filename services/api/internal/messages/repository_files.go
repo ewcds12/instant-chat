@@ -39,7 +39,7 @@ func (r *MySQLRepository) SendFile(
 	}
 	stored := storedFileUpload{
 		Filename: upload.Filename, ContentType: upload.ContentType,
-		ByteSize: uint32(upload.ByteSize), ObjectKey: objectKey,
+		ByteSize: uint64(upload.ByteSize), ObjectKey: objectKey,
 	}
 	message, created, err := r.send(
 		ctx, userID, conversationID, clientMessageID, KindFile, "", nil, &stored,

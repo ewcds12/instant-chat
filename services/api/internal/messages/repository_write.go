@@ -12,7 +12,7 @@ import (
 type storedFileUpload struct {
 	Filename    string
 	ContentType string
-	ByteSize    uint32
+	ByteSize    uint64
 	ObjectKey   string
 }
 

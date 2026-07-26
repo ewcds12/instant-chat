@@ -26,8 +26,8 @@ import (
 
 const (
 	readHeaderTimeout = 5 * time.Second
-	readTimeout       = 5 * time.Minute
-	writeTimeout      = 5 * time.Minute
+	readTimeout       = 60 * time.Minute
+	writeTimeout      = 60 * time.Minute
 	idleTimeout       = 60 * time.Second
 	shutdownTimeout   = 10 * time.Second
 	connectionMaxAge  = 5 * time.Minute

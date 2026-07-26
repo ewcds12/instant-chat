@@ -1,0 +1,2 @@
+ALTER TABLE message_files
+  MODIFY COLUMN byte_size BIGINT UNSIGNED NOT NULL;

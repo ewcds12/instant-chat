@@ -77,7 +77,7 @@ type CreateMessageFileParams struct {
 	UploaderID  uint64         `db:"uploader_id"`
 	Filename    string         `db:"filename"`
 	ContentType string         `db:"content_type"`
-	ByteSize    uint32         `db:"byte_size"`
+	ByteSize    uint64         `db:"byte_size"`
 	ObjectKey   sql.NullString `db:"object_key"`
 }
 
@@ -173,7 +173,7 @@ type GetMessageByClientIDRow struct {
 	FileID                  sql.NullInt64  `db:"file_id"`
 	FileFilename            sql.NullString `db:"file_filename"`
 	FileContentType         sql.NullString `db:"file_content_type"`
-	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	FileByteSize            sql.NullInt64  `db:"file_byte_size"`
 	RecalledAt              sql.NullTime   `db:"recalled_at"`
 	CreatedAt               time.Time      `db:"created_at"`
 }
@@ -237,7 +237,7 @@ type GetMessageFileForMemberParams struct {
 type GetMessageFileForMemberRow struct {
 	Filename    string         `db:"filename"`
 	ContentType string         `db:"content_type"`
-	ByteSize    uint32         `db:"byte_size"`
+	ByteSize    uint64         `db:"byte_size"`
 	Data        sql.NullString `db:"data"`
 	ObjectKey   sql.NullString `db:"object_key"`
 }
@@ -433,7 +433,7 @@ type ListLatestMessagesRow struct {
 	FileID                  sql.NullInt64  `db:"file_id"`
 	FileFilename            sql.NullString `db:"file_filename"`
 	FileContentType         sql.NullString `db:"file_content_type"`
-	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	FileByteSize            sql.NullInt64  `db:"file_byte_size"`
 	RecalledAt              sql.NullTime   `db:"recalled_at"`
 	CreatedAt               time.Time      `db:"created_at"`
 }
@@ -545,7 +545,7 @@ type ListMessagesAfterRow struct {
 	FileID                  sql.NullInt64  `db:"file_id"`
 	FileFilename            sql.NullString `db:"file_filename"`
 	FileContentType         sql.NullString `db:"file_content_type"`
-	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	FileByteSize            sql.NullInt64  `db:"file_byte_size"`
 	RecalledAt              sql.NullTime   `db:"recalled_at"`
 	CreatedAt               time.Time      `db:"created_at"`
 }
@@ -662,7 +662,7 @@ type ListMessagesBeforeRow struct {
 	FileID                  sql.NullInt64  `db:"file_id"`
 	FileFilename            sql.NullString `db:"file_filename"`
 	FileContentType         sql.NullString `db:"file_content_type"`
-	FileByteSize            sql.NullInt32  `db:"file_byte_size"`
+	FileByteSize            sql.NullInt64  `db:"file_byte_size"`
 	RecalledAt              sql.NullTime   `db:"recalled_at"`
 	CreatedAt               time.Time      `db:"created_at"`
 }

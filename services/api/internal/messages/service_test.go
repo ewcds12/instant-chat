@@ -61,7 +61,7 @@ func (f *fakeRepository) SendFile(
 			ID:          4,
 			Filename:    upload.Filename,
 			ContentType: upload.ContentType,
-			ByteSize:    uint32(upload.ByteSize),
+			ByteSize:    uint64(upload.ByteSize),
 		},
 	}, !f.idempotent, f.err
 }

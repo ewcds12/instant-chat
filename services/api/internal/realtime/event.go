@@ -51,7 +51,7 @@ type fileEvent struct {
 	URL         string `json:"url"`
 	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
-	ByteSize    uint32 `json:"byte_size"`
+	ByteSize    uint64 `json:"byte_size"`
 }
 
 type senderEvent struct {

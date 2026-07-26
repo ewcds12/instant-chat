@@ -62,7 +62,7 @@ func newMessage(
 	fileID sql.NullInt64,
 	fileFilename sql.NullString,
 	fileContentType sql.NullString,
-	fileByteSize sql.NullInt32,
+	fileByteSize sql.NullInt64,
 	recalledAt sql.NullTime,
 	createdAt time.Time,
 ) Message {
@@ -96,7 +96,7 @@ func newMessage(
 			ID:          uint64(fileID.Int64),
 			Filename:    fileFilename.String,
 			ContentType: fileContentType.String,
-			ByteSize:    uint32(fileByteSize.Int32),
+			ByteSize:    uint64(fileByteSize.Int64),
 		}
 	}
 	return message

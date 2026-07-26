@@ -1202,7 +1202,7 @@ components:
         file:
           type: string
           format: binary
-          description: File up to 200 MB.
+          description: File up to 2 GB.
     MessageImage:
       type: object
       additionalProperties: false
@@ -1250,7 +1250,7 @@ components:
         byte_size:
           type: integer
           minimum: 1
-          maximum: 209715200
+          maximum: 2147483648
     Message:
       type: object
       additionalProperties: false

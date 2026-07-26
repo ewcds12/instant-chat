@@ -85,7 +85,7 @@ type FileAttachment struct {
 	ID          uint64
 	Filename    string
 	ContentType string
-	ByteSize    uint32
+	ByteSize    uint64
 }
 
 // FileUpload is a validated file upload candidate.
@@ -107,7 +107,7 @@ type ImageFile struct {
 type MessageFile struct {
 	Filename    string
 	ContentType string
-	ByteSize    uint32
+	ByteSize    uint64
 	Content     io.ReadCloser
 }
 

@@ -12,7 +12,7 @@ const (
 	maximumPageSize   = 100
 	maximumBodyRunes  = 4000
 	maximumImageBytes = 15 * 1024 * 1024
-	maximumFileBytes  = 200 * 1024 * 1024
+	maximumFileBytes  = 2 * 1024 * 1024 * 1024
 	maximumNameRunes  = 255
 )
 
@@ -119,7 +119,7 @@ func (s *Service) SendFile(
 		return Message{}, false, &InputError{Message: "File must not be empty."}
 	}
 	if upload.ByteSize < 0 || upload.ByteSize > maximumFileBytes {
-		return Message{}, false, &InputError{Message: "File must be 200 MB or smaller."}
+		return Message{}, false, &InputError{Message: "File must be 2 GB or smaller."}
 	}
 	if strings.TrimSpace(upload.ContentType) == "" {
 		upload.ContentType = "application/octet-stream"

@@ -66,7 +66,7 @@ func (s *stubMessageService) SendFile(
 		ID:          8,
 		Filename:    file.Filename,
 		ContentType: file.ContentType,
-		ByteSize:    uint32(file.ByteSize),
+		ByteSize:    uint64(file.ByteSize),
 	}
 	return message, true, nil
 }

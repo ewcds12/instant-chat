@@ -89,7 +89,7 @@ class DioMessageGateway implements MessageGateway {
           'client_message_id': clientMessageId,
           'file': await MultipartFile.fromFile(filePath),
         }),
-        options: _uploadOptions(accessToken),
+        options: _fileTransferOptions(accessToken),
       ),
     );
     expectStatus(response, {200, 201});
@@ -178,8 +178,8 @@ class DioMessageGateway implements MessageGateway {
 
   Options _fileTransferOptions(String token) => Options(
     headers: bearerAuthorization(token),
-    sendTimeout: const Duration(minutes: 5),
-    receiveTimeout: const Duration(minutes: 5),
+    sendTimeout: const Duration(minutes: 60),
+    receiveTimeout: const Duration(minutes: 60),
   );
 
   Options _downloadOptions(String token) => Options(

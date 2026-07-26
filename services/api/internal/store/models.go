@@ -71,10 +71,10 @@ type MessageFile struct {
 	UploaderID  uint64         `db:"uploader_id"`
 	Filename    string         `db:"filename"`
 	ContentType string         `db:"content_type"`
-	ByteSize    uint32         `db:"byte_size"`
 	CreatedAt   time.Time      `db:"created_at"`
 	Data        sql.NullString `db:"data"`
 	ObjectKey   sql.NullString `db:"object_key"`
+	ByteSize    uint64         `db:"byte_size"`
 }
 
 type MessageImage struct {
