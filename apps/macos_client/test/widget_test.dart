@@ -152,7 +152,7 @@ void main() {
 
     expect(find.text('Chats'), findsAtLeastNWidgets(1));
     expect(find.text('Contacts'), findsOneWidget);
-    expect(find.text('Requests'), findsOneWidget);
+    expect(find.text('Requests'), findsNothing);
     expect(find.text('Instant Chat'), findsNothing);
     expect(find.text('Other User'), findsOneWidget);
     expect(find.text('See you soon'), findsOneWidget);

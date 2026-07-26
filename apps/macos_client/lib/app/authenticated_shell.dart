@@ -5,8 +5,6 @@ import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_page.dart';
-import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
-import 'package:instant_chat/features/contacts/presentation/requests_page.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_page.dart';
 import 'package:instant_chat/features/profile/presentation/profile_sheet.dart';
@@ -61,7 +59,6 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
                     onCompose: () => setState(() => _selectedIndex = 1),
                   ),
                   ContactsPage(onOpenConversation: _openConversation),
-                  RequestsPage(onOpenContact: _openContact),
                   SystemStatusPage(onSignOut: widget.onSignOut),
                 ],
               ),
@@ -79,14 +76,6 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
       return;
     }
     setState(() => _selectedIndex = 0);
-  }
-
-  void _openContact(String userId) {
-    if (!mounted) {
-      return;
-    }
-    ref.read(selectedContactUserIdProvider.notifier).select(userId);
-    setState(() => _selectedIndex = 1);
   }
 }
 
@@ -130,16 +119,10 @@ class _AppSidebar extends StatelessWidget {
                 selected: selectedIndex == 1,
                 onTap: () => onSelect(1),
               ),
-              _SidebarItem(
-                label: 'Requests',
-                icon: Icons.person_add_alt_rounded,
-                selected: selectedIndex == 2,
-                onTap: () => onSelect(2),
-              ),
               const Spacer(),
               _SystemButton(
-                selected: selectedIndex == 3,
-                onTap: () => onSelect(3),
+                selected: selectedIndex == 2,
+                onTap: () => onSelect(2),
               ),
               const SizedBox(height: 10),
               _AccountTile(session: session, onTap: onOpenProfile),

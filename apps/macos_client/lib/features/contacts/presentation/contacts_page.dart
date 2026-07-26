@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
+import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_panel.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_directory.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
@@ -51,6 +52,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
               width: RetroMetrics.contactDirectoryWidth,
               child: ContactDirectory(
                 contacts: contacts.contacts,
+                incomingRequests: contacts.incoming,
                 accessToken: accessToken,
                 query: _directoryQuery,
                 selectedUserId: selectedContact?.user.id,
@@ -63,6 +65,10 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                 onSendRequest: () => ref
                     .read(contactsControllerProvider.notifier)
                     .sendSearchResult(),
+                onAcceptRequest: _acceptRequest,
+                onDeclineRequest: (request) => ref
+                    .read(contactsControllerProvider.notifier)
+                    .reject(request.id),
                 onSelect: (contact) => ref
                     .read(selectedContactUserIdProvider.notifier)
                     .select(contact.user.id),
@@ -112,6 +118,16 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
       return;
     }
     ref.read(contactsControllerProvider.notifier).search(query);
+  }
+
+  Future<void> _acceptRequest(ContactRequest request) async {
+    final accepted = await ref
+        .read(contactsControllerProvider.notifier)
+        .accept(request.id);
+    if (!accepted || !mounted) {
+      return;
+    }
+    ref.read(selectedContactUserIdProvider.notifier).select(request.user.id);
   }
 
   Future<void> _confirmRemove(Contact contact) async {

@@ -12,7 +12,6 @@ void refreshShellPage(WidgetRef ref, int index) {
       );
       return;
     case 1:
-    case 2:
       unawaited(
         ref.read(contactsControllerProvider.notifier).refreshSilently(),
       );

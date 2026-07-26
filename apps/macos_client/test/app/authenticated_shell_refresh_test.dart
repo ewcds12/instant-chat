@@ -43,11 +43,7 @@ void main() {
       await tester.pump();
       expect(contacts.refreshCount, 1);
 
-      await tester.tap(find.text('Requests').first);
-      await tester.pump();
-      await tester.tap(find.text('Requests').first);
-      await tester.pump();
-      expect(contacts.refreshCount, 2);
+      expect(find.text('Requests'), findsNothing);
     },
   );
 }

@@ -6,6 +6,7 @@ import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
+import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_directory_list.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_page.dart';
@@ -126,6 +127,104 @@ void main() {
       expect(find.text('Remove Contact?'), findsNothing);
     },
   );
+
+  testWidgets('expands and resolves incoming requests below search', (
+    tester,
+  ) async {
+    final controller = _StubContactsController(
+      ContactsState(
+        contacts: [_contact('amy', 'Amy Adams')],
+        incoming: [
+          _request('ousmane', 'Ousmane Dembélé'),
+          _request('antoine', 'Antoine Griezmann'),
+        ],
+        outgoing: const [],
+      ),
+    );
+    await tester.binding.setSurfaceSize(const Size(1200, 760));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          contactsControllerProvider.overrideWith(() => controller),
+        ],
+        child: MaterialApp(
+          theme: RetroTheme.data,
+          home: Scaffold(
+            body: SizedBox(
+              width: 1200,
+              height: 760,
+              child: ContactsPage(onOpenConversation: (_) async {}),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('2 Friend Requests'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('contact-request-drawer-toggle')),
+        matching: find.byType(ProfileAvatar),
+      ),
+      findsNothing,
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('contact-request-count-badge'))),
+      const Size.square(RetroMetrics.contactRequestCountDiameter),
+    );
+    final badge = tester.widget<DecoratedBox>(
+      find.descendant(
+        of: find.byKey(const Key('contact-request-count-badge')),
+        matching: find.byType(DecoratedBox),
+      ),
+    );
+    expect((badge.decoration as BoxDecoration).shape, BoxShape.circle);
+    expect(
+      find.byKey(const ValueKey('contact-request-row-request-ousmane')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const Key('contact-request-drawer-toggle')));
+    await tester.pumpAndSettle();
+    expect(find.text('Ousmane Dembélé'), findsOneWidget);
+    expect(find.text('@antoine'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('contact-request-drawer')),
+        matching: find.byType(ProfileAvatar),
+      ),
+      findsNothing,
+    );
+    final decline = find.byKey(
+      const ValueKey('contact-request-decline-request-ousmane'),
+    );
+    final accept = find.byKey(
+      const ValueKey('contact-request-accept-request-ousmane'),
+    );
+    expect(tester.getSize(decline).width, 62);
+    expect(tester.getSize(accept).width, 58);
+    expect(tester.getTopLeft(accept).dx - tester.getTopRight(decline).dx, 8);
+
+    await tester.tap(
+      find.byKey(const ValueKey('contact-request-decline-request-ousmane')),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.rejectedRequestId, 'request-ousmane');
+    expect(find.text('1 Friend Request'), findsOneWidget);
+    expect(find.text('Ousmane Dembélé'), findsNothing);
+
+    await tester.tap(
+      find.byKey(const ValueKey('contact-request-accept-request-antoine')),
+    );
+    await tester.pumpAndSettle();
+    expect(controller.acceptedRequestId, 'request-antoine');
+    expect(find.byKey(const Key('contact-request-drawer')), findsNothing);
+  });
 }
 
 final _session = AuthSession(
@@ -154,6 +253,20 @@ Contact _contact(String username, String displayName) {
   );
 }
 
+ContactRequest _request(String username, String displayName) {
+  return ContactRequest(
+    id: 'request-$username',
+    user: PublicUser(
+      id: 'user-$username',
+      username: username,
+      displayName: displayName,
+      createdAt: DateTime.utc(2026, 7, 21),
+    ),
+    createdAt: DateTime.utc(2026, 7, 21),
+    updatedAt: DateTime.utc(2026, 7, 21),
+  );
+}
+
 class _StubAuthController extends AuthController {
   _StubAuthController(this.authState);
 
@@ -167,7 +280,47 @@ class _StubContactsController extends ContactsController {
   _StubContactsController(this.contactsState);
 
   final ContactsState contactsState;
+  String? acceptedRequestId;
+  String? rejectedRequestId;
 
   @override
   Future<ContactsState> build() async => contactsState;
+
+  @override
+  Future<bool> accept(String requestId) async {
+    acceptedRequestId = requestId;
+    final current = state.requireValue;
+    final request = current.incoming.singleWhere(
+      (request) => request.id == requestId,
+    );
+    state = AsyncData(
+      current.copyWith(
+        contacts: [
+          ...current.contacts,
+          Contact(
+            relationshipId: 'relationship-${request.user.username}',
+            user: request.user,
+            connectedAt: DateTime.utc(2026, 7, 21),
+          ),
+        ],
+        incoming: current.incoming
+            .where((request) => request.id != requestId)
+            .toList(growable: false),
+      ),
+    );
+    return true;
+  }
+
+  @override
+  Future<void> reject(String requestId) async {
+    rejectedRequestId = requestId;
+    final current = state.requireValue;
+    state = AsyncData(
+      current.copyWith(
+        incoming: current.incoming
+            .where((request) => request.id != requestId)
+            .toList(growable: false),
+      ),
+    );
+  }
 }

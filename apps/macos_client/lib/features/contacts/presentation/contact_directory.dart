@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
+import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_directory_list.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_request_drawer.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 class ContactDirectory extends StatelessWidget {
   const ContactDirectory({
     required this.contacts,
+    required this.incomingRequests,
     required this.accessToken,
     required this.query,
     required this.selectedUserId,
@@ -19,11 +22,14 @@ class ContactDirectory extends StatelessWidget {
     required this.onQueryChanged,
     required this.onSearchExactId,
     required this.onSendRequest,
+    required this.onAcceptRequest,
+    required this.onDeclineRequest,
     required this.onSelect,
     super.key,
   });
 
   final List<Contact> contacts;
+  final List<ContactRequest> incomingRequests;
   final String accessToken;
   final String query;
   final String? selectedUserId;
@@ -34,6 +40,8 @@ class ContactDirectory extends StatelessWidget {
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onSearchExactId;
   final VoidCallback onSendRequest;
+  final ValueChanged<ContactRequest> onAcceptRequest;
+  final ValueChanged<ContactRequest> onDeclineRequest;
   final ValueChanged<Contact> onSelect;
 
   @override
@@ -60,6 +68,16 @@ class ContactDirectory extends StatelessWidget {
             ),
           ),
           if (isSubmitting) const LinearProgressIndicator(minHeight: 1),
+          if (incomingRequests.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 8),
+              child: ContactRequestDrawer(
+                requests: incomingRequests,
+                disabled: isSubmitting,
+                onAccept: onAcceptRequest,
+                onDecline: onDeclineRequest,
+              ),
+            ),
           if (errorMessage != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),

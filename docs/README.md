@@ -11,13 +11,13 @@ The authentication, contacts, direct conversations, and persisted message founda
 - The Flutter macOS client provides modern registration and sign-in forms.
 - Registration uses a unique lowercase username and password, with no email address required.
 - The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
-- The authenticated client provides modern chats, contacts, requests, and system-status workspaces.
+- The authenticated client provides modern chats, contacts, and system-status workspaces.
 - The account card opens an in-app Profile sheet where users can set a profile photo, Name, Gender, Region, and ID. Changes persist to MySQL, are restored with the session, and update connected peers through the authenticated realtime channel.
 - The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, and a persistent desktop master-detail layout.
 - Message rows top-align sender avatars with their bubbles so multiline content expands downward without shifting its starting edge.
 - The resizable macOS window opens at 1,180 by 660 points.
-- The Contacts workspace provides an alphabetical directory with local name and ID filtering, exact ID lookup for new people, a selected-contact detail panel, contact-request workflows, safe removal confirmation, and direct-message entry points.
-- The Requests workspace shows incoming requests, supports accept and decline, and opens the newly accepted contact in the Contacts workspace.
+- The Contacts workspace provides an alphabetical directory with local name and ID filtering, exact ID lookup for new people, an inline friend-request drawer, a selected-contact detail panel, safe removal confirmation, and direct-message entry points.
+- Incoming friend requests appear below the Contacts search field and can be expanded, accepted, or declined without leaving the workspace.
 - Direct channels load cursor-paginated history, receive realtime messages, automatically recover sequence gaps on opening, reconnecting, detecting an out-of-order event, or through a two-second active-channel fallback check, show persisted unread counts, mark viewed messages as read, update conversation-card previews in realtime with the same reconnect and two-second recovery safeguards, and can send or retry text, image, and file messages without creating duplicates.
 - Image messages support PNG, JPEG, GIF, and WebP files up to 15 MB. Image bytes are stored behind authenticated API endpoints and are available only to conversation members; the macOS image preview can save the current image through the native Save dialog.
 - The macOS composer accepts an image from the system clipboard, stages one rounded preview with a remove control, and can send the staged image followed by the typed text from one send action.
