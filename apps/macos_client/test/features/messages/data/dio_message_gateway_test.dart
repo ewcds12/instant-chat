@@ -118,11 +118,16 @@ void main() {
     expect(message.file?.filename, 'Notes.pdf');
   });
 
-  test('downloadFile fetches authenticated file bytes', () async {
+  test('downloadFile streams authenticated bytes to the destination', () async {
     final adapter = _StubAdapter(statusCode: 200, body: [1, 2, 3]);
     final gateway = DioMessageGateway(_createDio(adapter));
+    final temporaryDirectory = await Directory.systemTemp.createTemp(
+      'instant-chat-download-test-',
+    );
+    final destination = File('${temporaryDirectory.path}/download.pdf');
+    addTearDown(() => temporaryDirectory.delete(recursive: true));
 
-    final bytes = await gateway.downloadFile(
+    await gateway.downloadFile(
       accessToken: 'access-token',
       file: const MessageFile(
         id: '8',
@@ -131,11 +136,12 @@ void main() {
         contentType: 'application/pdf',
         byteSize: 3,
       ),
+      destinationPath: destination.path,
     );
 
     expect(adapter.method, 'GET');
     expect(adapter.path, '/api/v1/message-files/8');
-    expect(bytes, [1, 2, 3]);
+    expect(await destination.readAsBytes(), [1, 2, 3]);
   });
 
   test('downloadImage fetches authenticated image bytes', () async {

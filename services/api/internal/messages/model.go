@@ -4,6 +4,7 @@ package messages
 import (
 	"context"
 	"errors"
+	"io"
 	"time"
 )
 
@@ -91,7 +92,8 @@ type FileAttachment struct {
 type FileUpload struct {
 	Filename    string
 	ContentType string
-	Data        []byte
+	ByteSize    int64
+	Reader      io.Reader
 }
 
 // ImageFile is one authorized image download.
@@ -106,7 +108,20 @@ type MessageFile struct {
 	Filename    string
 	ContentType string
 	ByteSize    uint32
-	Data        []byte
+	Content     io.ReadCloser
+}
+
+// FileObjectStore persists and retrieves file-message object bytes.
+type FileObjectStore interface {
+	Put(
+		ctx context.Context,
+		key string,
+		reader io.Reader,
+		size int64,
+		contentType string,
+	) error
+	Open(ctx context.Context, key string) (io.ReadCloser, error)
+	Delete(ctx context.Context, key string) error
 }
 
 // Page is one ascending message-history page.

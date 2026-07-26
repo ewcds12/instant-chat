@@ -127,11 +127,20 @@ class DioMessageGateway implements MessageGateway {
   }
 
   @override
-  Future<List<int>> downloadFile({
+  Future<void> downloadFile({
     required String accessToken,
     required MessageFile file,
+    required String destinationPath,
   }) async {
-    return _downloadBytes(accessToken, file.url, 'file');
+    final response = await apiRequest(
+      () => _dio.download(
+        file.url,
+        destinationPath,
+        deleteOnError: true,
+        options: _fileTransferOptions(accessToken),
+      ),
+    );
+    expectStatus(response, {200});
   }
 
   @override
@@ -163,8 +172,14 @@ class DioMessageGateway implements MessageGateway {
 
   Options _uploadOptions(String token) => Options(
     headers: bearerAuthorization(token),
-    sendTimeout: const Duration(seconds: 30),
-    receiveTimeout: const Duration(seconds: 30),
+    sendTimeout: const Duration(minutes: 5),
+    receiveTimeout: const Duration(minutes: 5),
+  );
+
+  Options _fileTransferOptions(String token) => Options(
+    headers: bearerAuthorization(token),
+    sendTimeout: const Duration(minutes: 5),
+    receiveTimeout: const Duration(minutes: 5),
   );
 
   Options _downloadOptions(String token) => Options(

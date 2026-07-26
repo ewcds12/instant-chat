@@ -12,7 +12,7 @@ const (
 	maximumPageSize   = 100
 	maximumBodyRunes  = 4000
 	maximumImageBytes = 15 * 1024 * 1024
-	maximumFileBytes  = 25 * 1024 * 1024
+	maximumFileBytes  = 200 * 1024 * 1024
 	maximumNameRunes  = 255
 )
 
@@ -115,11 +115,11 @@ func (s *Service) SendFile(
 			Message: "Filename must contain 1 to 255 Unicode characters.",
 		}
 	}
-	if len(upload.Data) == 0 {
+	if upload.ByteSize == 0 || upload.Reader == nil {
 		return Message{}, false, &InputError{Message: "File must not be empty."}
 	}
-	if len(upload.Data) > maximumFileBytes {
-		return Message{}, false, &InputError{Message: "File must be 25 MB or smaller."}
+	if upload.ByteSize < 0 || upload.ByteSize > maximumFileBytes {
+		return Message{}, false, &InputError{Message: "File must be 200 MB or smaller."}
 	}
 	if strings.TrimSpace(upload.ContentType) == "" {
 		upload.ContentType = "application/octet-stream"

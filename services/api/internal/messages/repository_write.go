@@ -9,6 +9,13 @@ import (
 	"github.com/ewcds12/instant-chat/services/api/internal/store"
 )
 
+type storedFileUpload struct {
+	Filename    string
+	ContentType string
+	ByteSize    uint32
+	ObjectKey   string
+}
+
 func createMessage(
 	ctx context.Context,
 	queries *store.Queries,
@@ -64,7 +71,7 @@ func createFile(
 	ctx context.Context,
 	queries *store.Queries,
 	userID uint64,
-	upload *FileUpload,
+	upload *storedFileUpload,
 ) (sql.NullInt64, error) {
 	if upload == nil {
 		return sql.NullInt64{}, nil
@@ -73,8 +80,8 @@ func createFile(
 		UploaderID:  userID,
 		Filename:    upload.Filename,
 		ContentType: upload.ContentType,
-		ByteSize:    uint32(len(upload.Data)),
-		Data:        upload.Data,
+		ByteSize:    upload.ByteSize,
+		ObjectKey:   sql.NullString{String: upload.ObjectKey, Valid: true},
 	})
 	if err != nil {
 		return sql.NullInt64{}, fmt.Errorf("create message file: %w", err)

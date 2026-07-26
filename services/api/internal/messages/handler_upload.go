@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const multipartMemoryBytes = 1024 * 1024
+
 func imageUpload(w http.ResponseWriter, r *http.Request) (ImageUpload, string, bool) {
 	r.Body = http.MaxBytesReader(w, r.Body, maximumImageBytes+1024*1024)
 	if err := r.ParseMultipartForm(maximumImageBytes); err != nil {
@@ -28,28 +30,44 @@ func imageUpload(w http.ResponseWriter, r *http.Request) (ImageUpload, string, b
 		r.FormValue("client_message_id"), true
 }
 
-func fileUpload(w http.ResponseWriter, r *http.Request) (FileUpload, string, bool) {
+func fileUpload(
+	w http.ResponseWriter,
+	r *http.Request,
+) (FileUpload, string, func(), bool) {
 	r.Body = http.MaxBytesReader(w, r.Body, maximumFileBytes+1024*1024)
-	if err := r.ParseMultipartForm(maximumFileBytes); err != nil {
+	if err := r.ParseMultipartForm(multipartMemoryBytes); err != nil {
 		writeInvalidArgument(w, r, "File upload must be a valid multipart form.")
-		return FileUpload{}, "", false
+		return FileUpload{}, "", nil, false
 	}
+	removeForm := func() { _ = r.MultipartForm.RemoveAll() }
 	file, header, err := r.FormFile("file")
 	if err != nil {
+		removeForm()
 		writeInvalidArgument(w, r, "File is required.")
-		return FileUpload{}, "", false
+		return FileUpload{}, "", nil, false
 	}
-	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, maximumFileBytes+1))
-	if err != nil {
+	cleanup := func() {
+		_ = file.Close()
+		removeForm()
+	}
+	sniff := make([]byte, 512)
+	read, err := io.ReadFull(file, sniff)
+	if err != nil && err != io.EOF && err != io.ErrUnexpectedEOF {
+		cleanup()
 		writeInvalidArgument(w, r, "File could not be read.")
-		return FileUpload{}, "", false
+		return FileUpload{}, "", nil, false
+	}
+	if _, err := file.Seek(0, io.SeekStart); err != nil {
+		cleanup()
+		writeInvalidArgument(w, r, "File could not be read.")
+		return FileUpload{}, "", nil, false
 	}
 	return FileUpload{
 		Filename:    cleanFilename(header.Filename),
-		ContentType: detectFileContentType(header.Header.Get("Content-Type"), data),
-		Data:        data,
-	}, r.FormValue("client_message_id"), true
+		ContentType: detectFileContentType(header.Header.Get("Content-Type"), sniff[:read]),
+		ByteSize:    header.Size,
+		Reader:      file,
+	}, r.FormValue("client_message_id"), cleanup, true
 }
 
 func detectImageContentType(data []byte) string {

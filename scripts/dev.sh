@@ -22,6 +22,38 @@ cleanup() {
 }
 trap cleanup EXIT
 
+wait_for_service() {
+  local service_name="$1"
+  local label="$2"
+  local container_id
+  local container_status
+  container_id="$(docker compose \
+    --env-file "$environment_file" \
+    -f "$compose_file" \
+    ps -q "$service_name")"
+  if [[ -z "$container_id" ]]; then
+    echo "$label container was not created." >&2
+    exit 1
+  fi
+
+  echo "Waiting for $label..."
+  for _ in {1..60}; do
+    container_status="$(docker inspect \
+      --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
+      "$container_id")"
+    if [[ "$container_status" == "healthy" ]]; then
+      return
+    fi
+    if [[ "$container_status" == "exited" || "$container_status" == "dead" ]]; then
+      echo "$label stopped before becoming healthy." >&2
+      exit 1
+    fi
+    sleep 1
+  done
+  echo "$label did not become healthy within 60 seconds." >&2
+  exit 1
+}
+
 for command_name in curl docker flutter go; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "$command_name is required but was not found." >&2
@@ -39,43 +71,25 @@ set -a
 source "$environment_file"
 set +a
 
-echo "Starting MySQL..."
+for variable_name in \
+  MINIO_ENDPOINT \
+  MINIO_ACCESS_KEY \
+  MINIO_SECRET_KEY \
+  MINIO_BUCKET; do
+  if [[ -z "${!variable_name:-}" ]]; then
+    echo "$variable_name is required in .env." >&2
+    exit 1
+  fi
+done
+
+echo "Starting MySQL and MinIO..."
 docker compose \
   --env-file "$environment_file" \
   -f "$compose_file" \
-  up -d mysql
+  up -d mysql minio
 
-container_id="$(docker compose \
-  --env-file "$environment_file" \
-  -f "$compose_file" \
-  ps -q mysql)"
-
-if [[ -z "$container_id" ]]; then
-  echo "MySQL container was not created." >&2
-  exit 1
-fi
-
-echo "Waiting for MySQL..."
-mysql_ready=false
-for _ in {1..60}; do
-  container_status="$(docker inspect \
-    --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' \
-    "$container_id")"
-  if [[ "$container_status" == "healthy" ]]; then
-    mysql_ready=true
-    break
-  fi
-  if [[ "$container_status" == "exited" || "$container_status" == "dead" ]]; then
-    echo "MySQL stopped before becoming healthy." >&2
-    exit 1
-  fi
-  sleep 1
-done
-
-if [[ "$mysql_ready" != true ]]; then
-  echo "MySQL did not become healthy within 60 seconds." >&2
-  exit 1
-fi
+wait_for_service mysql MySQL
+wait_for_service minio MinIO
 
 echo "Applying database migrations..."
 "$repository_root/scripts/migrate.sh"

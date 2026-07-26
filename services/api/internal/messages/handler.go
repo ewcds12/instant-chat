@@ -3,6 +3,7 @@ package messages
 import (
 	"context"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -92,10 +93,11 @@ func (h *Handler) SendFile(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	upload, clientMessageID, ok := fileUpload(w, r)
+	upload, clientMessageID, cleanup, ok := fileUpload(w, r)
 	if !ok {
 		return
 	}
+	defer cleanup()
 	message, created, err := h.service.SendFile(
 		r.Context(), currentUserID(r), conversationID, clientMessageID, upload,
 	)
@@ -147,7 +149,8 @@ func (h *Handler) File(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Length", strconv.FormatUint(uint64(file.ByteSize), 10))
 	w.Header().Set("Content-Type", file.ContentType)
 	w.Header().Set("X-Content-Type-Options", "nosniff")
-	if _, err := w.Write(file.Data); err != nil {
+	defer file.Content.Close()
+	if _, err := io.Copy(w, file.Content); err != nil {
 		slog.Debug("write message file failed", "request_id", httpapi.RequestID(r.Context()), "error", err)
 	}
 }

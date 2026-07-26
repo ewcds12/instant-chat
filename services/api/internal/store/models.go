@@ -67,13 +67,14 @@ type MessageDeletion struct {
 }
 
 type MessageFile struct {
-	ID          uint64    `db:"id"`
-	UploaderID  uint64    `db:"uploader_id"`
-	Filename    string    `db:"filename"`
-	ContentType string    `db:"content_type"`
-	ByteSize    uint32    `db:"byte_size"`
-	Data        []byte    `db:"data"`
-	CreatedAt   time.Time `db:"created_at"`
+	ID          uint64         `db:"id"`
+	UploaderID  uint64         `db:"uploader_id"`
+	Filename    string         `db:"filename"`
+	ContentType string         `db:"content_type"`
+	ByteSize    uint32         `db:"byte_size"`
+	CreatedAt   time.Time      `db:"created_at"`
+	Data        sql.NullString `db:"data"`
+	ObjectKey   sql.NullString `db:"object_key"`
 }
 
 type MessageImage struct {

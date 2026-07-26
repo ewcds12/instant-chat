@@ -21,15 +21,17 @@ The authentication, contacts, direct conversations, and persisted message founda
 - Direct channels load cursor-paginated history, receive realtime messages, automatically recover sequence gaps on opening, reconnecting, detecting an out-of-order event, or through a two-second active-channel fallback check, show persisted unread counts, mark viewed messages as read, update conversation-card previews in realtime with the same reconnect and two-second recovery safeguards, and can send or retry text, image, and file messages without creating duplicates.
 - Image messages support PNG, JPEG, GIF, and WebP files up to 15 MB. Image bytes are stored behind authenticated API endpoints and are available only to conversation members; the macOS image preview can save the current image through the native Save dialog.
 - The macOS composer accepts an image from the system clipboard, stages one rounded preview with a remove control, and can send the staged image followed by the typed text from one send action.
-- File messages support files up to 25 MB. File bytes are stored behind authenticated API endpoints and are available only to conversation members.
+- File messages support files up to 200 MB. New file bytes stream through the authenticated API into a private MinIO bucket, while MySQL stores metadata and remains backward compatible with existing database-backed files.
 - The Go API provides health, registration, sign-in, refresh, sign-out, current-user, profile update, and authenticated avatar endpoints.
 - The Go API enforces unique bilateral contact relationships and unique direct conversations.
 - The health check verifies the MySQL connection with `PingContext`.
 - MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, members, and ordered messages.
-- Docker Compose provides a pinned MySQL 8.4 development environment.
+- Docker Compose provides pinned MySQL 8.4 and source-built MinIO development services.
 - OpenAPI defines the implemented HTTP and WebSocket event contracts.
 
-Local Drift storage, read receipts, Redis, MinIO, and large-file object storage have not been implemented.
+Local Drift storage, cross-user read receipts, Redis, and end-to-end encryption have not been implemented.
+
+The local MinIO image builds the pinned `RELEASE.2025-10-15T17-29-55Z` source under AGPLv3. The upstream MinIO server repository is archived, so a production deployment must complete its own licensing, maintenance, and support review. The Go application uses the separately maintained Apache-2.0 `minio-go` client.
 
 ## Technology Stack
 
@@ -40,7 +42,7 @@ Local Drift storage, read receipts, Redis, MinIO, and large-file object storage 
 - API contract: OpenAPI 3.1.
 - Database migrations: golang-migrate.
 
-Future features will add go_router, Drift, SQLite, Redis, and MinIO only when they are needed.
+Future features will add go_router, Drift, SQLite, and Redis only when they are needed.
 
 ## Requirements
 
@@ -69,9 +71,11 @@ Start the complete development environment from the repository root:
 make dev
 ```
 
-This command starts MySQL, waits for its health check, applies pending migrations, builds and starts the Go API, and opens the Flutter macOS client. Close the client or press `Ctrl+C` to stop the API. MySQL stays available for faster restarts.
+This command starts MySQL and MinIO, waits for both health checks, applies pending migrations, builds and starts the Go API, and opens the Flutter macOS client. Close the client or press `Ctrl+C` to stop the API. The Docker services stay available for faster restarts.
 
-Stop MySQL and the Docker development network when they are no longer needed:
+The first MinIO startup builds its pinned server source and can take several minutes. Docker reuses the completed image for subsequent starts.
+
+Stop MySQL, MinIO, and the Docker development network when they are no longer needed:
 
 ```bash
 make stop
@@ -88,10 +92,10 @@ make check
 
 ## Manual Startup and Troubleshooting
 
-Start MySQL:
+Start MySQL and MinIO:
 
 ```bash
-docker compose --env-file .env -f deploy/docker/compose.yaml up -d mysql
+docker compose --env-file .env -f deploy/docker/compose.yaml up -d mysql minio
 ```
 
 Apply migrations with the pinned tool version:
@@ -100,7 +104,7 @@ Apply migrations with the pinned tool version:
 ./scripts/migrate.sh
 ```
 
-Run this step after MySQL is healthy and before starting the API. Migration filenames are append-only after they reach a shared branch.
+Run this step after MySQL is healthy and before starting the API. The API also requires a healthy MinIO service and creates its private bucket on startup. Migration filenames are append-only after they reach a shared branch.
 
 Start the API:
 

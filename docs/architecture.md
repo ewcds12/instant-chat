@@ -8,13 +8,13 @@ Flutter macOS client
         | HTTP APIs + authenticated WebSocket /api/v1/realtime
         v
 Go modular monolith
-        |
-        | database/sql + sqlc
-        v
-MySQL 8.4
+        |                          |
+        | database/sql + sqlc     | S3 API
+        v                          v
+MySQL 8.4                    MinIO object storage
 ```
 
-The Flutter client never accesses MySQL directly. Docker Compose manages local server infrastructure only; it is not a client runtime dependency.
+The Flutter client never accesses MySQL or MinIO directly. Docker Compose manages local server infrastructure only; it is not a client runtime dependency.
 
 The application locale and repository language are fixed to American English (`en-US`).
 
@@ -51,14 +51,17 @@ The server is located in `services/api` and currently contains:
 - `internal/users`: shared username normalization rules.
 - `internal/contacts`: exact account search, pending and accepted relationship rules, HTTP handlers, and MySQL persistence.
 - `internal/conversations`: authorized direct-conversation creation, membership transactions, list handlers, and MySQL persistence.
-- `internal/messages`: text, image, and file validation, idempotent REST sending, cursor history, membership authorization, and MySQL persistence.
+- `internal/messages`: text, image, and file validation, idempotent REST sending, cursor history, membership authorization, and attachment persistence coordination.
+- `internal/uploads`: private S3-compatible object storage for file-message bytes.
 - `internal/realtime`: authenticated WebSocket connections, member-targeted delivery, heartbeat, and graceful shutdown.
 - `internal/config`: environment variable loading and validation.
 - `internal/health`: API and database health checks.
 - `internal/httpapi`: bounded JSON handling, stable errors, request IDs, and IP rate limiting.
 - `internal/store`: sqlc-generated database access code; generated files must not be edited manually.
 
-The API uses the standard library's `net/http` package and the zero-dependency ISC-licensed `github.com/coder/websocket` package for RFC 6455 framing. MySQL access stays behind repository interfaces and sqlc-generated queries.
+The API uses the standard library's `net/http` package, the ISC-licensed `github.com/coder/websocket` package for RFC 6455 framing, and the Apache-2.0-licensed `minio-go` client for S3-compatible storage. MySQL access stays behind repository interfaces and sqlc-generated queries.
+
+The development MinIO image builds the pinned `RELEASE.2025-10-15T17-29-55Z` source under AGPLv3. Because the upstream MinIO server repository is archived, production adoption requires an explicit licensing, maintenance, security-update, and support review.
 
 ## Authentication
 
@@ -88,7 +91,7 @@ Each conversation owns a monotonically increasing sequence. Sending locks the co
 
 History is returned in ascending sequence order, at most 100 messages per request. The optional `before` cursor requests older sequences. The mutually exclusive `after` cursor requests newer sequences for reconnect recovery. `next_cursor` continues in the requested direction and is null when that direction is complete. Send and history endpoints return the same not-found response when the conversation is missing or the user is not a member. Message sending is limited to 60 attempts per IP address per minute in each API process.
 
-Messages have a `kind` of `text`, `image`, or `file`. Text messages store a validated body. Image messages store one PNG, JPEG, GIF, or WebP attachment up to 15 MB in MySQL for the first implementation. File messages store one named file attachment up to 25 MB in MySQL. Attachment bytes are returned only through authenticated API endpoints that verify the requester is a member of the attachment's conversation. The client uses native macOS file pickers for selecting images and files and sends uploads through the API, never by connecting directly to storage. The macOS clipboard bridge converts pasted bitmap data to an app-owned temporary PNG, stages one preview in the composer, and deletes the temporary file after removal, replacement, successful upload, or page disposal. A combined image-and-text send action uses the existing idempotent endpoints in order: image first, then text. They remain two persisted messages rather than one compound database record.
+Messages have a `kind` of `text`, `image`, or `file`. Text messages store a validated body. Image messages store one PNG, JPEG, GIF, or WebP attachment up to 15 MB in MySQL. New file messages stream one named attachment up to 200 MB through the Go API into a private MinIO bucket; MySQL stores the object key and public metadata. Existing database-backed file rows remain readable, so the migration does not require an immediate data backfill. The migration down path intentionally fails while object-backed rows exist rather than discarding external file content. Attachment bytes are returned only through authenticated API endpoints that verify the requester is a member of the attachment's conversation. The client uses native macOS file pickers for selecting images and files and never receives object-store credentials. File downloads stream directly to the selected destination instead of accumulating the complete file in client memory. The macOS clipboard bridge converts pasted bitmap data to an app-owned temporary PNG, stages one preview in the composer, and deletes the temporary file after removal, replacement, successful upload, or page disposal. A combined image-and-text send action uses the existing idempotent endpoints in order: image first, then text. They remain two persisted messages rather than one compound database record.
 
 After a new message commits, the realtime hub looks up the conversation members and sends a versioned `message.created` event to every connected window for those users. A profile update sends a versioned `profile.updated` event to connected users who share a conversation with the changed account. Failed realtime lookup or disconnected clients do not change the successful REST result because persisted REST data remains the source of truth.
 
@@ -105,12 +108,12 @@ The complete response shape is defined in `api/openapi/openapi.yaml`. The client
 
 ## Configuration
 
-- Go reads its listening address and database DSN from environment variables.
+- Go reads its listening address, database DSN, and private MinIO connection settings from environment variables.
 - Flutter uses the compile-time `API_BASE_URL` variable to override its default API address.
-- Docker Compose injects MySQL configuration from the root `.env` file.
+- Docker Compose injects MySQL and MinIO configuration from the root `.env` file.
 - golang-migrate reads its MySQL URL from `MIGRATION_DATABASE_URL`.
 - Passwords, tokens, certificates, and real `.env` files never enter Git.
 
 ## Not Yet Implemented
 
-The project does not yet include local message caching, cross-user read receipts, Redis, MinIO, password reset, social sign-in, large-file object storage, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.
+The project does not yet include local message caching, cross-user read receipts, Redis, password reset, social sign-in, resumable uploads, or end-to-end encryption. New capabilities must preserve the modular monolith boundary and update this document in the same change.

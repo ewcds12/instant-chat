@@ -11,13 +11,19 @@ import (
 
 // MySQLRepository persists direct messages through sqlc queries.
 type MySQLRepository struct {
-	database *sql.DB
-	queries  *store.Queries
+	database    *sql.DB
+	queries     *store.Queries
+	objectStore FileObjectStore
 }
 
 // NewMySQLRepository creates the production message repository.
-func NewMySQLRepository(database *sql.DB) *MySQLRepository {
-	return &MySQLRepository{database: database, queries: store.New(database)}
+func NewMySQLRepository(
+	database *sql.DB,
+	objectStore FileObjectStore,
+) *MySQLRepository {
+	return &MySQLRepository{
+		database: database, queries: store.New(database), objectStore: objectStore,
+	}
 }
 
 // Send allocates a conversation sequence and creates one message atomically.
@@ -39,16 +45,6 @@ func (r *MySQLRepository) SendImage(
 	return r.send(ctx, userID, conversationID, clientMessageID, KindImage, "", &upload, nil)
 }
 
-// SendFile allocates a sequence and creates one file message atomically.
-func (r *MySQLRepository) SendFile(
-	ctx context.Context,
-	userID, conversationID uint64,
-	clientMessageID string,
-	upload FileUpload,
-) (Message, bool, error) {
-	return r.send(ctx, userID, conversationID, clientMessageID, KindFile, "", nil, &upload)
-}
-
 // Image returns one image if the requester belongs to its conversation.
 func (r *MySQLRepository) Image(ctx context.Context, userID, imageID uint64) (ImageFile, error) {
 	row, err := r.queries.GetMessageImageForMember(ctx, store.GetMessageImageForMemberParams{
@@ -62,26 +58,6 @@ func (r *MySQLRepository) Image(ctx context.Context, userID, imageID uint64) (Im
 		return ImageFile{}, fmt.Errorf("read message image: %w", err)
 	}
 	return ImageFile{
-		ContentType: row.ContentType,
-		ByteSize:    row.ByteSize,
-		Data:        row.Data,
-	}, nil
-}
-
-// File returns one file if the requester belongs to its conversation.
-func (r *MySQLRepository) File(ctx context.Context, userID, fileID uint64) (MessageFile, error) {
-	row, err := r.queries.GetMessageFileForMember(ctx, store.GetMessageFileForMemberParams{
-		FileID: fileID,
-		UserID: userID,
-	})
-	if errors.Is(err, sql.ErrNoRows) {
-		return MessageFile{}, ErrFileNotFound
-	}
-	if err != nil {
-		return MessageFile{}, fmt.Errorf("read message file: %w", err)
-	}
-	return MessageFile{
-		Filename:    row.Filename,
 		ContentType: row.ContentType,
 		ByteSize:    row.ByteSize,
 		Data:        row.Data,
@@ -136,7 +112,7 @@ func (r *MySQLRepository) send(
 	userID, conversationID uint64,
 	clientMessageID, kind, body string,
 	upload *ImageUpload,
-	fileUpload *FileUpload,
+	fileUpload *storedFileUpload,
 ) (Message, bool, error) {
 	tx, err := r.database.BeginTx(ctx, nil)
 	if err != nil {

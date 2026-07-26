@@ -43,9 +43,10 @@ abstract interface class MessageGateway {
     required String messageId,
   });
 
-  Future<List<int>> downloadFile({
+  Future<void> downloadFile({
     required String accessToken,
     required MessageFile file,
+    required String destinationPath,
   });
 
   Future<List<int>> downloadImage({

@@ -233,8 +233,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     if (!mounted || path == null) {
       return;
     }
-    final bytes = await ref.read(provider.notifier).downloadFile(file);
-    await actions.writeDownloadFile(path, bytes);
+    await ref.read(provider.notifier).downloadFile(file, path);
   }
 
   Future<void> _downloadImage(

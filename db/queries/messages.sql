@@ -67,9 +67,10 @@ INSERT INTO message_files (
   filename,
   content_type,
   byte_size,
-  data
+  data,
+  object_key
 )
-VALUES (?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, NULL, ?);
 
 -- name: AdvanceConversationSequence :exec
 UPDATE conversations
@@ -245,7 +246,8 @@ SELECT
   file.filename,
   file.content_type,
   file.byte_size,
-  file.data
+  file.data,
+  file.object_key
 FROM message_files AS file
 JOIN messages AS message ON message.file_id = file.id
 JOIN conversation_members AS membership

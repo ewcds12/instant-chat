@@ -58,6 +58,7 @@ void main() {
     expect(gateway.downloadedFileID, isNull);
     expect(actions.downloadPath, isNull);
     expect(actions.downloadBytes, isNull);
+    expect(gateway.downloadedFilePath, isNull);
   });
 
   testWidgets('downloads a file message through the native action flow', (
@@ -80,8 +81,9 @@ void main() {
 
     expect(actions.askedFilename, 'Notes.pdf');
     expect(gateway.downloadedFileID, '8');
+    expect(gateway.downloadedFilePath, '/tmp/Notes.pdf');
     expect(actions.downloadPath, '/tmp/Notes.pdf');
-    expect(actions.downloadBytes, [1, 2, 3]);
+    expect(actions.downloadBytes, isNull);
   });
 
   testWidgets('downloads an image from its preview', (tester) async {

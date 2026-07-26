@@ -26,8 +26,8 @@ import (
 
 const (
 	readHeaderTimeout = 5 * time.Second
-	readTimeout       = 10 * time.Second
-	writeTimeout      = 10 * time.Second
+	readTimeout       = 5 * time.Minute
+	writeTimeout      = 5 * time.Minute
 	idleTimeout       = 60 * time.Second
 	shutdownTimeout   = 10 * time.Second
 	connectionMaxAge  = 5 * time.Minute
@@ -60,6 +60,11 @@ func run() error {
 	database.SetMaxIdleConns(5)
 	database.SetConnMaxLifetime(connectionMaxAge)
 
+	fileStorage, err := initializeFileStorage(cfg.MinIO)
+	if err != nil {
+		return err
+	}
+
 	mux := http.NewServeMux()
 	mux.Handle("GET /api/v1/health", health.NewHandler(database))
 
@@ -90,7 +95,7 @@ func run() error {
 		conversations.NewMySQLRepository(database), contactRepository,
 	))
 	messageHandler := messages.NewHandler(messages.NewService(
-		messages.NewMySQLRepository(database),
+		messages.NewMySQLRepository(database, fileStorage),
 		realtimeHub,
 	))
 	realtimeHandler := realtime.NewHandler(realtimeHub)

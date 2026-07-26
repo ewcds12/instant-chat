@@ -56,6 +56,7 @@ class FakeMessageGateway implements MessageGateway {
   String? sentImagePath;
   String? sentFilePath;
   String? downloadedFileID;
+  String? downloadedFilePath;
   String? downloadedImageID;
   String? recalledMessageID;
   String? deletedMessageID;
@@ -177,12 +178,13 @@ class FakeMessageGateway implements MessageGateway {
   }
 
   @override
-  Future<List<int>> downloadFile({
+  Future<void> downloadFile({
     required String accessToken,
     required MessageFile file,
+    required String destinationPath,
   }) async {
     downloadedFileID = file.id;
-    return [1, 2, 3];
+    downloadedFilePath = destinationPath;
   }
 
   @override

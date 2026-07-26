@@ -67,17 +67,18 @@ INSERT INTO message_files (
   filename,
   content_type,
   byte_size,
-  data
+  data,
+  object_key
 )
-VALUES (?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, NULL, ?)
 `
 
 type CreateMessageFileParams struct {
-	UploaderID  uint64 `db:"uploader_id"`
-	Filename    string `db:"filename"`
-	ContentType string `db:"content_type"`
-	ByteSize    uint32 `db:"byte_size"`
-	Data        []byte `db:"data"`
+	UploaderID  uint64         `db:"uploader_id"`
+	Filename    string         `db:"filename"`
+	ContentType string         `db:"content_type"`
+	ByteSize    uint32         `db:"byte_size"`
+	ObjectKey   sql.NullString `db:"object_key"`
 }
 
 func (q *Queries) CreateMessageFile(ctx context.Context, arg CreateMessageFileParams) (sql.Result, error) {
@@ -86,7 +87,7 @@ func (q *Queries) CreateMessageFile(ctx context.Context, arg CreateMessageFilePa
 		arg.Filename,
 		arg.ContentType,
 		arg.ByteSize,
-		arg.Data,
+		arg.ObjectKey,
 	)
 }
 
@@ -210,7 +211,8 @@ SELECT
   file.filename,
   file.content_type,
   file.byte_size,
-  file.data
+  file.data,
+  file.object_key
 FROM message_files AS file
 JOIN messages AS message ON message.file_id = file.id
 JOIN conversation_members AS membership
@@ -233,10 +235,11 @@ type GetMessageFileForMemberParams struct {
 }
 
 type GetMessageFileForMemberRow struct {
-	Filename    string `db:"filename"`
-	ContentType string `db:"content_type"`
-	ByteSize    uint32 `db:"byte_size"`
-	Data        []byte `db:"data"`
+	Filename    string         `db:"filename"`
+	ContentType string         `db:"content_type"`
+	ByteSize    uint32         `db:"byte_size"`
+	Data        sql.NullString `db:"data"`
+	ObjectKey   sql.NullString `db:"object_key"`
 }
 
 func (q *Queries) GetMessageFileForMember(ctx context.Context, arg GetMessageFileForMemberParams) (GetMessageFileForMemberRow, error) {
@@ -247,6 +250,7 @@ func (q *Queries) GetMessageFileForMember(ctx context.Context, arg GetMessageFil
 		&i.ContentType,
 		&i.ByteSize,
 		&i.Data,
+		&i.ObjectKey,
 	)
 	return i, err
 }

@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"testing"
@@ -17,7 +18,8 @@ func TestServiceSendFileValidatesAndPublishes(t *testing.T) {
 		FileUpload{
 			Filename:    "Notes.pdf",
 			ContentType: "application/pdf",
-			Data:        []byte{1, 2, 3},
+			ByteSize:    3,
+			Reader:      bytes.NewReader([]byte{1, 2, 3}),
 		},
 	)
 
@@ -41,7 +43,8 @@ func TestServiceSendFileRejectsOversizedFile(t *testing.T) {
 		FileUpload{
 			Filename:    "large.zip",
 			ContentType: "application/zip",
-			Data:        make([]byte, maximumFileBytes+1),
+			ByteSize:    maximumFileBytes + 1,
+			Reader:      bytes.NewReader(nil),
 		},
 	)
 
@@ -49,7 +52,7 @@ func TestServiceSendFileRejectsOversizedFile(t *testing.T) {
 	if !errors.As(err, &inputError) {
 		t.Fatalf("SendFile() error = %v, want InputError", err)
 	}
-	if inputError.Message != "File must be 25 MB or smaller." {
+	if inputError.Message != "File must be 200 MB or smaller." {
 		t.Fatalf("InputError.Message = %q", inputError.Message)
 	}
 }
