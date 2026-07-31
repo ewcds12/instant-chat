@@ -318,7 +318,7 @@ paths:
         - $ref: "#/components/parameters/RequestID"
       responses:
         "200":
-          description: Accepted contact
+          description: Accepted contact with a direct conversation created for both users
           content:
             application/json:
               schema:

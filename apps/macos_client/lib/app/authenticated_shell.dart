@@ -5,6 +5,7 @@ import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_page.dart';
+import 'package:instant_chat/features/conversations/presentation/conversation_selection.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_page.dart';
 import 'package:instant_chat/features/profile/presentation/profile_sheet.dart';
@@ -71,10 +72,13 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
 
   Future<void> _openConversation(String userId) async {
     await ref.read(conversationsControllerProvider.future);
-    await ref.read(conversationsControllerProvider.notifier).create(userId);
+    final conversationId = await ref
+        .read(conversationsControllerProvider.notifier)
+        .openContactChat(userId);
     if (!mounted) {
       return;
     }
+    ref.read(selectedConversationIdProvider.notifier).select(conversationId);
     setState(() => _selectedIndex = 0);
   }
 }

@@ -56,7 +56,7 @@ func (s *Service) ListRequests(ctx context.Context, userID uint64) (RequestLists
 
 // AcceptRequest accepts an incoming request.
 func (s *Service) AcceptRequest(ctx context.Context, userID, requestID uint64) (Contact, error) {
-	return s.repository.AcceptRequest(ctx, userID, requestID)
+	return s.repository.AcceptRequestAndCreateConversation(ctx, userID, requestID)
 }
 
 // RejectRequest rejects an incoming request.

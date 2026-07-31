@@ -5,6 +5,7 @@ import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversation_list.dart';
+import 'package:instant_chat/features/conversations/presentation/conversation_selection.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_page.dart';
 
@@ -18,7 +19,6 @@ class ConversationsPage extends ConsumerStatefulWidget {
 }
 
 class _ConversationsPageState extends ConsumerState<ConversationsPage> {
-  String? _selectedConversationId;
   var _query = '';
 
   @override
@@ -38,7 +38,13 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
         ),
       ),
       data: (value) {
-        final selected = _findSelected(value.conversations);
+        final selectedConversationId = ref.watch(
+          selectedConversationIdProvider,
+        );
+        final selected = _findSelected(
+          value.conversations,
+          selectedConversationId,
+        );
         return Row(
           children: [
             SizedBox(
@@ -53,8 +59,9 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                 errorMessage: value.errorMessage,
                 onQueryChanged: (query) => setState(() => _query = query),
                 onCompose: widget.onCompose,
-                onSelect: (conversation) =>
-                    setState(() => _selectedConversationId = conversation.id),
+                onSelect: (conversation) => ref
+                    .read(selectedConversationIdProvider.notifier)
+                    .select(conversation.id),
               ),
             ),
             VerticalDivider(
@@ -71,9 +78,12 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
     );
   }
 
-  Conversation? _findSelected(List<Conversation> conversations) {
+  Conversation? _findSelected(
+    List<Conversation> conversations,
+    String? selectedConversationId,
+  ) {
     for (final conversation in conversations) {
-      if (conversation.id == _selectedConversationId) {
+      if (conversation.id == selectedConversationId) {
         return conversation;
       }
     }

@@ -73,8 +73,7 @@ Final result: passed
 
 ## Interaction Verification
 
-- Message and See All use the existing direct-conversation entry point.
-- Copy writes the exact account ID to the macOS clipboard and confirms success with visible feedback.
+- Message and See All select the existing direct conversation and switch to Chats without creating a conversation.
 - Selecting a real shared image opens the authenticated multi-image preview, including its existing download action.
 - Selecting a shared file uses the existing native download choice and Save dialog.
 - Selecting Links opens a list of real `http` or `https` URLs parsed from message history; choosing one opens it through macOS.

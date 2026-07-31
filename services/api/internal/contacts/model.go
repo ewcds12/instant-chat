@@ -67,7 +67,7 @@ type Repository interface {
 	FindUserByUsername(ctx context.Context, username string) (PublicUser, error)
 	CreateRequest(ctx context.Context, requesterID, addresseeID uint64) (Request, error)
 	ListRequests(ctx context.Context, userID uint64) ([]Request, error)
-	AcceptRequest(ctx context.Context, userID, requestID uint64) (Contact, error)
+	AcceptRequestAndCreateConversation(ctx context.Context, userID, requestID uint64) (Contact, error)
 	RejectRequest(ctx context.Context, userID, requestID uint64) error
 	CancelRequest(ctx context.Context, userID, requestID uint64) error
 	ListContacts(ctx context.Context, userID uint64) ([]Contact, error)

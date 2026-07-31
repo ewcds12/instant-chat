@@ -95,22 +95,49 @@ class ConversationsController extends AsyncNotifier<ConversationsState> {
 
   Future<void> refreshSilently() async => _queueSynchronization();
 
-  Future<void> create(String contactUserId) async {
+  Future<String?> openContactChat(String contactUserId) async {
     final current = state.requireValue;
+    final existing = _conversationIdForContact(
+      current.conversations,
+      contactUserId,
+    );
+    if (existing != null) {
+      return existing;
+    }
     state = AsyncData(current.copyWith(isSubmitting: true, clearError: true));
     try {
-      await _gateway.createDirect(
-        accessToken: _accessToken,
-        contactUserId: contactUserId,
+      final conversations = await _gateway.list(_accessToken);
+      final conversationId = _conversationIdForContact(
+        conversations,
+        contactUserId,
       );
       state = AsyncData(
-        ConversationsState(conversations: await _gateway.list(_accessToken)),
+        ConversationsState(
+          conversations: conversations,
+          errorMessage: conversationId == null
+              ? 'This chat is not available yet.'
+              : null,
+        ),
       );
+      return conversationId;
     } on ApiFailure catch (failure) {
       _setFailure(current, failure.message);
     } on FormatException {
       _setFailure(current, 'The server returned an invalid response.');
     }
+    return null;
+  }
+
+  String? _conversationIdForContact(
+    List<Conversation> conversations,
+    String contactUserId,
+  ) {
+    for (final conversation in conversations) {
+      if (conversation.peer.id == contactUserId) {
+        return conversation.id;
+      }
+    }
+    return null;
   }
 
   Future<bool> markRead(String conversationId, String sequence) async {

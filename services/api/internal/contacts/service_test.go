@@ -14,6 +14,8 @@ type fakeRepository struct {
 	createdAddressee  uint64
 	canceledUserID    uint64
 	canceledRequestID uint64
+	acceptedUserID    uint64
+	acceptedRequestID uint64
 	requests          []Request
 }
 
@@ -31,8 +33,13 @@ func (f *fakeRepository) ListRequests(context.Context, uint64) ([]Request, error
 	return f.requests, nil
 }
 
-func (f *fakeRepository) AcceptRequest(context.Context, uint64, uint64) (Contact, error) {
-	return Contact{}, nil
+func (f *fakeRepository) AcceptRequestAndCreateConversation(
+	_ context.Context,
+	userID, requestID uint64,
+) (Contact, error) {
+	f.acceptedUserID = userID
+	f.acceptedRequestID = requestID
+	return Contact{RelationshipID: requestID, User: PublicUser{ID: 8}}, nil
 }
 
 func (f *fakeRepository) RejectRequest(context.Context, uint64, uint64) error { return nil }
@@ -96,6 +103,16 @@ func TestServiceCancelRequestUsesCurrentRequester(t *testing.T) {
 
 	if err != nil || repository.canceledUserID != 7 || repository.canceledRequestID != 9 {
 		t.Fatalf("error = %v, user ID = %d, request ID = %d", err, repository.canceledUserID, repository.canceledRequestID)
+	}
+}
+
+func TestServiceAcceptRequestCreatesConversation(t *testing.T) {
+	repository := &fakeRepository{}
+
+	contact, err := NewService(repository).AcceptRequest(context.Background(), 7, 9)
+
+	if err != nil || contact.RelationshipID != 9 || repository.acceptedUserID != 7 || repository.acceptedRequestID != 9 {
+		t.Fatalf("contact = %+v, error = %v, user ID = %d, request ID = %d", contact, err, repository.acceptedUserID, repository.acceptedRequestID)
 	}
 }
 

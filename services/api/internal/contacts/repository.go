@@ -13,12 +13,13 @@ import (
 
 // MySQLRepository persists contact relationships through sqlc queries.
 type MySQLRepository struct {
-	queries *store.Queries
+	database *sql.DB
+	queries  *store.Queries
 }
 
 // NewMySQLRepository creates the production contact repository.
 func NewMySQLRepository(database *sql.DB) *MySQLRepository {
-	return &MySQLRepository{queries: store.New(database)}
+	return &MySQLRepository{database: database, queries: store.New(database)}
 }
 
 // FindUserByUsername returns an account's public identity.
@@ -62,20 +63,38 @@ func (r *MySQLRepository) ListRequests(ctx context.Context, userID uint64) ([]Re
 	return requests, nil
 }
 
-// AcceptRequest transitions an incoming pending request to accepted.
-func (r *MySQLRepository) AcceptRequest(ctx context.Context, userID, requestID uint64) (Contact, error) {
-	result, err := r.queries.AcceptContactRelationship(ctx, store.AcceptContactRelationshipParams{
+// AcceptRequestAndCreateConversation accepts a request and creates its direct conversation atomically.
+func (r *MySQLRepository) AcceptRequestAndCreateConversation(
+	ctx context.Context,
+	userID, requestID uint64,
+) (Contact, error) {
+	tx, err := r.database.BeginTx(ctx, nil)
+	if err != nil {
+		return Contact{}, fmt.Errorf("begin contact acceptance transaction: %w", err)
+	}
+	queries := r.queries.WithTx(tx)
+	result, err := queries.AcceptContactRelationship(ctx, store.AcceptContactRelationshipParams{
 		RelationshipID: requestID, CurrentUserID: userID,
 	})
 	if err != nil {
-		return Contact{}, fmt.Errorf("accept contact request: %w", err)
+		return Contact{}, rollbackContactAcceptance(tx, fmt.Errorf("accept contact request: %w", err))
 	}
-	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
-		return Contact{}, ErrRequestNotFound
-	}
-	request, err := r.getRequest(ctx, userID, requestID)
+	affected, err := result.RowsAffected()
 	if err != nil {
-		return Contact{}, err
+		return Contact{}, rollbackContactAcceptance(tx, fmt.Errorf("read accepted contact row count: %w", err))
+	}
+	if affected != 1 {
+		return Contact{}, rollbackContactAcceptance(tx, ErrRequestNotFound)
+	}
+	request, err := readRequest(ctx, queries, userID, requestID)
+	if err != nil {
+		return Contact{}, rollbackContactAcceptance(tx, err)
+	}
+	if err := createDirectConversation(ctx, queries, userID, request.User.ID); err != nil {
+		return Contact{}, rollbackContactAcceptance(tx, err)
+	}
+	if err := tx.Commit(); err != nil {
+		return Contact{}, fmt.Errorf("commit contact acceptance transaction: %w", err)
 	}
 	return Contact{RelationshipID: request.ID, User: request.User, ConnectedAt: request.UpdatedAt}, nil
 }
@@ -147,7 +166,11 @@ func (r *MySQLRepository) AreContacts(ctx context.Context, firstUserID, secondUs
 }
 
 func (r *MySQLRepository) getRequest(ctx context.Context, userID, requestID uint64) (Request, error) {
-	row, err := r.queries.GetContactRelationshipByID(ctx, store.GetContactRelationshipByIDParams{
+	return readRequest(ctx, r.queries, userID, requestID)
+}
+
+func readRequest(ctx context.Context, queries *store.Queries, userID, requestID uint64) (Request, error) {
+	row, err := queries.GetContactRelationshipByID(ctx, store.GetContactRelationshipByIDParams{
 		CurrentUserID: userID, RelationshipID: requestID,
 	})
 	if errors.Is(err, sql.ErrNoRows) {
@@ -160,8 +183,7 @@ func (r *MySQLRepository) getRequest(ctx context.Context, userID, requestID uint
 }
 
 func (r *MySQLRepository) mapDuplicateRelationship(ctx context.Context, lowerID, higherID uint64, cause error) error {
-	var mysqlError *mysql.MySQLError
-	if !errors.As(cause, &mysqlError) || mysqlError.Number != 1062 {
+	if !isDuplicateEntry(cause) {
 		return fmt.Errorf("create contact request: %w", cause)
 	}
 	status, err := r.queries.ContactRelationshipStatus(ctx, store.ContactRelationshipStatusParams{
@@ -174,6 +196,50 @@ func (r *MySQLRepository) mapDuplicateRelationship(ctx context.Context, lowerID,
 		return ErrAlreadyContacts
 	}
 	return ErrRequestExists
+}
+
+func createDirectConversation(
+	ctx context.Context,
+	queries *store.Queries,
+	creatorID, contactUserID uint64,
+) error {
+	lowerID, higherID := orderedPair(creatorID, contactUserID)
+	result, err := queries.CreateDirectConversation(ctx, store.CreateDirectConversationParams{
+		DirectLowerUserID: lowerID, DirectHigherUserID: higherID, CreatedByUserID: creatorID,
+	})
+	if isDuplicateEntry(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("create direct conversation: %w", err)
+	}
+	conversationID, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("read direct conversation ID: %w", err)
+	}
+	if conversationID <= 0 {
+		return errors.New("direct conversation ID must be positive")
+	}
+	for _, memberID := range []uint64{lowerID, higherID} {
+		if err := queries.CreateConversationMember(ctx, store.CreateConversationMemberParams{
+			ConversationID: uint64(conversationID), UserID: memberID,
+		}); err != nil {
+			return fmt.Errorf("create conversation member: %w", err)
+		}
+	}
+	return nil
+}
+
+func isDuplicateEntry(err error) bool {
+	var mysqlError *mysql.MySQLError
+	return errors.As(err, &mysqlError) && mysqlError.Number == 1062
+}
+
+func rollbackContactAcceptance(tx *sql.Tx, cause error) error {
+	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		return errors.Join(cause, fmt.Errorf("roll back contact acceptance: %w", err))
+	}
+	return cause
 }
 
 func orderedPair(firstID, secondID uint64) (uint64, uint64) {

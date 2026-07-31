@@ -7,6 +7,7 @@ import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_panel.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_directory.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
+import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 
 class ContactsPage extends ConsumerStatefulWidget {
   const ContactsPage({required this.onOpenConversation, super.key});
@@ -127,6 +128,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
     if (!accepted || !mounted) {
       return;
     }
+    ref.invalidate(conversationsControllerProvider);
     ref.read(selectedContactUserIdProvider.notifier).select(request.user.id);
   }
 

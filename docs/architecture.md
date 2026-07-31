@@ -75,11 +75,11 @@ The authentication tables and changes are owned by `db/migrations`. Source queri
 
 Usernames are normalized to lowercase and contain 3 to 32 ASCII letters, numbers, or underscores, starting with a letter. Exact username search returns only public identity fields.
 
-One `contact_relationships` row represents both directions of a user pair. The lower and higher user IDs have a unique constraint, which prevents duplicate or opposing requests. The requester is retained while the relationship is pending. Acceptance changes the row to `accepted`; rejection and contact removal delete the row so a future request can be sent.
+One `contact_relationships` row represents both directions of a user pair. The lower and higher user IDs have a unique constraint, which prevents duplicate or opposing requests. The requester is retained while the relationship is pending. Acceptance changes the row to `accepted` and creates the unique direct conversation and both memberships in the same transaction. Rejection and contact removal delete the relationship so a future request can be sent.
 
 ## Conversations
 
-A direct conversation requires an accepted contact relationship when it is created. The ordered user pair is unique at the database layer, so repeated or concurrent create requests return the same conversation. Conversation creation and both membership inserts occur in one transaction.
+A direct conversation is created automatically when a contact request is accepted. The ordered user pair is unique at the database layer, so the existing create endpoint remains idempotent for compatibility. The macOS Message action resolves that existing conversation, selects it, and switches to Chats without creating another conversation.
 
 The conversation list contains direct-conversation identity, peer information, a member-specific unread count, and an optional summary of the latest persisted message. Each membership stores the largest viewed message sequence. A read marker can only advance and is clamped to the latest persisted sequence, so a client cannot mark future messages as read. The macOS client updates the list from realtime message events, increments unread counts for incoming messages, and records the active channel's latest sequence as read. It refreshes the authoritative list after reconnection and through a two-second fallback check, so missed events cannot leave a stale card preview or ordering.
 

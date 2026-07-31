@@ -14,8 +14,46 @@ import '../../support/conversation_controller_stubs.dart';
 import '../../support/conversation_test_wait.dart';
 
 void main() {
-  test('create refreshes the direct conversation list', () async {
-    final gateway = FakeConversationGateway(createdConversation: _conversation);
+  test(
+    'opens an existing contact chat without creating a conversation',
+    () async {
+      final gateway = FakeConversationGateway(
+        createdConversation: _conversation,
+        conversations: [_conversation],
+      );
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          conversationGatewayProvider.overrideWithValue(gateway),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(authControllerProvider.future);
+      final subscription = container.listen(
+        conversationsControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      await container.read(conversationsControllerProvider.future);
+
+      final conversationId = await container
+          .read(conversationsControllerProvider.notifier)
+          .openContactChat('8');
+
+      expect(conversationId, '11');
+      expect(gateway.createdContactUserId, isNull);
+      expect(gateway.listCalls, 1);
+    },
+  );
+
+  test('refreshes before opening a newly accepted contact chat', () async {
+    final gateway = FakeConversationGateway(
+      createdConversation: _conversation,
+      pages: [_otherConversation, _conversation],
+    );
     final container = ProviderContainer(
       overrides: [
         authControllerProvider.overrideWith(
@@ -34,19 +72,13 @@ void main() {
     addTearDown(subscription.close);
     await container.read(conversationsControllerProvider.future);
 
-    await container.read(conversationsControllerProvider.notifier).create('8');
+    final conversationId = await container
+        .read(conversationsControllerProvider.notifier)
+        .openContactChat('8');
 
-    expect(gateway.createdContactUserId, '8');
+    expect(conversationId, '11');
+    expect(gateway.createdContactUserId, isNull);
     expect(gateway.listCalls, 2);
-    expect(
-      container
-          .read(conversationsControllerProvider)
-          .requireValue
-          .conversations
-          .single
-          .id,
-      '11',
-    );
   });
 
   test(
