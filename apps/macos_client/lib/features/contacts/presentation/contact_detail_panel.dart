@@ -1,8 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/platform/macos_file_actions.dart';
+import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
-import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_detail_content.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_shared_content.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_shared_links_dialog.dart';
+import 'package:instant_chat/features/messages/domain/message.dart';
+import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
+import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 
 class ContactDetailPanel extends StatelessWidget {
   const ContactDetailPanel({
@@ -36,7 +45,7 @@ class ContactDetailPanel extends StatelessWidget {
   }
 }
 
-class _ContactDetail extends StatelessWidget {
+class _ContactDetail extends ConsumerStatefulWidget {
   const _ContactDetail({
     required this.contact,
     required this.accessToken,
@@ -52,39 +61,133 @@ class _ContactDetail extends StatelessWidget {
   final VoidCallback onRemove;
 
   @override
+  ConsumerState<_ContactDetail> createState() => _ContactDetailState();
+}
+
+class _ContactDetailState extends ConsumerState<_ContactDetail> {
+  ContactSharedContentRequest get _request =>
+      (contactUserId: widget.contact.user.id, accessToken: widget.accessToken);
+
+  @override
   Widget build(BuildContext context) {
+    final shared = ref.watch(contactSharedContentProvider(_request));
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _ContactDetailHeader(
-          contact: contact,
-          disabled: disabled,
-          onRemove: onRemove,
+          disabled: widget.disabled,
+          onRemove: widget.onRemove,
         ),
         Expanded(
-          child: Align(
-            alignment: const Alignment(0, -0.12),
-            child: _ContactSummary(
-              contact: contact,
-              accessToken: accessToken,
-              disabled: disabled,
-              onMessage: onMessage,
-            ),
+          child: ContactDetailContent(
+            contact: widget.contact,
+            accessToken: widget.accessToken,
+            disabled: widget.disabled,
+            sharedContent: shared,
+            onMessage: widget.onMessage,
+            onCopyAccountId: _copyAccountId,
+            onRetryShared: () =>
+                ref.invalidate(contactSharedContentProvider(_request)),
+            onOpenImage: (image) => _openImage(shared.value?.images, image),
+            onOpenFile: _openFile,
+            onOpenLinks: _openLinks,
           ),
         ),
       ],
     );
   }
+
+  Future<void> _copyAccountId() async {
+    await Clipboard.setData(ClipboardData(text: widget.contact.user.id));
+    if (mounted) {
+      _showMessage('Account ID copied.');
+    }
+  }
+
+  void _openImage(List<MessageImage>? images, MessageImage initialImage) {
+    final availableImages = images ?? [initialImage];
+    showMessageImagePreview(
+      context: context,
+      images: availableImages,
+      initialImage: initialImage,
+      accessToken: widget.accessToken,
+      onDownload: _downloadImage,
+    );
+  }
+
+  Future<void> _openFile(MessageFile file) async {
+    final actions = ref.read(localFileActionsProvider);
+    final action = await actions.chooseAction(file.filename);
+    if (!mounted || action == null) {
+      return;
+    }
+    try {
+      final path = await actions.chooseDownloadPath(file.filename);
+      if (!mounted || path == null) {
+        return;
+      }
+      await ref
+          .read(messageGatewayProvider)
+          .downloadFile(
+            accessToken: widget.accessToken,
+            file: file,
+            destinationPath: path,
+          );
+    } catch (_) {
+      if (mounted) {
+        _showMessage('File could not be saved.');
+      }
+    }
+  }
+
+  Future<void> _downloadImage(MessageImage image) async {
+    final actions = ref.read(localFileActionsProvider);
+    try {
+      final path = await actions.chooseDownloadPath(
+        messageImageDownloadFilename(image),
+      );
+      if (!mounted || path == null) {
+        return;
+      }
+      final bytes = await ref
+          .read(messageGatewayProvider)
+          .downloadImage(accessToken: widget.accessToken, image: image);
+      await actions.writeDownloadFile(path, bytes);
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Image could not be saved.');
+      }
+    }
+  }
+
+  Future<void> _openLinks(List<Uri> links) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => ContactSharedLinksDialog(
+        links: links,
+        onOpen: (link) async {
+          try {
+            await ref.read(localUrlLauncherProvider).open(link);
+          } catch (_) {
+            if (mounted) {
+              _showMessage('Link could not be opened.');
+            }
+          }
+        },
+      ),
+    );
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
 }
 
 class _ContactDetailHeader extends StatelessWidget {
-  const _ContactDetailHeader({
-    required this.contact,
-    required this.disabled,
-    required this.onRemove,
-  });
+  const _ContactDetailHeader({required this.disabled, required this.onRemove});
 
-  final Contact contact;
   final bool disabled;
   final VoidCallback onRemove;
 
@@ -105,7 +208,12 @@ class _ContactDetailHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Expanded(child: _HeaderIdentity(contact: contact)),
+            Expanded(
+              child: Text(
+                'Contact Info',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ),
             PopupMenuButton<_ContactMenuAction>(
               tooltip: 'Contact options',
               enabled: !disabled,
@@ -125,95 +233,6 @@ class _ContactDetailHeader extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _HeaderIdentity extends StatelessWidget {
-  const _HeaderIdentity({required this.contact});
-
-  final Contact contact;
-
-  @override
-  Widget build(BuildContext context) {
-    final user = contact.user;
-    final colors = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          user.displayName,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontSize: 14),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          '@${user.username}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: colors.onSurfaceVariant,
-            fontSize: 12,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ContactSummary extends StatelessWidget {
-  const _ContactSummary({
-    required this.contact,
-    required this.accessToken,
-    required this.disabled,
-    required this.onMessage,
-  });
-
-  final Contact contact;
-  final String accessToken;
-  final bool disabled;
-  final VoidCallback onMessage;
-
-  @override
-  Widget build(BuildContext context) {
-    final user = contact.user;
-    final colors = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ProfileAvatar(
-          name: user.displayName,
-          accessToken: accessToken,
-          avatarUrl: user.avatarUrl,
-          radius: RetroMetrics.contactDetailAvatarRadius,
-        ),
-        const SizedBox(height: 12),
-        Text(user.displayName, style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 3),
-        Text(
-          '@${user.username}',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: colors.onSurfaceVariant,
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: RetroMetrics.spaceMedium),
-        SizedBox(
-          height: RetroMetrics.composerControlHeight,
-          child: FilledButton.icon(
-            key: const Key('contact-detail-message'),
-            onPressed: disabled ? null : onMessage,
-            style: FilledButton.styleFrom(
-              minimumSize: const Size(112, RetroMetrics.composerControlHeight),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-            ),
-            icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-            label: const Text('Message'),
-          ),
-        ),
-      ],
     );
   }
 }

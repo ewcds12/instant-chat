@@ -37,6 +37,17 @@ abstract final class RetroMetrics {
   static const contactAvatarRadius = 24.0;
   static const contactDirectoryAvatarRadius = 20.0;
   static const contactDetailAvatarRadius = 36.0;
+  static const contactDetailHeroAvatarRadius = 48.0;
+  static const contactDetailContentMaxWidth = 980.0;
+  static const contactDetailContentHorizontalInset = 32.0;
+  static const contactDetailContentVerticalInset = 28.0;
+  static const contactDetailHeroHeight = 150.0;
+  static const contactDetailMessageHeight = 44.0;
+  static const contactDetailAccountRowHeight = 72.0;
+  static const contactSharedThumbnailGap = 16.0;
+  static const contactSharedThumbnailRadius = 12.0;
+  static const contactSharedThumbnailMaxHeight = 220.0;
+  static const contactSharedRowHeight = 68.0;
   static const contactRowHeight = 62.0;
   static const contactSearchHeight = 36.0;
   static const contactDetailHeaderHeight = 66.0;
