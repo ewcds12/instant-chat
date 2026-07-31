@@ -57,7 +57,7 @@ Final result: passed
 
 ## Visual Comparison
 
-- The contact column now follows the selected visual's hierarchy: a compact `Contact Info` toolbar, horizontal avatar and identity row, right-aligned Message action, separated Account ID row, and top-aligned Shared section.
+- The contact column now follows the selected visual's hierarchy: a compact `Contact Info` toolbar, horizontal avatar and identity row, right-aligned Message action, and top-aligned Shared section.
 - The implementation retains the product's existing 180-point app sidebar and 280-point contact directory instead of turning the selected standalone detail concept into a new navigation surface.
 - The avatar, button, surface, outline, type, corner, spacing, and blue-accent treatments use existing Instant Chat theme tokens.
 - Up to three real shared images occupy equal media slots. The verified account currently has one image, so the remaining width is intentionally left open instead of displaying generated or placeholder media.
@@ -67,7 +67,7 @@ Final result: passed
 ### Compact Density Refinement
 
 - The detail header is 56 points tall, the identity block is 112 points, and the avatar radius is 38 points, preserving hierarchy while removing excess vertical mass.
-- The Message action is 36 points tall with a 16-point icon; the Account ID row is 56 points tall with a compact 32-point copy target.
+- The Message action is 36 points tall with a 16-point icon. The internal account ID is intentionally omitted because it is not useful in the contact-facing experience.
 - Shared thumbnails are capped at 164-point squares with 12-point gaps. File and link rows are 54 points tall with smaller icons and type that still follows the existing theme scale.
 - Horizontal content insets are 24 points and vertical insets are 18 points. The full Shared group now fits comfortably in the 722-point verification viewport without changing navigation or contact-list density.
 

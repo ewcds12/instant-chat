@@ -68,12 +68,7 @@ void main() {
       tester.getSize(find.byKey(const Key('contact-detail-identity'))).height,
       RetroMetrics.contactDetailHeroHeight,
     );
-    expect(
-      tester
-          .getSize(find.byKey(const Key('contact-detail-account-row')))
-          .height,
-      RetroMetrics.contactDetailAccountRowHeight,
-    );
+    expect(find.text('Account ID'), findsNothing);
     expect(
       tester.getSize(
         find.byKey(const ValueKey('contact-shared-image-image-1')),

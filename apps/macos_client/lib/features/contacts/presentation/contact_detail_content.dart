@@ -14,7 +14,6 @@ class ContactDetailContent extends StatelessWidget {
     required this.disabled,
     required this.sharedContent,
     required this.onMessage,
-    required this.onCopyAccountId,
     required this.onRetryShared,
     required this.onOpenImage,
     required this.onOpenFile,
@@ -27,7 +26,6 @@ class ContactDetailContent extends StatelessWidget {
   final bool disabled;
   final AsyncValue<ContactSharedContent> sharedContent;
   final VoidCallback onMessage;
-  final VoidCallback onCopyAccountId;
   final VoidCallback onRetryShared;
   final ValueChanged<MessageImage> onOpenImage;
   final ValueChanged<MessageFile> onOpenFile;
@@ -56,11 +54,6 @@ class ContactDetailContent extends StatelessWidget {
                 accessToken: accessToken,
                 disabled: disabled,
                 onMessage: onMessage,
-              ),
-              const Divider(),
-              _AccountIdRow(
-                accountId: contact.user.id,
-                onCopy: onCopyAccountId,
               ),
               const Divider(),
               const SizedBox(height: RetroMetrics.spaceMedium),
@@ -148,53 +141,6 @@ class _IdentityRow extends StatelessWidget {
               icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
               label: const Text('Message'),
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AccountIdRow extends StatelessWidget {
-  const _AccountIdRow({required this.accountId, required this.onCopy});
-
-  final String accountId;
-  final VoidCallback onCopy;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return SizedBox(
-      key: const Key('contact-detail-account-row'),
-      height: RetroMetrics.contactDetailAccountRowHeight,
-      child: Row(
-        children: [
-          SizedBox(
-            width: 96,
-            child: Text(
-              'Account ID',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: colors.onSurfaceVariant,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: SelectableText(
-              accountId,
-              maxLines: 1,
-              style: Theme.of(
-                context,
-              ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-            ),
-          ),
-          IconButton(
-            key: const Key('contact-detail-account-copy'),
-            tooltip: 'Copy account ID',
-            onPressed: onCopy,
-            visualDensity: VisualDensity.compact,
-            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-            icon: const Icon(Icons.content_copy_rounded, size: 16),
           ),
         ],
       ),

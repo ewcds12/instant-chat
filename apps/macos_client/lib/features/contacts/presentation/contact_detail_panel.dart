@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
@@ -85,7 +84,6 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
             disabled: widget.disabled,
             sharedContent: shared,
             onMessage: widget.onMessage,
-            onCopyAccountId: _copyAccountId,
             onRetryShared: () =>
                 ref.invalidate(contactSharedContentProvider(_request)),
             onOpenImage: (image) => _openImage(shared.value?.images, image),
@@ -95,13 +93,6 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
         ),
       ],
     );
-  }
-
-  Future<void> _copyAccountId() async {
-    await Clipboard.setData(ClipboardData(text: widget.contact.user.id));
-    if (mounted) {
-      _showMessage('Account ID copied.');
-    }
   }
 
   void _openImage(List<MessageImage>? images, MessageImage initialImage) {

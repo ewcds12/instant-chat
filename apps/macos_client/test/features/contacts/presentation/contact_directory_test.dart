@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
@@ -32,19 +31,6 @@ void main() {
     'selects a contact, opens a direct message, and confirms remove',
     (tester) async {
       String? openedUserId;
-      String? copiedAccountId;
-      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-            if (call.method == 'Clipboard.setData') {
-              copiedAccountId =
-                  (call.arguments as Map<Object?, Object?>)['text'] as String?;
-            }
-            return null;
-          });
-      addTearDown(
-        () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-            .setMockMethodCallHandler(SystemChannels.platform, null),
-      );
       await tester.binding.setSurfaceSize(const Size(1200, 760));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
@@ -112,7 +98,7 @@ void main() {
         RetroMetrics.contactDetailMessageHeight,
       );
       expect(find.text('Contact Info'), findsOneWidget);
-      expect(find.text('Account ID'), findsOneWidget);
+      expect(find.text('Account ID'), findsNothing);
       expect(find.text('Shared'), findsOneWidget);
       expect(
         find.text('No shared photos, files, or links yet.'),
@@ -140,11 +126,6 @@ void main() {
       await tester.tap(find.byKey(const Key('contact-detail-message')));
       await tester.pump();
       expect(openedUserId, 'user-zoe');
-
-      await tester.tap(find.byKey(const Key('contact-detail-account-copy')));
-      await tester.pump();
-      expect(copiedAccountId, 'user-zoe');
-      expect(find.text('Account ID copied.'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Contact options'));
       await tester.pumpAndSettle();
