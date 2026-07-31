@@ -114,7 +114,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
     final avatar = MessageImage(
       id: 'contact-avatar-${user.id}',
       url: user.avatarUrl!,
-      contentType: 'image/*',
+      contentType: 'image/png',
       byteSize: 0,
     );
     showMessageImagePreview(
@@ -122,6 +122,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
       images: [avatar],
       initialImage: avatar,
       accessToken: widget.accessToken,
+      onDownload: _downloadImage,
     );
   }
 

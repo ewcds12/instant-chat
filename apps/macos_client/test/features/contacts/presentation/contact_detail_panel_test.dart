@@ -93,10 +93,23 @@ void main() {
       ),
       findsOneWidget,
     );
+    final preview = find.byKey(const Key('message-image-preview'));
+    final download = find.byKey(const Key('message-image-preview-download'));
+    final close = find.byKey(const Key('message-image-preview-close'));
+    expect(download, findsOneWidget);
     expect(
-      find.byKey(const Key('message-image-preview-download')),
-      findsNothing,
+      tester.getCenter(download).dx,
+      lessThan(tester.getCenter(preview).dx),
     );
+    expect(tester.getCenter(download).dx, lessThan(tester.getCenter(close).dx));
+    await tester.tap(download);
+    await tester.pumpAndSettle();
+    expect(gateway.downloadedImageID, 'contact-avatar-user-antoine');
+    expect(
+      fileActions.writtenPath,
+      '/tmp/image-contact-avatar-user-antoine.png',
+    );
+    expect(fileActions.writtenBytes, [4, 5, 6]);
     await tester.tap(find.byKey(const Key('message-image-preview-close')));
     await tester.pumpAndSettle();
 
@@ -248,6 +261,9 @@ final _contact = Contact(
 );
 
 class _FakeFileActions implements LocalFileActions {
+  String? writtenPath;
+  List<int>? writtenBytes;
+
   @override
   Future<MessageFileAction?> chooseAction(String filename) async {
     return MessageFileAction.download;
@@ -257,7 +273,10 @@ class _FakeFileActions implements LocalFileActions {
   Future<String?> chooseDownloadPath(String filename) async => '/tmp/$filename';
 
   @override
-  Future<void> writeDownloadFile(String path, List<int> bytes) async {}
+  Future<void> writeDownloadFile(String path, List<int> bytes) async {
+    writtenPath = path;
+    writtenBytes = bytes;
+  }
 }
 
 class _FakeUrlLauncher implements LocalUrlLauncher {
