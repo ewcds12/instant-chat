@@ -12,7 +12,7 @@ class _PreviewToolbar extends StatelessWidget {
   final int index;
   final int total;
   final VoidCallback onClose;
-  final Future<void> Function() onDownload;
+  final Future<void> Function()? onDownload;
   final bool isDownloading;
 
   @override
@@ -34,32 +34,33 @@ class _PreviewToolbar extends StatelessWidget {
           ),
           Row(
             children: [
-              Tooltip(
-                message: 'Download image',
-                child: TextButton.icon(
-                  key: const Key('message-image-preview-download'),
-                  onPressed: isDownloading ? null : onDownload,
-                  style: TextButton.styleFrom(
-                    foregroundColor: colors.onSurfaceVariant,
-                    backgroundColor: colors.surface.withValues(alpha: 0.56),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: 7,
+              if (onDownload != null)
+                Tooltip(
+                  message: 'Download image',
+                  child: TextButton.icon(
+                    key: const Key('message-image-preview-download'),
+                    onPressed: isDownloading ? null : onDownload,
+                    style: TextButton.styleFrom(
+                      foregroundColor: colors.onSurfaceVariant,
+                      backgroundColor: colors.surface.withValues(alpha: 0.56),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 7,
+                      ),
+                      shape: StadiumBorder(
+                        side: BorderSide(color: colors.outlineVariant),
+                      ),
                     ),
-                    shape: StadiumBorder(
-                      side: BorderSide(color: colors.outlineVariant),
-                    ),
+                    icon: isDownloading
+                        ? const SizedBox(
+                            width: 15,
+                            height: 15,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.download_rounded, size: 17),
+                    label: const Text('Download'),
                   ),
-                  icon: isDownloading
-                      ? const SizedBox(
-                          width: 15,
-                          height: 15,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.download_rounded, size: 17),
-                  label: const Text('Download'),
                 ),
-              ),
               const Spacer(),
               IconButton(
                 key: const Key('message-image-preview-close'),

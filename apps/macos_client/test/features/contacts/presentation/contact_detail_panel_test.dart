@@ -19,7 +19,9 @@ import 'package:instant_chat/features/users/domain/public_user.dart';
 import '../../../support/widget_network_stubs.dart';
 
 void main() {
-  testWidgets('shows and opens real shared content actions', (tester) async {
+  testWidgets('opens the contact avatar and real shared content actions', (
+    tester,
+  ) async {
     var messageOpenCount = 0;
     final fileActions = _FakeFileActions();
     final urlLauncher = _FakeUrlLauncher();
@@ -81,6 +83,22 @@ void main() {
           .height,
       RetroMetrics.contactSharedRowHeight,
     );
+
+    await tester.tap(find.byKey(const Key('contact-detail-avatar')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('message-image-preview')), findsOneWidget);
+    expect(
+      find.byKey(
+        const ValueKey('message-image-preview-contact-avatar-user-antoine'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('message-image-preview-download')),
+      findsNothing,
+    );
+    await tester.tap(find.byKey(const Key('message-image-preview-close')));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('contact-shared-see-all')));
     expect(messageOpenCount, 1);
@@ -155,6 +173,38 @@ void main() {
     expect(find.text('Links (1)'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
+
+  testWidgets('keeps an initials-only avatar noninteractive', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          contactSharedContentProvider.overrideWith(
+            (ref, request) async => const ContactSharedContent.empty(),
+          ),
+        ],
+        child: MaterialApp(
+          theme: RetroTheme.data,
+          home: Scaffold(
+            body: ContactDetailPanel(
+              contact: Contact(
+                relationshipId: _contact.relationshipId,
+                user: _contact.user.copyWith(clearAvatarUrl: true),
+                connectedAt: _contact.connectedAt,
+              ),
+              accessToken: 'access-token',
+              disabled: false,
+              onMessage: () {},
+              onRemove: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('contact-detail-avatar')), findsNothing);
+    expect(find.byTooltip('View profile photo'), findsNothing);
+  });
 }
 
 final _sharedContent = ContactSharedContent(
@@ -191,6 +241,7 @@ final _contact = Contact(
     id: 'user-antoine',
     username: 'antoine',
     displayName: 'Antoine Griezmann',
+    avatarUrl: '/api/v1/users/user-antoine/avatar?v=1',
     createdAt: DateTime.utc(2026, 7, 15),
   ),
   connectedAt: DateTime.utc(2026, 7, 15),

@@ -84,6 +84,9 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
             disabled: widget.disabled,
             sharedContent: shared,
             onMessage: widget.onMessage,
+            onOpenAvatar: widget.contact.user.avatarUrl == null
+                ? null
+                : _openAvatar,
             onRetryShared: () =>
                 ref.invalidate(contactSharedContentProvider(_request)),
             onOpenImage: (image) => _openImage(shared.value?.images, image),
@@ -103,6 +106,22 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
       initialImage: initialImage,
       accessToken: widget.accessToken,
       onDownload: _downloadImage,
+    );
+  }
+
+  void _openAvatar() {
+    final user = widget.contact.user;
+    final avatar = MessageImage(
+      id: 'contact-avatar-${user.id}',
+      url: user.avatarUrl!,
+      contentType: 'image/*',
+      byteSize: 0,
+    );
+    showMessageImagePreview(
+      context: context,
+      images: [avatar],
+      initialImage: avatar,
+      accessToken: widget.accessToken,
     );
   }
 

@@ -13,7 +13,7 @@ Future<void> showMessageImagePreview({
   required List<MessageImage> images,
   required MessageImage initialImage,
   required String accessToken,
-  required Future<void> Function(MessageImage image) onDownload,
+  Future<void> Function(MessageImage image)? onDownload,
 }) {
   if (images.isEmpty) {
     return Future<void>.value();
@@ -51,14 +51,14 @@ class MessageImagePreview extends StatefulWidget {
     required this.images,
     required this.initialIndex,
     required this.accessToken,
-    required this.onDownload,
+    this.onDownload,
     super.key,
   });
 
   final List<MessageImage> images;
   final int initialIndex;
   final String accessToken;
-  final Future<void> Function(MessageImage image) onDownload;
+  final Future<void> Function(MessageImage image)? onDownload;
 
   @override
   State<MessageImagePreview> createState() => _MessageImagePreviewState();
@@ -94,7 +94,7 @@ class _MessageImagePreviewState extends State<MessageImagePreview> {
               index: selectedIndex,
               total: widget.images.length,
               onClose: () => Navigator.of(context).pop(),
-              onDownload: _download,
+              onDownload: widget.onDownload == null ? null : _download,
               isDownloading: isDownloading,
               onPrevious: () => _move(-1),
               onNext: () => _move(1),
@@ -135,12 +135,13 @@ class _MessageImagePreviewState extends State<MessageImagePreview> {
   }
 
   Future<void> _download() async {
-    if (isDownloading) {
+    final onDownload = widget.onDownload;
+    if (isDownloading || onDownload == null) {
       return;
     }
     setState(() => isDownloading = true);
     try {
-      await widget.onDownload(widget.images[selectedIndex]);
+      await onDownload(widget.images[selectedIndex]);
     } finally {
       if (mounted) {
         setState(() => isDownloading = false);
@@ -199,7 +200,7 @@ class _PreviewContent extends StatelessWidget {
   final int index;
   final int total;
   final VoidCallback onClose;
-  final Future<void> Function() onDownload;
+  final Future<void> Function()? onDownload;
   final bool isDownloading;
   final VoidCallback onPrevious;
   final VoidCallback onNext;

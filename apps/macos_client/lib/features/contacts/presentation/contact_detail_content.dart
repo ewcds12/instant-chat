@@ -14,6 +14,7 @@ class ContactDetailContent extends StatelessWidget {
     required this.disabled,
     required this.sharedContent,
     required this.onMessage,
+    required this.onOpenAvatar,
     required this.onRetryShared,
     required this.onOpenImage,
     required this.onOpenFile,
@@ -26,6 +27,7 @@ class ContactDetailContent extends StatelessWidget {
   final bool disabled;
   final AsyncValue<ContactSharedContent> sharedContent;
   final VoidCallback onMessage;
+  final VoidCallback? onOpenAvatar;
   final VoidCallback onRetryShared;
   final ValueChanged<MessageImage> onOpenImage;
   final ValueChanged<MessageFile> onOpenFile;
@@ -54,6 +56,7 @@ class ContactDetailContent extends StatelessWidget {
                 accessToken: accessToken,
                 disabled: disabled,
                 onMessage: onMessage,
+                onOpenAvatar: onOpenAvatar,
               ),
               const Divider(),
               const SizedBox(height: RetroMetrics.spaceMedium),
@@ -80,12 +83,14 @@ class _IdentityRow extends StatelessWidget {
     required this.accessToken,
     required this.disabled,
     required this.onMessage,
+    required this.onOpenAvatar,
   });
 
   final Contact contact;
   final String accessToken;
   final bool disabled;
   final VoidCallback onMessage;
+  final VoidCallback? onOpenAvatar;
 
   @override
   Widget build(BuildContext context) {
@@ -96,11 +101,11 @@ class _IdentityRow extends StatelessWidget {
       height: RetroMetrics.contactDetailHeroHeight,
       child: Row(
         children: [
-          ProfileAvatar(
+          _ContactAvatar(
             name: user.displayName,
             accessToken: accessToken,
             avatarUrl: user.avatarUrl,
-            radius: RetroMetrics.contactDetailHeroAvatarRadius,
+            onOpen: onOpenAvatar,
           ),
           const SizedBox(width: RetroMetrics.spaceMedium),
           Expanded(
@@ -140,6 +145,53 @@ class _IdentityRow extends StatelessWidget {
               ),
               icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
               label: const Text('Message'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactAvatar extends StatelessWidget {
+  const _ContactAvatar({
+    required this.name,
+    required this.accessToken,
+    required this.avatarUrl,
+    required this.onOpen,
+  });
+
+  final String name;
+  final String accessToken;
+  final String? avatarUrl;
+  final VoidCallback? onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    final avatar = ProfileAvatar(
+      name: name,
+      accessToken: accessToken,
+      avatarUrl: avatarUrl,
+      radius: RetroMetrics.contactDetailHeroAvatarRadius,
+    );
+    if (onOpen == null) {
+      return avatar;
+    }
+    return Tooltip(
+      message: 'View profile photo',
+      child: Stack(
+        children: [
+          avatar,
+          Positioned.fill(
+            child: Material(
+              color: Colors.transparent,
+              shape: const CircleBorder(),
+              clipBehavior: Clip.antiAlias,
+              child: InkWell(
+                key: const Key('contact-detail-avatar'),
+                customBorder: const CircleBorder(),
+                onTap: onOpen,
+              ),
             ),
           ),
         ],
