@@ -48,9 +48,12 @@ Final result: passed
 - Selected Product Design visual: `/Users/ewcds/.codex/generated_images/019fb7bb-097b-7e61-a06b-1f260f8cc2ca/exec-bc1b3439-31c4-4b60-b4ca-ef945423afa8.png`
 - Native macOS implementation capture: `/tmp/instant-chat-contact-info-implementation.jpeg`
 - Combined comparison: `/tmp/instant-chat-contact-info-comparison.png`
+- Density refinement source: `/var/folders/s_/6kx28ks54k1d3d09hs7xsngm0000gn/T/codex-clipboard-94116f6f-f7a9-4bf2-8293-486a802ac8e3.png`
+- Compact native capture: `/tmp/instant-chat-contact-info-compact-implementation.png`
+- Density comparison: `/tmp/instant-chat-contact-info-density-comparison.png`
 - Selected visual pixels: 1,227 × 1,282.
 - Native verification viewport: 1,150 × 722.
-- State: Antoine Griezmann selected with the real account ID, one real shared image, and accurate empty file and link rows.
+- Density verification state: Lamine Yamal selected with account ID 16, three shared images, two files, and one link group.
 
 ## Visual Comparison
 
@@ -60,6 +63,13 @@ Final result: passed
 - Up to three real shared images occupy equal media slots. The verified account currently has one image, so the remaining width is intentionally left open instead of displaying generated or placeholder media.
 - Missing file and link categories use subdued, explicit empty rows that preserve the selected layout without inventing content.
 - The detail column scrolls independently at the existing 1,150 × 722 development viewport, keeping the toolbar and app navigation stable while exposing the complete Shared section.
+
+### Compact Density Refinement
+
+- The detail header is 56 points tall, the identity block is 112 points, and the avatar radius is 38 points, preserving hierarchy while removing excess vertical mass.
+- The Message action is 36 points tall with a 16-point icon; the Account ID row is 56 points tall with a compact 32-point copy target.
+- Shared thumbnails are capped at 164-point squares with 12-point gaps. File and link rows are 54 points tall with smaller icons and type that still follows the existing theme scale.
+- Horizontal content insets are 24 points and vertical insets are 18 points. The full Shared group now fits comfortably in the 722-point verification viewport without changing navigation or contact-list density.
 
 ## Interaction Verification
 
@@ -77,6 +87,8 @@ Final result: passed
 - Resolved P1: the concept's example media and documents were replaced with authenticated conversation data so the screen never implies files that do not exist.
 - Resolved P2: accounts with only one content category now retain the intended grouped structure through accurate empty file and link rows.
 - Resolved P1: periodic conversation recovery previously reloaded Shared content and briefly replaced it with a shorter loading state, which made the detail page visibly jump.
+- Resolved P1: the first complete Contact Info implementation used oversized identity, media, button, and row metrics that made the desktop panel feel coarse and pushed useful content below the fold.
+- Resolved P2: proportional compaction now keeps identity, account metadata, three media previews, two file rows, and the link group visible together without clipping, crowding, or weakening the primary action.
 - No actionable P0, P1, or P2 visual, interaction, or accessibility findings remain after the combined native comparison.
 
 Final result: passed

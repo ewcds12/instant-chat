@@ -64,6 +64,28 @@ void main() {
     );
     expect(find.text('Notes.pdf'), findsOneWidget);
     expect(find.text('Links (1)'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('contact-detail-identity'))).height,
+      RetroMetrics.contactDetailHeroHeight,
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const Key('contact-detail-account-row')))
+          .height,
+      RetroMetrics.contactDetailAccountRowHeight,
+    );
+    expect(
+      tester.getSize(
+        find.byKey(const ValueKey('contact-shared-image-image-1')),
+      ),
+      const Size.square(RetroMetrics.contactSharedThumbnailExtent),
+    );
+    expect(
+      tester
+          .getSize(find.byKey(const ValueKey('contact-shared-file-file-1')))
+          .height,
+      RetroMetrics.contactSharedRowHeight,
+    );
 
     await tester.tap(find.byKey(const Key('contact-shared-see-all')));
     expect(messageOpenCount, 1);

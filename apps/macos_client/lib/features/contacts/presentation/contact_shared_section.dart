@@ -35,7 +35,7 @@ class ContactSharedSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _SharedHeader(onSeeAll: onSeeAll),
-        const SizedBox(height: 12),
+        const SizedBox(height: RetroMetrics.spaceSmall),
         value.when(
           skipLoadingOnReload: true,
           skipError: true,
@@ -66,13 +66,19 @@ class _SharedHeader extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text('Shared', style: Theme.of(context).textTheme.titleLarge),
+          child: Text('Shared', style: Theme.of(context).textTheme.titleMedium),
         ),
         TextButton.icon(
           key: const Key('contact-shared-see-all'),
           onPressed: onSeeAll,
           iconAlignment: IconAlignment.end,
-          icon: const Icon(Icons.chevron_right_rounded, size: 20),
+          style: TextButton.styleFrom(
+            visualDensity: VisualDensity.compact,
+            textStyle: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+          ),
+          icon: const Icon(Icons.chevron_right_rounded, size: 18),
           label: const Text('See All'),
         ),
       ],
@@ -106,7 +112,7 @@ class _SharedContent extends StatelessWidget {
             accessToken: accessToken,
             onOpen: onOpenImage,
           ),
-          const SizedBox(height: RetroMetrics.spaceMedium),
+          const SizedBox(height: 12),
         ],
         if (content.files.isNotEmpty)
           ContactSharedFileGroup(
@@ -118,7 +124,7 @@ class _SharedContent extends StatelessWidget {
             icon: Icons.insert_drive_file_outlined,
             label: 'No shared files yet',
           ),
-        const SizedBox(height: RetroMetrics.spaceMedium),
+        const SizedBox(height: 12),
         if (content.links.isNotEmpty)
           ContactSharedLinksRow(
             count: content.links.length,
@@ -150,10 +156,9 @@ class _MediaStrip extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         const gap = RetroMetrics.contactSharedThumbnailGap;
-        final width = (constraints.maxWidth - gap * 2) / 3;
-        final height = math.min(
-          width,
-          RetroMetrics.contactSharedThumbnailMaxHeight,
+        final extent = math.min(
+          (constraints.maxWidth - gap * 2) / 3,
+          RetroMetrics.contactSharedThumbnailExtent,
         );
         return Row(
           key: const Key('contact-shared-media-strip'),
@@ -161,8 +166,8 @@ class _MediaStrip extends StatelessWidget {
             for (var index = 0; index < images.length; index++) ...[
               if (index > 0) const SizedBox(width: gap),
               SizedBox(
-                width: width,
-                height: height,
+                width: extent,
+                height: extent,
                 child: _MediaThumbnail(
                   image: images[index],
                   accessToken: accessToken,
@@ -218,7 +223,7 @@ class _SharedLoading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(
-      height: 112,
+      height: RetroMetrics.contactSharedStatusHeight,
       child: Center(child: CircularProgressIndicator()),
     );
   }
@@ -262,7 +267,7 @@ class _SharedStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Container(
-      height: 112,
+      height: RetroMetrics.contactSharedStatusHeight,
       decoration: BoxDecoration(
         color: colors.surface.withValues(alpha: 0.56),
         border: Border.all(color: colors.outlineVariant),

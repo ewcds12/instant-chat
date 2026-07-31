@@ -63,7 +63,7 @@ class ContactDetailContent extends StatelessWidget {
                 onCopy: onCopyAccountId,
               ),
               const Divider(),
-              const SizedBox(height: RetroMetrics.spaceLarge),
+              const SizedBox(height: RetroMetrics.spaceMedium),
               ContactSharedSection(
                 value: sharedContent,
                 onRetry: onRetryShared,
@@ -99,6 +99,7 @@ class _IdentityRow extends StatelessWidget {
     final user = contact.user;
     final colors = Theme.of(context).colorScheme;
     return SizedBox(
+      key: const Key('contact-detail-identity'),
       height: RetroMetrics.contactDetailHeroHeight,
       child: Row(
         children: [
@@ -108,7 +109,7 @@ class _IdentityRow extends StatelessWidget {
             avatarUrl: user.avatarUrl,
             radius: RetroMetrics.contactDetailHeroAvatarRadius,
           ),
-          const SizedBox(width: RetroMetrics.spaceLarge),
+          const SizedBox(width: RetroMetrics.spaceMedium),
           Expanded(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -118,25 +119,33 @@ class _IdentityRow extends StatelessWidget {
                   user.displayName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '@${user.username}',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: RetroMetrics.spaceMedium),
+          const SizedBox(width: 12),
           SizedBox(
             height: RetroMetrics.contactDetailMessageHeight,
             child: FilledButton.icon(
               key: const Key('contact-detail-message'),
               onPressed: disabled ? null : onMessage,
-              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 18),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size(
+                  0,
+                  RetroMetrics.contactDetailMessageHeight,
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                textStyle: Theme.of(context).textTheme.labelLarge,
+              ),
+              icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
               label: const Text('Message'),
             ),
           ),
@@ -156,14 +165,15 @@ class _AccountIdRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return SizedBox(
+      key: const Key('contact-detail-account-row'),
       height: RetroMetrics.contactDetailAccountRowHeight,
       child: Row(
         children: [
           SizedBox(
-            width: 112,
+            width: 96,
             child: Text(
               'Account ID',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: colors.onSurfaceVariant,
                 fontWeight: FontWeight.w600,
               ),
@@ -175,14 +185,16 @@ class _AccountIdRow extends StatelessWidget {
               maxLines: 1,
               style: Theme.of(
                 context,
-              ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+              ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
             ),
           ),
           IconButton(
             key: const Key('contact-detail-account-copy'),
             tooltip: 'Copy account ID',
             onPressed: onCopy,
-            icon: const Icon(Icons.content_copy_rounded, size: 18),
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(width: 32, height: 32),
+            icon: const Icon(Icons.content_copy_rounded, size: 16),
           ),
         ],
       ),

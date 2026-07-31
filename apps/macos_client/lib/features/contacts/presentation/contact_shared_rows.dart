@@ -60,13 +60,22 @@ class ContactSharedLinksRow extends StatelessWidget {
         child: SizedBox(
           height: RetroMetrics.contactSharedRowHeight,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
                 Icon(Icons.link_rounded, color: colors.onSurfaceVariant),
-                const SizedBox(width: 16),
-                Expanded(child: Text('Links ($count)')),
-                Icon(Icons.chevron_right_rounded, color: colors.outline),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Links ($count)',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: colors.outline,
+                  size: 20,
+                ),
               ],
             ),
           ),
@@ -91,7 +100,7 @@ class ContactSharedEmptyRow extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     return Container(
       height: RetroMetrics.contactSharedRowHeight,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
         color: colors.surface.withValues(alpha: 0.52),
         border: Border.all(color: colors.outlineVariant),
@@ -99,13 +108,13 @@ class ContactSharedEmptyRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(icon, color: colors.outline),
-          const SizedBox(width: 16),
+          Icon(icon, color: colors.outline, size: 20),
+          const SizedBox(width: 10),
           Text(
             label,
             style: Theme.of(
               context,
-            ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
           ),
         ],
       ),
@@ -131,7 +140,7 @@ class _FileRow extends StatelessWidget {
         child: SizedBox(
           height: RetroMetrics.contactSharedRowHeight,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
               children: [
                 Icon(
@@ -139,11 +148,15 @@ class _FileRow extends StatelessWidget {
                       ? Icons.picture_as_pdf_rounded
                       : Icons.insert_drive_file_rounded,
                   color: isPdf ? colors.error : colors.primary,
-                  size: 30,
+                  size: 24,
                 ),
-                const SizedBox(width: 14),
+                const SizedBox(width: 10),
                 Expanded(child: _FileMetadata(file: file)),
-                Icon(Icons.chevron_right_rounded, color: colors.outline),
+                Icon(
+                  Icons.chevron_right_rounded,
+                  color: colors.outline,
+                  size: 20,
+                ),
               ],
             ),
           ),
@@ -171,7 +184,7 @@ class _FileMetadata extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: Theme.of(
             context,
-          ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
+          ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 2),
         Text(
