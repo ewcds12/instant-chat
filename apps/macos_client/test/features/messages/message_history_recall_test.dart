@@ -20,6 +20,7 @@ void main() {
               currentUserId: '7',
               onLoadOlder: () {},
               onOpenFile: (_) {},
+              onOpenLink: (_) async {},
               onDownloadImage: (_) async {},
               onRecall: (_) async => true,
               onDelete: (_) async => true,

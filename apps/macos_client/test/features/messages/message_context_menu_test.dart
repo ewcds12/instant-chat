@@ -105,6 +105,7 @@ Widget _bubble({required Message message}) => MaterialApp(
         imageMessages: const [],
         accessToken: '',
         onOpenFile: (_) {},
+        onOpenLink: (_) async {},
         onDownloadImage: (_) async {},
         onRecall: (_) async => true,
         onDelete: (_) async => true,

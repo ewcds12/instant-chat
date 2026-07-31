@@ -48,6 +48,7 @@ Widget _bubble({required Message message, required bool isMine}) {
     imageMessages: const [],
     accessToken: '',
     onOpenFile: (_) {},
+    onOpenLink: (_) async {},
     onDownloadImage: (_) async {},
     onRecall: (_) async => true,
     onDelete: (_) async => true,

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
+import 'package:instant_chat/features/messages/domain/message_link.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 
 typedef ContactSharedContentRequest = ({
@@ -84,19 +85,7 @@ class ContactSharedContent {
 }
 
 List<Uri> extractWebLinks(String text) {
-  final links = <Uri>[];
-  final matches = RegExp(
-    r'https?://[^\s<>()]+',
-    caseSensitive: false,
-  ).allMatches(text);
-  for (final match in matches) {
-    final value = _stripTrailingPunctuation(match.group(0)!);
-    final uri = Uri.tryParse(value);
-    if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
-      links.add(uri);
-    }
-  }
-  return links;
+  return findMessageLinks(text).map((link) => link.uri).toList(growable: false);
 }
 
 ({String conversationId, String latestSequence})? _findSharedConversation(
@@ -113,8 +102,4 @@ List<Uri> extractWebLinks(String text) {
     }
   }
   return null;
-}
-
-String _stripTrailingPunctuation(String value) {
-  return value.replaceFirst(RegExp(r'''[.,!?;:\]\}'"]+$'''), '');
 }

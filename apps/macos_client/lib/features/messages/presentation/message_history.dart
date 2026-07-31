@@ -14,6 +14,7 @@ class MessageHistory extends StatelessWidget {
     required this.currentUserId,
     required this.onLoadOlder,
     required this.onOpenFile,
+    required this.onOpenLink,
     required this.onDownloadImage,
     required this.onRecall,
     required this.onDelete,
@@ -26,6 +27,7 @@ class MessageHistory extends StatelessWidget {
   final String currentUserId;
   final VoidCallback onLoadOlder;
   final ValueChanged<MessageFile> onOpenFile;
+  final Future<void> Function(Uri link) onOpenLink;
   final Future<void> Function(MessageImage image) onDownloadImage;
   final Future<bool> Function(Message message) onRecall;
   final Future<bool> Function(Message message) onDelete;
@@ -106,6 +108,7 @@ class MessageHistory extends StatelessWidget {
                       imageMessages: imageMessages,
                       accessToken: accessToken,
                       onOpenFile: onOpenFile,
+                      onOpenLink: onOpenLink,
                       onDownloadImage: onDownloadImage,
                       onRecall: onRecall,
                       onDelete: onDelete,

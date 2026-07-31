@@ -6,6 +6,7 @@ import 'package:instant_chat/core/platform/macos_clipboard_image.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_file_picker.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
+import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
@@ -120,6 +121,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         onLoadOlder: () =>
                             ref.read(provider.notifier).loadOlder(),
                         onOpenFile: (file) => _openFile(provider, file),
+                        onOpenLink: _openLink,
                         onDownloadImage: (image) =>
                             _downloadImage(provider, image),
                         onRecall: (message) =>
@@ -186,6 +188,18 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     } catch (_) {
       if (mounted) {
         _showSaveError('File could not be saved.');
+      }
+    }
+  }
+
+  Future<void> _openLink(Uri link) async {
+    try {
+      await ref.read(localUrlLauncherProvider).open(link);
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Link could not be opened.')),
+        );
       }
     }
   }

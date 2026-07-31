@@ -5,6 +5,7 @@ import 'package:instant_chat/features/messages/presentation/message_file_card.da
 import 'package:instant_chat/features/messages/presentation/message_context_menu.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
+import 'package:instant_chat/features/messages/presentation/message_link_text.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -15,6 +16,7 @@ class MessageBubble extends StatelessWidget {
     required this.imageMessages,
     required this.accessToken,
     required this.onOpenFile,
+    required this.onOpenLink,
     required this.onDownloadImage,
     required this.onRecall,
     required this.onDelete,
@@ -27,6 +29,7 @@ class MessageBubble extends StatelessWidget {
   final List<MessageImage> imageMessages;
   final String accessToken;
   final ValueChanged<MessageFile> onOpenFile;
+  final Future<void> Function(Uri link) onOpenLink;
   final Future<void> Function(MessageImage image) onDownloadImage;
   final Future<bool> Function(Message message) onRecall;
   final Future<bool> Function(Message message) onDelete;
@@ -44,6 +47,7 @@ class MessageBubble extends StatelessWidget {
         imageMessages: imageMessages,
         accessToken: accessToken,
         onOpenFile: onOpenFile,
+        onOpenLink: onOpenLink,
         onDownloadImage: onDownloadImage,
       ),
     );
@@ -80,6 +84,7 @@ class _MessageContent extends StatelessWidget {
     required this.imageMessages,
     required this.accessToken,
     required this.onOpenFile,
+    required this.onOpenLink,
     required this.onDownloadImage,
   });
 
@@ -88,6 +93,7 @@ class _MessageContent extends StatelessWidget {
   final List<MessageImage> imageMessages;
   final String accessToken;
   final ValueChanged<MessageFile> onOpenFile;
+  final Future<void> Function(Uri link) onOpenLink;
   final Future<void> Function(MessageImage image) onDownloadImage;
 
   @override
@@ -149,13 +155,22 @@ class _MessageContent extends StatelessWidget {
                 ),
               ],
             ),
-            child: Text(
-              message.body,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: isMine ? colors.onPrimary : colors.onSurface,
-                fontSize: 14,
-                height: 1.28,
+            child: MessageLinkText(
+              key: ValueKey('message-link-text-${message.id}'),
+              text: message.body,
+              style:
+                  (Theme.of(context).textTheme.bodyMedium ?? const TextStyle())
+                      .copyWith(
+                        color: isMine ? colors.onPrimary : colors.onSurface,
+                        fontSize: 14,
+                        height: 1.28,
+                      ),
+              linkStyle: TextStyle(
+                color: isMine ? colors.onPrimary : colors.primary,
+                decoration: TextDecoration.underline,
+                decorationColor: isMine ? colors.onPrimary : colors.primary,
               ),
+              onOpenLink: onOpenLink,
             ),
           ),
       ],
