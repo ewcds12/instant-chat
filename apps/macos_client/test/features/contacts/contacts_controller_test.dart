@@ -7,7 +7,10 @@ import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/domain/contact_gateway.dart';
 import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
+import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
+
+import '../../support/widget_network_stubs.dart';
 
 void main() {
   test('search normalizes username and send refreshes the snapshot', () async {
@@ -76,6 +79,47 @@ void main() {
       expect(gateway.canceledRequestId, 'outgoing-1');
     },
   );
+
+  test('fallback refresh discovers an incoming request', () async {
+    final gateway = _FakeContactGateway();
+    final container = ProviderContainer(
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => _StubAuthController(AuthState(session: _session)),
+        ),
+        contactGatewayProvider.overrideWithValue(gateway),
+        contactRecoveryIntervalProvider.overrideWithValue(
+          const Duration(milliseconds: 10),
+        ),
+        realtimeConnectionProvider.overrideWithValue(
+          const StubRealtimeConnection(),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(authControllerProvider.future);
+    final subscription = container.listen(
+      contactsControllerProvider,
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+    await container.read(contactsControllerProvider.future);
+
+    gateway.incoming = [_incomingRequest];
+    await _waitForIncomingRequest(container);
+
+    expect(gateway.listContactsCalls, greaterThanOrEqualTo(2));
+    expect(
+      container
+          .read(contactsControllerProvider)
+          .requireValue
+          .incoming
+          .single
+          .id,
+      _incomingRequest.id,
+    );
+  });
 }
 
 final _session = AuthSession(
@@ -98,12 +142,20 @@ final _otherUser = PublicUser(
   createdAt: DateTime.utc(2026, 7, 16),
 );
 
+final _incomingRequest = ContactRequest(
+  id: 'incoming-1',
+  user: _otherUser,
+  createdAt: DateTime.utc(2026, 7, 16),
+  updatedAt: DateTime.utc(2026, 7, 16),
+);
+
 class _FakeContactGateway implements ContactGateway {
   String? searchedUsername;
   String? sentUsername;
   String? acceptedRequestId;
   String? canceledRequestId;
   int listContactsCalls = 0;
+  List<ContactRequest> incoming = [];
 
   @override
   Future<PublicUser> searchUser({
@@ -136,7 +188,7 @@ class _FakeContactGateway implements ContactGateway {
 
   @override
   Future<ContactRequestLists> listRequests(String accessToken) async {
-    return const ContactRequestLists(incoming: [], outgoing: []);
+    return ContactRequestLists(incoming: incoming, outgoing: const []);
   }
 
   @override
@@ -184,4 +236,20 @@ class _StubAuthController extends AuthController {
 
   @override
   Future<AuthState> build() async => authState;
+}
+
+Future<void> _waitForIncomingRequest(ProviderContainer container) async {
+  for (var attempt = 0; attempt < 20; attempt++) {
+    if (container
+            .read(contactsControllerProvider)
+            .asData
+            ?.value
+            .incoming
+            .isNotEmpty ??
+        false) {
+      return;
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+  }
+  fail('The incoming contact request was not recovered.');
 }

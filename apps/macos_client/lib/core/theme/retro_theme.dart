@@ -52,6 +52,7 @@ abstract final class RetroMetrics {
   static const contactSearchHeight = 36.0;
   static const contactDetailHeaderHeight = 56.0;
   static const contactRequestCountDiameter = 20.0;
+  static const contactRequestNotificationDotDiameter = 8.0;
   static const profileHeaderHeight = 48.0;
   static const profileAvatarRadius = 42.0;
   static const profileAvatarTextSize = 30.0;

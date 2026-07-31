@@ -6,6 +6,7 @@ import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
+import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
@@ -89,6 +90,60 @@ void main() {
     expect(find.byTooltip('Search messages'), findsOneWidget);
     expect(find.text('Select a conversation'), findsNothing);
   });
+
+  testWidgets('shows a Contacts dot while an incoming request is pending', (
+    tester,
+  ) async {
+    final contacts = _IncomingContactsController();
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          contactsControllerProvider.overrideWith(() => contacts),
+          conversationsControllerProvider.overrideWith(
+            _CountingConversationsController.new,
+          ),
+          realtimeConnectionProvider.overrideWithValue(
+            const StubRealtimeConnection(),
+          ),
+        ],
+        child: const InstantChatApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('contact-request-notification-dot')),
+      findsNothing,
+    );
+
+    contacts.receiveRequest();
+    await tester.pump();
+
+    final notificationDot = find.byKey(
+      const Key('contact-request-notification-dot'),
+    );
+    expect(notificationDot, findsOneWidget);
+    final dot = tester.widget<Container>(notificationDot);
+    expect(
+      (dot.decoration as BoxDecoration).color,
+      Theme.of(tester.element(notificationDot)).colorScheme.primary,
+    );
+    expect(
+      find.bySemanticsLabel(RegExp('New contact request')),
+      findsOneWidget,
+    );
+
+    contacts.resolveRequest();
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('contact-request-notification-dot')),
+      findsNothing,
+    );
+  });
 }
 
 final _session = AuthSession(
@@ -154,6 +209,28 @@ class _RoutingContactsController extends ContactsController {
   );
 }
 
+class _IncomingContactsController extends ContactsController {
+  @override
+  Future<ContactsState> build() async =>
+      const ContactsState(contacts: [], incoming: [], outgoing: []);
+
+  void receiveRequest() {
+    state = AsyncData(
+      ContactsState(
+        contacts: const [],
+        incoming: [_incomingRequest],
+        outgoing: const [],
+      ),
+    );
+  }
+
+  void resolveRequest() {
+    state = const AsyncData(
+      ContactsState(contacts: [], incoming: [], outgoing: []),
+    );
+  }
+}
+
 class _RoutingConversationsController extends ConversationsController {
   String? openedContactUserId;
 
@@ -180,4 +257,11 @@ final _conversation = Conversation(
   createdAt: DateTime.utc(2026, 7, 22),
   updatedAt: DateTime.utc(2026, 7, 22),
   unreadCount: 0,
+);
+
+final _incomingRequest = ContactRequest(
+  id: 'request-8',
+  user: _conversation.peer,
+  createdAt: DateTime.utc(2026, 7, 22),
+  updatedAt: DateTime.utc(2026, 7, 22),
 );

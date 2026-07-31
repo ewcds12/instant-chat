@@ -4,6 +4,8 @@ import 'package:instant_chat/app/shell_navigation_refresh.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_request_notification_dot.dart';
+import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_page.dart';
 import 'package:instant_chat/features/conversations/presentation/conversation_selection.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
@@ -83,7 +85,7 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
   }
 }
 
-class _AppSidebar extends StatelessWidget {
+class _AppSidebar extends ConsumerWidget {
   const _AppSidebar({
     required this.session,
     required this.selectedIndex,
@@ -97,7 +99,7 @@ class _AppSidebar extends StatelessWidget {
   final VoidCallback onOpenProfile;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return SizedBox(
       key: const Key('app-sidebar'),
       width: RetroMetrics.sidebarWidth,
@@ -122,6 +124,11 @@ class _AppSidebar extends StatelessWidget {
                 icon: Icons.person_outline_rounded,
                 selected: selectedIndex == 1,
                 onTap: () => onSelect(1),
+                showContactRequest: ref.watch(
+                  contactsControllerProvider.select(
+                    (state) => state.asData?.value.incoming.isNotEmpty ?? false,
+                  ),
+                ),
               ),
               const Spacer(),
               _SystemButton(
@@ -240,12 +247,14 @@ class _SidebarItem extends StatelessWidget {
     required this.icon,
     required this.selected,
     required this.onTap,
+    this.showContactRequest = false,
   });
 
   final String label;
   final IconData icon;
   final bool selected;
   final VoidCallback onTap;
+  final bool showContactRequest;
 
   @override
   Widget build(BuildContext context) {
@@ -276,6 +285,7 @@ class _SidebarItem extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (showContactRequest) const ContactRequestNotificationDot(),
               ],
             ),
           ),

@@ -15,6 +15,10 @@ final contactGatewayProvider = Provider<ContactGateway>((ref) {
   return DioContactGateway(ref.watch(dioProvider));
 });
 
+final contactRecoveryIntervalProvider = Provider<Duration?>((ref) {
+  return const Duration(seconds: 2);
+});
+
 final contactsControllerProvider =
     AsyncNotifierProvider.autoDispose<ContactsController, ContactsState>(
       ContactsController.new,
@@ -76,6 +80,7 @@ class ContactsController extends AsyncNotifier<ContactsState> {
   ContactGateway get _gateway => ref.read(contactGatewayProvider);
   StreamSubscription<PublicUser>? _profileSubscription;
   Future<void>? _silentRefresh;
+  Timer? _recoveryTimer;
 
   String get _accessToken {
     final session = ref.read(authControllerProvider).requireValue.session;
@@ -92,7 +97,14 @@ class ContactsController extends AsyncNotifier<ContactsState> {
           .read(realtimeConnectionProvider)
           .profiles
           .listen(_onRealtimeProfile);
-      ref.onDispose(() => unawaited(_profileSubscription?.cancel()));
+      final interval = ref.read(contactRecoveryIntervalProvider);
+      if (interval != null) {
+        _recoveryTimer = Timer.periodic(
+          interval,
+          (_) => unawaited(refreshSilently()),
+        );
+      }
+      ref.onDispose(_closeRealtimeRecovery);
     }
     return _load();
   }
@@ -276,5 +288,10 @@ class ContactsController extends AsyncNotifier<ContactsState> {
             : current.searchResult,
       ),
     );
+  }
+
+  void _closeRealtimeRecovery() {
+    _recoveryTimer?.cancel();
+    unawaited(_profileSubscription?.cancel());
   }
 }
