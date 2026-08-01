@@ -24,6 +24,7 @@ type messageResponse struct {
 	Body            string         `json:"body"`
 	Image           *imageResponse `json:"image"`
 	File            *fileResponse  `json:"file"`
+	ReplyTo         *replyResponse `json:"reply_to"`
 	RecalledAt      *time.Time     `json:"recalled_at"`
 	CreatedAt       time.Time      `json:"created_at"`
 }
@@ -41,6 +42,15 @@ type fileResponse struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
 	ByteSize    uint64 `json:"byte_size"`
+}
+
+type replyResponse struct {
+	ID         string         `json:"id"`
+	Sender     senderResponse `json:"sender"`
+	Kind       string         `json:"kind"`
+	Body       string         `json:"body"`
+	Filename   string         `json:"filename"`
+	RecalledAt *time.Time     `json:"recalled_at"`
 }
 
 func responseFromMessage(message Message) messageResponse {
@@ -72,6 +82,26 @@ func responseFromMessage(message Message) messageResponse {
 	}
 	if message.File != nil {
 		response.File = responseFromFile(message.File)
+	}
+	if message.ReplyTo != nil {
+		response.ReplyTo = responseFromReply(message.ReplyTo)
+	}
+	return response
+}
+
+func responseFromReply(reply *ReplyPreview) *replyResponse {
+	response := &replyResponse{
+		ID: strconv.FormatUint(reply.ID, 10),
+		Sender: senderResponse{
+			ID: strconv.FormatUint(reply.Sender.ID, 10), Username: reply.Sender.Username,
+			DisplayName: reply.Sender.DisplayName, CreatedAt: reply.Sender.CreatedAt.UTC(),
+		},
+		Kind: reply.Kind, Body: reply.Body, Filename: reply.Filename,
+		RecalledAt: reply.RecalledAt,
+	}
+	if reply.Sender.HasAvatar {
+		url := "/api/v1/users/" + response.Sender.ID + "/avatar"
+		response.Sender.AvatarURL = &url
 	}
 	return response
 }

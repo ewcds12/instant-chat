@@ -2,6 +2,7 @@ package messages
 
 import (
 	"context"
+	"math"
 	"regexp"
 	"strings"
 	"unicode/utf8"
@@ -41,6 +42,7 @@ func (s *Service) Send(
 	ctx context.Context,
 	userID, conversationID uint64,
 	clientMessageID, body string,
+	replyToMessageID *uint64,
 ) (Message, bool, error) {
 	if !clientMessageIDPattern.MatchString(clientMessageID) {
 		return Message{}, false, &InputError{
@@ -56,8 +58,13 @@ func (s *Service) Send(
 			Message: "Message body must contain at most 4,000 Unicode characters.",
 		}
 	}
+	if replyToMessageID != nil && (*replyToMessageID == 0 || *replyToMessageID > math.MaxInt64) {
+		return Message{}, false, &InputError{
+			Message: "Reply-to message ID must be a positive integer string.",
+		}
+	}
 	message, created, err := s.repository.Send(
-		ctx, userID, conversationID, clientMessageID, trimmedBody,
+		ctx, userID, conversationID, clientMessageID, trimmedBody, replyToMessageID,
 	)
 	if err == nil && created {
 		s.publisher.PublishMessage(ctx, message)

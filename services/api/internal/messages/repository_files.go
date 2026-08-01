@@ -42,7 +42,7 @@ func (r *MySQLRepository) SendFile(
 		ByteSize: uint64(upload.ByteSize), ObjectKey: objectKey,
 	}
 	message, created, err := r.send(
-		ctx, userID, conversationID, clientMessageID, KindFile, "", nil, &stored,
+		ctx, userID, conversationID, clientMessageID, KindFile, "", nil, &stored, nil,
 	)
 	if err != nil {
 		return Message{}, false, errors.Join(err, r.deleteObject(ctx, objectKey))

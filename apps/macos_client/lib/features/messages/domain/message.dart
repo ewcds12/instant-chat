@@ -12,6 +12,7 @@ class Message {
     required this.body,
     required this.image,
     this.file,
+    this.replyTo,
     this.recalledAt,
     required this.createdAt,
   });
@@ -25,6 +26,7 @@ class Message {
   final String body;
   final MessageImage? image;
   final MessageFile? file;
+  final MessageReply? replyTo;
   final DateTime? recalledAt;
   final DateTime createdAt;
 
@@ -43,6 +45,7 @@ class Message {
       body: _requiredBody(json),
       image: MessageImage.fromJsonOrNull(json['image']),
       file: MessageFile.fromJsonOrNull(json['file']),
+      replyTo: MessageReply.fromJsonOrNull(json['reply_to']),
       recalledAt: _optionalDateTime(json, 'recalled_at'),
       createdAt: requiredDateTime(json, 'created_at'),
     );
@@ -58,8 +61,79 @@ class Message {
     body: '',
     image: null,
     file: null,
+    replyTo: replyTo,
     recalledAt: timestamp,
     createdAt: createdAt,
+  );
+
+  Message withRecalledReply(String messageId, DateTime timestamp) {
+    final reply = replyTo;
+    if (reply == null || reply.id != messageId) {
+      return this;
+    }
+    return Message(
+      id: id,
+      conversationId: conversationId,
+      sender: sender,
+      clientMessageId: clientMessageId,
+      sequence: sequence,
+      kind: kind,
+      body: body,
+      image: image,
+      file: file,
+      replyTo: reply.recalled(timestamp),
+      recalledAt: recalledAt,
+      createdAt: createdAt,
+    );
+  }
+}
+
+class MessageReply {
+  const MessageReply({
+    required this.id,
+    required this.sender,
+    required this.kind,
+    required this.body,
+    required this.filename,
+    this.recalledAt,
+  });
+
+  final String id;
+  final PublicUser sender;
+  final MessageKind kind;
+  final String body;
+  final String filename;
+  final DateTime? recalledAt;
+
+  static MessageReply? fromJsonOrNull(Object? value) {
+    if (value == null) {
+      return null;
+    }
+    if (value is! Map<Object?, Object?>) {
+      throw const FormatException('reply_to must be a JSON object or null');
+    }
+    final json = _stringKeyed(value);
+    final sender = json['sender'];
+    if (sender is! Map<Object?, Object?>) {
+      throw const FormatException('reply_to.sender must be a JSON object');
+    }
+    return MessageReply(
+      id: requiredString(json, 'id'),
+      sender: PublicUser.fromJson(_stringKeyed(sender)),
+      kind: MessageKind.fromWire(json['kind']),
+      body: requiredString(json, 'body'),
+      filename: _requiredText(json, 'filename'),
+      recalledAt: _optionalDateTime(json, 'recalled_at'),
+    );
+  }
+
+  MessageReply recalled(DateTime timestamp) => MessageReply(
+    id: id,
+    sender: sender,
+    kind: kind,
+    body: '',
+    filename: '',
+    recalledAt: timestamp,
   );
 }
 
@@ -171,10 +245,12 @@ class MessageFile {
   }
 }
 
-String _requiredBody(Map<String, Object?> json) {
-  final value = json['body'];
+String _requiredBody(Map<String, Object?> json) => _requiredText(json, 'body');
+
+String _requiredText(Map<String, Object?> json, String key) {
+  final value = json[key];
   if (value is! String) {
-    throw const FormatException('body must be a string');
+    throw FormatException('$key must be a string');
   }
   return value;
 }

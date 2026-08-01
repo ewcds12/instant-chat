@@ -7,7 +7,7 @@ import 'package:instant_chat/features/messages/domain/message.dart';
 
 const _recallWindow = Duration(minutes: 5);
 
-enum _MessageMenuAction { copy, recall, delete }
+enum _MessageMenuAction { reply, copy, recall, delete }
 
 class MessageContextMenu extends StatelessWidget {
   const MessageContextMenu({
@@ -15,6 +15,7 @@ class MessageContextMenu extends StatelessWidget {
     required this.isMine,
     required this.onRecall,
     required this.onDelete,
+    this.onReply,
     required this.child,
     super.key,
   });
@@ -23,6 +24,7 @@ class MessageContextMenu extends StatelessWidget {
   final bool isMine;
   final Future<bool> Function(Message message) onRecall;
   final Future<bool> Function(Message message) onDelete;
+  final ValueChanged<Message>? onReply;
   final Widget child;
 
   @override
@@ -59,6 +61,8 @@ class MessageContextMenu extends StatelessWidget {
       items: _items(context),
     );
     switch (action) {
+      case _MessageMenuAction.reply:
+        onReply?.call(message);
       case _MessageMenuAction.copy:
         await Clipboard.setData(ClipboardData(text: message.body));
       case _MessageMenuAction.recall:
@@ -72,6 +76,9 @@ class MessageContextMenu extends StatelessWidget {
 
   List<PopupMenuEntry<_MessageMenuAction>> _items(BuildContext context) {
     final items = <PopupMenuEntry<_MessageMenuAction>>[];
+    if (onReply != null) {
+      items.add(_item(_MessageMenuAction.reply, Icons.reply_rounded, 'Reply'));
+    }
     if (message.kind == MessageKind.text) {
       items.add(_item(_MessageMenuAction.copy, Icons.copy_outlined, 'Copy'));
     }

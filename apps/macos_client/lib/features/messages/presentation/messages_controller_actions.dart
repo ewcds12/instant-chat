@@ -96,11 +96,17 @@ mixin _MessageActions on AsyncNotifier<MessagesState> {
     var found = false;
     final messages = current.messages
         .map((message) {
-          if (message.id != recall.messageId) {
-            return message;
+          var updated = message.withRecalledReply(
+            recall.messageId,
+            recall.recalledAt,
+          );
+          if (message.id == recall.messageId) {
+            found = true;
+            updated = message.recalled(recall.recalledAt);
+          } else if (!identical(updated, message)) {
+            found = true;
           }
-          found = true;
-          return message.recalled(recall.recalledAt);
+          return updated;
         })
         .toList(growable: false);
     if (!found) {

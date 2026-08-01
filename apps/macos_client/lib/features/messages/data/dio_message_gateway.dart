@@ -42,11 +42,16 @@ class DioMessageGateway implements MessageGateway {
     required String conversationId,
     required String clientMessageId,
     required String body,
+    String? replyToMessageId,
   }) async {
     final response = await apiRequest(
       () => _dio.post<Object?>(
         '/api/v1/conversations/$conversationId/messages',
-        data: {'client_message_id': clientMessageId, 'body': body},
+        data: {
+          'client_message_id': clientMessageId,
+          'body': body,
+          'reply_to_message_id': ?replyToMessageId,
+        },
         options: _options(accessToken),
       ),
     );

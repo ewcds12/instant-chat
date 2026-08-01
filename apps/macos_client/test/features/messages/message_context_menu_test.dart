@@ -8,6 +8,20 @@ import 'package:instant_chat/features/messages/presentation/message_context_menu
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 void main() {
+  testWidgets('offers Reply and returns the selected message', (tester) async {
+    Message? repliedTo;
+    final message = _message(DateTime.now().toUtc());
+    await tester.pumpWidget(
+      _menu(message: message, onReply: (value) => repliedTo = value),
+    );
+
+    await _rightClick(tester, find.byKey(const Key('message-menu-target')));
+    await tester.tap(find.text('Reply'));
+    await tester.pumpAndSettle();
+
+    expect(repliedTo, same(message));
+  });
+
   testWidgets('shows Recall for a recent outgoing message', (tester) async {
     await tester.pumpWidget(_menu(message: _message(DateTime.now().toUtc())));
 
@@ -75,24 +89,26 @@ void main() {
   });
 }
 
-Widget _menu({required Message message}) => MaterialApp(
-  theme: RetroTheme.data,
-  home: Scaffold(
-    body: Center(
-      child: MessageContextMenu(
-        message: message,
-        isMine: true,
-        onRecall: (_) async => true,
-        onDelete: (_) async => true,
-        child: const SizedBox(
-          key: Key('message-menu-target'),
-          width: 120,
-          height: 44,
+Widget _menu({required Message message, ValueChanged<Message>? onReply}) =>
+    MaterialApp(
+      theme: RetroTheme.data,
+      home: Scaffold(
+        body: Center(
+          child: MessageContextMenu(
+            message: message,
+            isMine: true,
+            onRecall: (_) async => true,
+            onDelete: (_) async => true,
+            onReply: onReply,
+            child: const SizedBox(
+              key: Key('message-menu-target'),
+              width: 120,
+              height: 44,
+            ),
+          ),
         ),
       ),
-    ),
-  ),
-);
+    );
 
 Widget _bubble({required Message message}) => MaterialApp(
   theme: RetroTheme.data,

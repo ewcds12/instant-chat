@@ -7,6 +7,7 @@ extension _MessagesPageAttachments on _MessagesPageState {
     _failedDroppedFile = null;
     final images = List<ClipboardImage>.of(_imageDraft.images);
     final body = _composer.text;
+    final replyToMessageID = _replyingTo?.id;
     for (final image in images) {
       final sent = await ref.read(provider.notifier).sendImage(image.path);
       if (!mounted || !sent) {
@@ -18,8 +19,11 @@ extension _MessagesPageAttachments on _MessagesPageState {
       _focusComposer();
       return;
     }
-    if (await ref.read(provider.notifier).send(body)) {
+    if (await ref
+        .read(provider.notifier)
+        .send(body, replyToMessageId: replyToMessageID)) {
       _composer.clear();
+      _cancelReply();
       _focusComposer();
     }
   }
@@ -123,7 +127,9 @@ extension _MessagesPageAttachments on _MessagesPageState {
         ? droppedFile
         : null;
     if (file == null) {
-      await ref.read(provider.notifier).retry();
+      if (await ref.read(provider.notifier).retry()) {
+        _cancelReply();
+      }
       return;
     }
     try {

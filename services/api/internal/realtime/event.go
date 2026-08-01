@@ -36,6 +36,7 @@ type messageEvent struct {
 	Body            string      `json:"body"`
 	Image           *imageEvent `json:"image"`
 	File            *fileEvent  `json:"file"`
+	ReplyTo         *replyEvent `json:"reply_to"`
 	CreatedAt       time.Time   `json:"created_at"`
 }
 
@@ -52,6 +53,15 @@ type fileEvent struct {
 	Filename    string `json:"filename"`
 	ContentType string `json:"content_type"`
 	ByteSize    uint64 `json:"byte_size"`
+}
+
+type replyEvent struct {
+	ID         string      `json:"id"`
+	Sender     senderEvent `json:"sender"`
+	Kind       string      `json:"kind"`
+	Body       string      `json:"body"`
+	Filename   string      `json:"filename"`
+	RecalledAt *time.Time  `json:"recalled_at"`
 }
 
 type senderEvent struct {
@@ -104,6 +114,9 @@ func messageCreatedEvent(message messages.Message) eventEnvelope {
 			ByteSize:    message.File.ByteSize,
 		}
 	}
+	if message.ReplyTo != nil {
+		body.ReplyTo = replyEventFromMessage(message.ReplyTo)
+	}
 	return eventEnvelope{
 		EventID:    "message:" + strconv.FormatUint(message.ID, 10),
 		Type:       "message.created",
@@ -111,6 +124,23 @@ func messageCreatedEvent(message messages.Message) eventEnvelope {
 		OccurredAt: message.CreatedAt.UTC(),
 		Payload:    eventPayload{Message: &body},
 	}
+}
+
+func replyEventFromMessage(reply *messages.ReplyPreview) *replyEvent {
+	event := &replyEvent{
+		ID: strconv.FormatUint(reply.ID, 10),
+		Sender: senderEvent{
+			ID: strconv.FormatUint(reply.Sender.ID, 10), Username: reply.Sender.Username,
+			DisplayName: reply.Sender.DisplayName, CreatedAt: reply.Sender.CreatedAt.UTC(),
+		},
+		Kind: reply.Kind, Body: reply.Body, Filename: reply.Filename,
+		RecalledAt: reply.RecalledAt,
+	}
+	if reply.Sender.HasAvatar {
+		url := "/api/v1/users/" + event.Sender.ID + "/avatar"
+		event.Sender.AvatarURL = &url
+	}
+	return event
 }
 
 type recallEvent struct {

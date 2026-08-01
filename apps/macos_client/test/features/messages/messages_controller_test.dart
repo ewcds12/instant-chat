@@ -32,13 +32,16 @@ void main() {
     addTearDown(subscription.close);
     await container.read(provider.future);
 
-    final sent = await container.read(provider.notifier).send('Hello.');
+    final sent = await container
+        .read(provider.notifier)
+        .send('Hello.', replyToMessageId: '8');
     final retried = await container.read(provider.notifier).retry();
 
     expect(sent, isFalse);
     expect(retried, isTrue);
     expect(gateway.clientIDs, hasLength(2));
     expect(gateway.clientIDs[0], gateway.clientIDs[1]);
+    expect(gateway.replyToMessageIDs, ['8', '8']);
     expect(
       container.read(provider).requireValue.messages.single.body,
       'Hello.',

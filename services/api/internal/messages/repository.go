@@ -31,8 +31,12 @@ func (r *MySQLRepository) Send(
 	ctx context.Context,
 	userID, conversationID uint64,
 	clientMessageID, body string,
+	replyToMessageID *uint64,
 ) (Message, bool, error) {
-	return r.send(ctx, userID, conversationID, clientMessageID, KindText, body, nil, nil)
+	return r.send(
+		ctx, userID, conversationID, clientMessageID, KindText, body,
+		nil, nil, replyToMessageID,
+	)
 }
 
 // SendImage allocates a sequence and creates one image message atomically.
@@ -42,7 +46,7 @@ func (r *MySQLRepository) SendImage(
 	clientMessageID string,
 	upload ImageUpload,
 ) (Message, bool, error) {
-	return r.send(ctx, userID, conversationID, clientMessageID, KindImage, "", &upload, nil)
+	return r.send(ctx, userID, conversationID, clientMessageID, KindImage, "", &upload, nil, nil)
 }
 
 // Image returns one image if the requester belongs to its conversation.
@@ -113,6 +117,7 @@ func (r *MySQLRepository) send(
 	clientMessageID, kind, body string,
 	upload *ImageUpload,
 	fileUpload *storedFileUpload,
+	replyToMessageID *uint64,
 ) (Message, bool, error) {
 	tx, err := r.database.BeginTx(ctx, nil)
 	if err != nil {
@@ -143,6 +148,18 @@ func (r *MySQLRepository) send(
 	if !errors.Is(err, sql.ErrNoRows) {
 		return Message{}, false, rollback(tx, fmt.Errorf("read idempotent message: %w", err))
 	}
+	if replyToMessageID != nil {
+		_, replyErr := queries.LockReplyMessage(ctx, store.LockReplyMessageParams{
+			ReplyToMessageID: *replyToMessageID,
+			ConversationID:   conversationID,
+		})
+		if errors.Is(replyErr, sql.ErrNoRows) {
+			return Message{}, false, rollback(tx, ErrReplyUnavailable)
+		}
+		if replyErr != nil {
+			return Message{}, false, rollback(tx, fmt.Errorf("validate reply message: %w", replyErr))
+		}
+	}
 	imageID, err := createImage(ctx, queries, userID, upload)
 	if err != nil {
 		return Message{}, false, rollback(tx, err)
@@ -153,7 +170,7 @@ func (r *MySQLRepository) send(
 	}
 	if err := createMessage(
 		ctx, queries, conversationID, userID, clientMessageID,
-		sequence, kind, body, imageID, fileID,
+		sequence, kind, body, imageID, fileID, nullableID(replyToMessageID),
 	); err != nil {
 		return Message{}, false, rollback(tx, err)
 	}

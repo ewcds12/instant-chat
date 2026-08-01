@@ -28,12 +28,25 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  reply.id AS reply_to_id,
+  reply_sender.id AS reply_sender_id,
+  reply_sender.username AS reply_sender_username,
+  reply_sender.display_name AS reply_sender_display_name,
+  reply_sender.avatar_content_type AS reply_sender_avatar_content_type,
+  reply_sender.created_at AS reply_sender_created_at,
+  reply.kind AS reply_kind,
+  reply.body AS reply_body,
+  reply_file.filename AS reply_file_filename,
+  reply.recalled_at AS reply_recalled_at,
   message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
+LEFT JOIN messages AS reply ON reply.id = message.reply_to_message_id
+LEFT JOIN users AS reply_sender ON reply_sender.id = reply.sender_id
+LEFT JOIN message_files AS reply_file ON reply_file.id = reply.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sender_id = sqlc.arg(sender_id)
   AND message.client_message_id = sqlc.arg(client_message_id)
@@ -48,9 +61,19 @@ INSERT INTO messages (
   kind,
   body,
   image_id,
-  file_id
+  file_id,
+  reply_to_message_id
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- name: LockReplyMessage :one
+SELECT id
+FROM messages
+WHERE id = sqlc.arg(reply_to_message_id)
+  AND conversation_id = sqlc.arg(conversation_id)
+  AND recalled_at IS NULL
+LIMIT 1
+FOR UPDATE;
 
 -- name: CreateMessageImage :execresult
 INSERT INTO message_images (
@@ -125,12 +148,25 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  reply.id AS reply_to_id,
+  reply_sender.id AS reply_sender_id,
+  reply_sender.username AS reply_sender_username,
+  reply_sender.display_name AS reply_sender_display_name,
+  reply_sender.avatar_content_type AS reply_sender_avatar_content_type,
+  reply_sender.created_at AS reply_sender_created_at,
+  reply.kind AS reply_kind,
+  reply.body AS reply_body,
+  reply_file.filename AS reply_file_filename,
+  reply.recalled_at AS reply_recalled_at,
   message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
+LEFT JOIN messages AS reply ON reply.id = message.reply_to_message_id
+LEFT JOIN users AS reply_sender ON reply_sender.id = reply.sender_id
+LEFT JOIN message_files AS reply_file ON reply_file.id = reply.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND NOT EXISTS (
     SELECT 1
@@ -161,12 +197,25 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  reply.id AS reply_to_id,
+  reply_sender.id AS reply_sender_id,
+  reply_sender.username AS reply_sender_username,
+  reply_sender.display_name AS reply_sender_display_name,
+  reply_sender.avatar_content_type AS reply_sender_avatar_content_type,
+  reply_sender.created_at AS reply_sender_created_at,
+  reply.kind AS reply_kind,
+  reply.body AS reply_body,
+  reply_file.filename AS reply_file_filename,
+  reply.recalled_at AS reply_recalled_at,
   message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
+LEFT JOIN messages AS reply ON reply.id = message.reply_to_message_id
+LEFT JOIN users AS reply_sender ON reply_sender.id = reply.sender_id
+LEFT JOIN message_files AS reply_file ON reply_file.id = reply.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence < sqlc.arg(before_sequence)
   AND NOT EXISTS (
@@ -198,12 +247,25 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  reply.id AS reply_to_id,
+  reply_sender.id AS reply_sender_id,
+  reply_sender.username AS reply_sender_username,
+  reply_sender.display_name AS reply_sender_display_name,
+  reply_sender.avatar_content_type AS reply_sender_avatar_content_type,
+  reply_sender.created_at AS reply_sender_created_at,
+  reply.kind AS reply_kind,
+  reply.body AS reply_body,
+  reply_file.filename AS reply_file_filename,
+  reply.recalled_at AS reply_recalled_at,
   message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
+LEFT JOIN messages AS reply ON reply.id = message.reply_to_message_id
+LEFT JOIN users AS reply_sender ON reply_sender.id = reply.sender_id
+LEFT JOIN message_files AS reply_file ON reply_file.id = reply.file_id
 WHERE message.conversation_id = sqlc.arg(conversation_id)
   AND message.sequence > sqlc.arg(after_sequence)
   AND NOT EXISTS (

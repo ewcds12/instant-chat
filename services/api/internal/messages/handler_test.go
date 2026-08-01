@@ -33,7 +33,7 @@ func TestHandlerSendReturnsCreatedMessage(t *testing.T) {
 		http.MethodPost,
 		"/api/v1/conversations/11/messages",
 		strings.NewReader(
-			`{"client_message_id":"0123456789abcdef0123456789abcdef","body":"Hello."}`,
+			`{"client_message_id":"0123456789abcdef0123456789abcdef","body":"Hello.","reply_to_message_id":"8"}`,
 		),
 	)
 	request.SetPathValue("conversation_id", "11")
@@ -47,6 +47,9 @@ func TestHandlerSendReturnsCreatedMessage(t *testing.T) {
 			"status = %d, user ID = %d, conversation ID = %d",
 			recorder.Code, service.userID, service.conversationID,
 		)
+	}
+	if service.replyToID == nil || *service.replyToID != 8 {
+		t.Fatalf("reply-to ID = %v, want 8", service.replyToID)
 	}
 }
 
@@ -70,6 +73,24 @@ func TestResponseFromMessageIncludesRecallTime(t *testing.T) {
 
 	if response.RecalledAt == nil || !response.RecalledAt.Equal(recalledAt) {
 		t.Fatalf("recalled at = %v, want %v", response.RecalledAt, recalledAt)
+	}
+}
+
+func TestResponseFromMessageIncludesReplyPreview(t *testing.T) {
+	message := testMessage()
+	message.ReplyTo = &ReplyPreview{
+		ID: 8,
+		Sender: Sender{
+			ID: 9, Username: "peer", DisplayName: "Peer",
+			CreatedAt: time.Date(2026, 7, 16, 12, 0, 0, 0, time.UTC),
+		},
+		Kind: KindText, Body: "Original",
+	}
+
+	response := responseFromMessage(message)
+
+	if response.ReplyTo == nil || response.ReplyTo.ID != "8" || response.ReplyTo.Body != "Original" {
+		t.Fatalf("reply preview = %+v", response.ReplyTo)
 	}
 }
 

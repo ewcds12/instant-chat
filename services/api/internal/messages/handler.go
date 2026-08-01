@@ -13,7 +13,7 @@ import (
 )
 
 type messageService interface {
-	Send(context.Context, uint64, uint64, string, string) (Message, bool, error)
+	Send(context.Context, uint64, uint64, string, string, *uint64) (Message, bool, error)
 	SendImage(context.Context, uint64, uint64, string, ImageUpload) (Message, bool, error)
 	SendFile(context.Context, uint64, uint64, string, FileUpload) (Message, bool, error)
 	Image(context.Context, uint64, uint64) (ImageFile, error)
@@ -34,8 +34,9 @@ func NewHandler(service messageService) *Handler {
 }
 
 type sendRequest struct {
-	ClientMessageID string `json:"client_message_id"`
-	Body            string `json:"body"`
+	ClientMessageID  string  `json:"client_message_id"`
+	Body             string  `json:"body"`
+	ReplyToMessageID *string `json:"reply_to_message_id"`
 }
 
 // Send persists one direct text message.
@@ -49,8 +50,13 @@ func (h *Handler) Send(w http.ResponseWriter, r *http.Request) {
 		writeInvalidArgument(w, r, "Request body must be a valid JSON object.")
 		return
 	}
+	replyToMessageID, ok := optionalRequestID(w, r, body.ReplyToMessageID, "Reply-to message ID")
+	if !ok {
+		return
+	}
 	message, created, err := h.service.Send(
 		r.Context(), currentUserID(r), conversationID, body.ClientMessageID, body.Body,
+		replyToMessageID,
 	)
 	if err != nil {
 		writeServiceError(w, r, err)
@@ -270,6 +276,8 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 		httpapi.WriteError(w, http.StatusNotFound, "file_not_found", "File was not found.", requestID)
 	case errors.Is(err, ErrRecallUnavailable):
 		httpapi.WriteError(w, http.StatusConflict, "recall_unavailable", "This message can no longer be recalled.", requestID)
+	case errors.Is(err, ErrReplyUnavailable):
+		httpapi.WriteError(w, http.StatusConflict, "reply_unavailable", "The replied-to message is unavailable.", requestID)
 	default:
 		slog.Error("message request failed", "request_id", requestID, "error", err)
 		httpapi.WriteError(

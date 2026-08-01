@@ -16,6 +16,7 @@ import 'package:instant_chat/features/realtime/presentation/realtime_provider.da
 
 part 'messages_controller_actions.dart';
 part 'messages_controller_downloads.dart';
+part 'messages_controller_send.dart';
 part 'messages_controller_sync.dart';
 
 final messageGatewayProvider = Provider<MessageGateway>(
@@ -28,7 +29,7 @@ final messagesControllerProvider = AsyncNotifierProvider.autoDispose
     .family<MessagesController, MessagesState, String>(MessagesController.new);
 
 class MessagesController extends AsyncNotifier<MessagesState>
-    with _MessageActions, _MessageDownloads, _MessageSync {
+    with _MessageActions, _MessageDownloads, _MessageSend, _MessageSync {
   MessagesController(this.conversationId);
 
   @override
@@ -86,48 +87,6 @@ class MessagesController extends AsyncNotifier<MessagesState>
     _pendingRealtime.clear();
     Timer.run(_activateRealtime);
     return MessagesState(messages: messages, nextCursor: page.nextCursor);
-  }
-
-  Future<bool> send(String body) {
-    final trimmed = body.trim();
-    if (trimmed.isEmpty) {
-      return Future.value(false);
-    }
-    return _send(
-      FailedMessage.text(clientMessageId: newMessageClientID(), body: trimmed),
-    );
-  }
-
-  Future<bool> sendImage(String imagePath) {
-    if (imagePath.trim().isEmpty) {
-      return Future.value(false);
-    }
-    return _send(
-      FailedMessage.image(
-        clientMessageId: newMessageClientID(),
-        imagePath: imagePath,
-      ),
-    );
-  }
-
-  Future<bool> sendFile(String filePath) {
-    if (filePath.trim().isEmpty) {
-      return Future.value(false);
-    }
-    return _send(
-      FailedMessage.file(
-        clientMessageId: newMessageClientID(),
-        filePath: filePath,
-      ),
-    );
-  }
-
-  Future<bool> retry() async {
-    final failed = state.requireValue.failedMessage;
-    if (failed == null) {
-      return false;
-    }
-    return _send(failed);
   }
 
   Future<void> loadOlder() async {
@@ -188,6 +147,7 @@ class MessagesController extends AsyncNotifier<MessagesState>
     return false;
   }
 
+  @override
   Future<bool> _send(FailedMessage pending) async {
     final current = state.requireValue;
     state = AsyncData(
@@ -242,6 +202,7 @@ class MessagesController extends AsyncNotifier<MessagesState>
       conversationId: conversationId,
       clientMessageId: pending.clientMessageId,
       body: pending.body,
+      replyToMessageId: pending.replyToMessageId,
     );
   }
 

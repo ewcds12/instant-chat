@@ -32,20 +32,22 @@ INSERT INTO messages (
   kind,
   body,
   image_id,
-  file_id
+  file_id,
+  reply_to_message_id
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateMessageParams struct {
-	ConversationID  uint64        `db:"conversation_id"`
-	SenderID        uint64        `db:"sender_id"`
-	ClientMessageID string        `db:"client_message_id"`
-	Sequence        uint64        `db:"sequence"`
-	Kind            string        `db:"kind"`
-	Body            string        `db:"body"`
-	ImageID         sql.NullInt64 `db:"image_id"`
-	FileID          sql.NullInt64 `db:"file_id"`
+	ConversationID   uint64        `db:"conversation_id"`
+	SenderID         uint64        `db:"sender_id"`
+	ClientMessageID  string        `db:"client_message_id"`
+	Sequence         uint64        `db:"sequence"`
+	Kind             string        `db:"kind"`
+	Body             string        `db:"body"`
+	ImageID          sql.NullInt64 `db:"image_id"`
+	FileID           sql.NullInt64 `db:"file_id"`
+	ReplyToMessageID sql.NullInt64 `db:"reply_to_message_id"`
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (sql.Result, error) {
@@ -58,6 +60,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (s
 		arg.Body,
 		arg.ImageID,
 		arg.FileID,
+		arg.ReplyToMessageID,
 	)
 }
 
@@ -137,12 +140,25 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  reply.id AS reply_to_id,
+  reply_sender.id AS reply_sender_id,
+  reply_sender.username AS reply_sender_username,
+  reply_sender.display_name AS reply_sender_display_name,
+  reply_sender.avatar_content_type AS reply_sender_avatar_content_type,
+  reply_sender.created_at AS reply_sender_created_at,
+  reply.kind AS reply_kind,
+  reply.body AS reply_body,
+  reply_file.filename AS reply_file_filename,
+  reply.recalled_at AS reply_recalled_at,
   message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
+LEFT JOIN messages AS reply ON reply.id = message.reply_to_message_id
+LEFT JOIN users AS reply_sender ON reply_sender.id = reply.sender_id
+LEFT JOIN message_files AS reply_file ON reply_file.id = reply.file_id
 WHERE message.conversation_id = ?
   AND message.sender_id = ?
   AND message.client_message_id = ?
@@ -156,26 +172,36 @@ type GetMessageByClientIDParams struct {
 }
 
 type GetMessageByClientIDRow struct {
-	ID                      uint64         `db:"id"`
-	ConversationID          uint64         `db:"conversation_id"`
-	SenderID                uint64         `db:"sender_id"`
-	SenderUsername          string         `db:"sender_username"`
-	SenderDisplayName       string         `db:"sender_display_name"`
-	SenderAvatarContentType sql.NullString `db:"sender_avatar_content_type"`
-	SenderCreatedAt         time.Time      `db:"sender_created_at"`
-	ClientMessageID         string         `db:"client_message_id"`
-	Sequence                uint64         `db:"sequence"`
-	Kind                    string         `db:"kind"`
-	Body                    string         `db:"body"`
-	ImageID                 sql.NullInt64  `db:"image_id"`
-	ImageContentType        sql.NullString `db:"image_content_type"`
-	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
-	FileID                  sql.NullInt64  `db:"file_id"`
-	FileFilename            sql.NullString `db:"file_filename"`
-	FileContentType         sql.NullString `db:"file_content_type"`
-	FileByteSize            sql.NullInt64  `db:"file_byte_size"`
-	RecalledAt              sql.NullTime   `db:"recalled_at"`
-	CreatedAt               time.Time      `db:"created_at"`
+	ID                           uint64         `db:"id"`
+	ConversationID               uint64         `db:"conversation_id"`
+	SenderID                     uint64         `db:"sender_id"`
+	SenderUsername               string         `db:"sender_username"`
+	SenderDisplayName            string         `db:"sender_display_name"`
+	SenderAvatarContentType      sql.NullString `db:"sender_avatar_content_type"`
+	SenderCreatedAt              time.Time      `db:"sender_created_at"`
+	ClientMessageID              string         `db:"client_message_id"`
+	Sequence                     uint64         `db:"sequence"`
+	Kind                         string         `db:"kind"`
+	Body                         string         `db:"body"`
+	ImageID                      sql.NullInt64  `db:"image_id"`
+	ImageContentType             sql.NullString `db:"image_content_type"`
+	ImageByteSize                sql.NullInt32  `db:"image_byte_size"`
+	FileID                       sql.NullInt64  `db:"file_id"`
+	FileFilename                 sql.NullString `db:"file_filename"`
+	FileContentType              sql.NullString `db:"file_content_type"`
+	FileByteSize                 sql.NullInt64  `db:"file_byte_size"`
+	ReplyToID                    sql.NullInt64  `db:"reply_to_id"`
+	ReplySenderID                sql.NullInt64  `db:"reply_sender_id"`
+	ReplySenderUsername          sql.NullString `db:"reply_sender_username"`
+	ReplySenderDisplayName       sql.NullString `db:"reply_sender_display_name"`
+	ReplySenderAvatarContentType sql.NullString `db:"reply_sender_avatar_content_type"`
+	ReplySenderCreatedAt         sql.NullTime   `db:"reply_sender_created_at"`
+	ReplyKind                    sql.NullString `db:"reply_kind"`
+	ReplyBody                    sql.NullString `db:"reply_body"`
+	ReplyFileFilename            sql.NullString `db:"reply_file_filename"`
+	ReplyRecalledAt              sql.NullTime   `db:"reply_recalled_at"`
+	RecalledAt                   sql.NullTime   `db:"recalled_at"`
+	CreatedAt                    time.Time      `db:"created_at"`
 }
 
 func (q *Queries) GetMessageByClientID(ctx context.Context, arg GetMessageByClientIDParams) (GetMessageByClientIDRow, error) {
@@ -200,6 +226,16 @@ func (q *Queries) GetMessageByClientID(ctx context.Context, arg GetMessageByClie
 		&i.FileFilename,
 		&i.FileContentType,
 		&i.FileByteSize,
+		&i.ReplyToID,
+		&i.ReplySenderID,
+		&i.ReplySenderUsername,
+		&i.ReplySenderDisplayName,
+		&i.ReplySenderAvatarContentType,
+		&i.ReplySenderCreatedAt,
+		&i.ReplyKind,
+		&i.ReplyBody,
+		&i.ReplyFileFilename,
+		&i.ReplyRecalledAt,
 		&i.RecalledAt,
 		&i.CreatedAt,
 	)
@@ -392,12 +428,25 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  reply.id AS reply_to_id,
+  reply_sender.id AS reply_sender_id,
+  reply_sender.username AS reply_sender_username,
+  reply_sender.display_name AS reply_sender_display_name,
+  reply_sender.avatar_content_type AS reply_sender_avatar_content_type,
+  reply_sender.created_at AS reply_sender_created_at,
+  reply.kind AS reply_kind,
+  reply.body AS reply_body,
+  reply_file.filename AS reply_file_filename,
+  reply.recalled_at AS reply_recalled_at,
   message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
+LEFT JOIN messages AS reply ON reply.id = message.reply_to_message_id
+LEFT JOIN users AS reply_sender ON reply_sender.id = reply.sender_id
+LEFT JOIN message_files AS reply_file ON reply_file.id = reply.file_id
 WHERE message.conversation_id = ?
   AND NOT EXISTS (
     SELECT 1
@@ -416,26 +465,36 @@ type ListLatestMessagesParams struct {
 }
 
 type ListLatestMessagesRow struct {
-	ID                      uint64         `db:"id"`
-	ConversationID          uint64         `db:"conversation_id"`
-	SenderID                uint64         `db:"sender_id"`
-	SenderUsername          string         `db:"sender_username"`
-	SenderDisplayName       string         `db:"sender_display_name"`
-	SenderAvatarContentType sql.NullString `db:"sender_avatar_content_type"`
-	SenderCreatedAt         time.Time      `db:"sender_created_at"`
-	ClientMessageID         string         `db:"client_message_id"`
-	Sequence                uint64         `db:"sequence"`
-	Kind                    string         `db:"kind"`
-	Body                    string         `db:"body"`
-	ImageID                 sql.NullInt64  `db:"image_id"`
-	ImageContentType        sql.NullString `db:"image_content_type"`
-	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
-	FileID                  sql.NullInt64  `db:"file_id"`
-	FileFilename            sql.NullString `db:"file_filename"`
-	FileContentType         sql.NullString `db:"file_content_type"`
-	FileByteSize            sql.NullInt64  `db:"file_byte_size"`
-	RecalledAt              sql.NullTime   `db:"recalled_at"`
-	CreatedAt               time.Time      `db:"created_at"`
+	ID                           uint64         `db:"id"`
+	ConversationID               uint64         `db:"conversation_id"`
+	SenderID                     uint64         `db:"sender_id"`
+	SenderUsername               string         `db:"sender_username"`
+	SenderDisplayName            string         `db:"sender_display_name"`
+	SenderAvatarContentType      sql.NullString `db:"sender_avatar_content_type"`
+	SenderCreatedAt              time.Time      `db:"sender_created_at"`
+	ClientMessageID              string         `db:"client_message_id"`
+	Sequence                     uint64         `db:"sequence"`
+	Kind                         string         `db:"kind"`
+	Body                         string         `db:"body"`
+	ImageID                      sql.NullInt64  `db:"image_id"`
+	ImageContentType             sql.NullString `db:"image_content_type"`
+	ImageByteSize                sql.NullInt32  `db:"image_byte_size"`
+	FileID                       sql.NullInt64  `db:"file_id"`
+	FileFilename                 sql.NullString `db:"file_filename"`
+	FileContentType              sql.NullString `db:"file_content_type"`
+	FileByteSize                 sql.NullInt64  `db:"file_byte_size"`
+	ReplyToID                    sql.NullInt64  `db:"reply_to_id"`
+	ReplySenderID                sql.NullInt64  `db:"reply_sender_id"`
+	ReplySenderUsername          sql.NullString `db:"reply_sender_username"`
+	ReplySenderDisplayName       sql.NullString `db:"reply_sender_display_name"`
+	ReplySenderAvatarContentType sql.NullString `db:"reply_sender_avatar_content_type"`
+	ReplySenderCreatedAt         sql.NullTime   `db:"reply_sender_created_at"`
+	ReplyKind                    sql.NullString `db:"reply_kind"`
+	ReplyBody                    sql.NullString `db:"reply_body"`
+	ReplyFileFilename            sql.NullString `db:"reply_file_filename"`
+	ReplyRecalledAt              sql.NullTime   `db:"reply_recalled_at"`
+	RecalledAt                   sql.NullTime   `db:"recalled_at"`
+	CreatedAt                    time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessagesParams) ([]ListLatestMessagesRow, error) {
@@ -466,6 +525,16 @@ func (q *Queries) ListLatestMessages(ctx context.Context, arg ListLatestMessages
 			&i.FileFilename,
 			&i.FileContentType,
 			&i.FileByteSize,
+			&i.ReplyToID,
+			&i.ReplySenderID,
+			&i.ReplySenderUsername,
+			&i.ReplySenderDisplayName,
+			&i.ReplySenderAvatarContentType,
+			&i.ReplySenderCreatedAt,
+			&i.ReplyKind,
+			&i.ReplyBody,
+			&i.ReplyFileFilename,
+			&i.ReplyRecalledAt,
 			&i.RecalledAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -502,12 +571,25 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  reply.id AS reply_to_id,
+  reply_sender.id AS reply_sender_id,
+  reply_sender.username AS reply_sender_username,
+  reply_sender.display_name AS reply_sender_display_name,
+  reply_sender.avatar_content_type AS reply_sender_avatar_content_type,
+  reply_sender.created_at AS reply_sender_created_at,
+  reply.kind AS reply_kind,
+  reply.body AS reply_body,
+  reply_file.filename AS reply_file_filename,
+  reply.recalled_at AS reply_recalled_at,
   message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
+LEFT JOIN messages AS reply ON reply.id = message.reply_to_message_id
+LEFT JOIN users AS reply_sender ON reply_sender.id = reply.sender_id
+LEFT JOIN message_files AS reply_file ON reply_file.id = reply.file_id
 WHERE message.conversation_id = ?
   AND message.sequence > ?
   AND NOT EXISTS (
@@ -528,26 +610,36 @@ type ListMessagesAfterParams struct {
 }
 
 type ListMessagesAfterRow struct {
-	ID                      uint64         `db:"id"`
-	ConversationID          uint64         `db:"conversation_id"`
-	SenderID                uint64         `db:"sender_id"`
-	SenderUsername          string         `db:"sender_username"`
-	SenderDisplayName       string         `db:"sender_display_name"`
-	SenderAvatarContentType sql.NullString `db:"sender_avatar_content_type"`
-	SenderCreatedAt         time.Time      `db:"sender_created_at"`
-	ClientMessageID         string         `db:"client_message_id"`
-	Sequence                uint64         `db:"sequence"`
-	Kind                    string         `db:"kind"`
-	Body                    string         `db:"body"`
-	ImageID                 sql.NullInt64  `db:"image_id"`
-	ImageContentType        sql.NullString `db:"image_content_type"`
-	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
-	FileID                  sql.NullInt64  `db:"file_id"`
-	FileFilename            sql.NullString `db:"file_filename"`
-	FileContentType         sql.NullString `db:"file_content_type"`
-	FileByteSize            sql.NullInt64  `db:"file_byte_size"`
-	RecalledAt              sql.NullTime   `db:"recalled_at"`
-	CreatedAt               time.Time      `db:"created_at"`
+	ID                           uint64         `db:"id"`
+	ConversationID               uint64         `db:"conversation_id"`
+	SenderID                     uint64         `db:"sender_id"`
+	SenderUsername               string         `db:"sender_username"`
+	SenderDisplayName            string         `db:"sender_display_name"`
+	SenderAvatarContentType      sql.NullString `db:"sender_avatar_content_type"`
+	SenderCreatedAt              time.Time      `db:"sender_created_at"`
+	ClientMessageID              string         `db:"client_message_id"`
+	Sequence                     uint64         `db:"sequence"`
+	Kind                         string         `db:"kind"`
+	Body                         string         `db:"body"`
+	ImageID                      sql.NullInt64  `db:"image_id"`
+	ImageContentType             sql.NullString `db:"image_content_type"`
+	ImageByteSize                sql.NullInt32  `db:"image_byte_size"`
+	FileID                       sql.NullInt64  `db:"file_id"`
+	FileFilename                 sql.NullString `db:"file_filename"`
+	FileContentType              sql.NullString `db:"file_content_type"`
+	FileByteSize                 sql.NullInt64  `db:"file_byte_size"`
+	ReplyToID                    sql.NullInt64  `db:"reply_to_id"`
+	ReplySenderID                sql.NullInt64  `db:"reply_sender_id"`
+	ReplySenderUsername          sql.NullString `db:"reply_sender_username"`
+	ReplySenderDisplayName       sql.NullString `db:"reply_sender_display_name"`
+	ReplySenderAvatarContentType sql.NullString `db:"reply_sender_avatar_content_type"`
+	ReplySenderCreatedAt         sql.NullTime   `db:"reply_sender_created_at"`
+	ReplyKind                    sql.NullString `db:"reply_kind"`
+	ReplyBody                    sql.NullString `db:"reply_body"`
+	ReplyFileFilename            sql.NullString `db:"reply_file_filename"`
+	ReplyRecalledAt              sql.NullTime   `db:"reply_recalled_at"`
+	RecalledAt                   sql.NullTime   `db:"recalled_at"`
+	CreatedAt                    time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterParams) ([]ListMessagesAfterRow, error) {
@@ -583,6 +675,16 @@ func (q *Queries) ListMessagesAfter(ctx context.Context, arg ListMessagesAfterPa
 			&i.FileFilename,
 			&i.FileContentType,
 			&i.FileByteSize,
+			&i.ReplyToID,
+			&i.ReplySenderID,
+			&i.ReplySenderUsername,
+			&i.ReplySenderDisplayName,
+			&i.ReplySenderAvatarContentType,
+			&i.ReplySenderCreatedAt,
+			&i.ReplyKind,
+			&i.ReplyBody,
+			&i.ReplyFileFilename,
+			&i.ReplyRecalledAt,
 			&i.RecalledAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -619,12 +721,25 @@ SELECT
   file.filename AS file_filename,
   file.content_type AS file_content_type,
   file.byte_size AS file_byte_size,
+  reply.id AS reply_to_id,
+  reply_sender.id AS reply_sender_id,
+  reply_sender.username AS reply_sender_username,
+  reply_sender.display_name AS reply_sender_display_name,
+  reply_sender.avatar_content_type AS reply_sender_avatar_content_type,
+  reply_sender.created_at AS reply_sender_created_at,
+  reply.kind AS reply_kind,
+  reply.body AS reply_body,
+  reply_file.filename AS reply_file_filename,
+  reply.recalled_at AS reply_recalled_at,
   message.recalled_at,
   message.created_at
 FROM messages AS message
 JOIN users AS sender ON sender.id = message.sender_id
 LEFT JOIN message_images AS image ON image.id = message.image_id
 LEFT JOIN message_files AS file ON file.id = message.file_id
+LEFT JOIN messages AS reply ON reply.id = message.reply_to_message_id
+LEFT JOIN users AS reply_sender ON reply_sender.id = reply.sender_id
+LEFT JOIN message_files AS reply_file ON reply_file.id = reply.file_id
 WHERE message.conversation_id = ?
   AND message.sequence < ?
   AND NOT EXISTS (
@@ -645,26 +760,36 @@ type ListMessagesBeforeParams struct {
 }
 
 type ListMessagesBeforeRow struct {
-	ID                      uint64         `db:"id"`
-	ConversationID          uint64         `db:"conversation_id"`
-	SenderID                uint64         `db:"sender_id"`
-	SenderUsername          string         `db:"sender_username"`
-	SenderDisplayName       string         `db:"sender_display_name"`
-	SenderAvatarContentType sql.NullString `db:"sender_avatar_content_type"`
-	SenderCreatedAt         time.Time      `db:"sender_created_at"`
-	ClientMessageID         string         `db:"client_message_id"`
-	Sequence                uint64         `db:"sequence"`
-	Kind                    string         `db:"kind"`
-	Body                    string         `db:"body"`
-	ImageID                 sql.NullInt64  `db:"image_id"`
-	ImageContentType        sql.NullString `db:"image_content_type"`
-	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
-	FileID                  sql.NullInt64  `db:"file_id"`
-	FileFilename            sql.NullString `db:"file_filename"`
-	FileContentType         sql.NullString `db:"file_content_type"`
-	FileByteSize            sql.NullInt64  `db:"file_byte_size"`
-	RecalledAt              sql.NullTime   `db:"recalled_at"`
-	CreatedAt               time.Time      `db:"created_at"`
+	ID                           uint64         `db:"id"`
+	ConversationID               uint64         `db:"conversation_id"`
+	SenderID                     uint64         `db:"sender_id"`
+	SenderUsername               string         `db:"sender_username"`
+	SenderDisplayName            string         `db:"sender_display_name"`
+	SenderAvatarContentType      sql.NullString `db:"sender_avatar_content_type"`
+	SenderCreatedAt              time.Time      `db:"sender_created_at"`
+	ClientMessageID              string         `db:"client_message_id"`
+	Sequence                     uint64         `db:"sequence"`
+	Kind                         string         `db:"kind"`
+	Body                         string         `db:"body"`
+	ImageID                      sql.NullInt64  `db:"image_id"`
+	ImageContentType             sql.NullString `db:"image_content_type"`
+	ImageByteSize                sql.NullInt32  `db:"image_byte_size"`
+	FileID                       sql.NullInt64  `db:"file_id"`
+	FileFilename                 sql.NullString `db:"file_filename"`
+	FileContentType              sql.NullString `db:"file_content_type"`
+	FileByteSize                 sql.NullInt64  `db:"file_byte_size"`
+	ReplyToID                    sql.NullInt64  `db:"reply_to_id"`
+	ReplySenderID                sql.NullInt64  `db:"reply_sender_id"`
+	ReplySenderUsername          sql.NullString `db:"reply_sender_username"`
+	ReplySenderDisplayName       sql.NullString `db:"reply_sender_display_name"`
+	ReplySenderAvatarContentType sql.NullString `db:"reply_sender_avatar_content_type"`
+	ReplySenderCreatedAt         sql.NullTime   `db:"reply_sender_created_at"`
+	ReplyKind                    sql.NullString `db:"reply_kind"`
+	ReplyBody                    sql.NullString `db:"reply_body"`
+	ReplyFileFilename            sql.NullString `db:"reply_file_filename"`
+	ReplyRecalledAt              sql.NullTime   `db:"reply_recalled_at"`
+	RecalledAt                   sql.NullTime   `db:"recalled_at"`
+	CreatedAt                    time.Time      `db:"created_at"`
 }
 
 func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBeforeParams) ([]ListMessagesBeforeRow, error) {
@@ -700,6 +825,16 @@ func (q *Queries) ListMessagesBefore(ctx context.Context, arg ListMessagesBefore
 			&i.FileFilename,
 			&i.FileContentType,
 			&i.FileByteSize,
+			&i.ReplyToID,
+			&i.ReplySenderID,
+			&i.ReplySenderUsername,
+			&i.ReplySenderDisplayName,
+			&i.ReplySenderAvatarContentType,
+			&i.ReplySenderCreatedAt,
+			&i.ReplyKind,
+			&i.ReplyBody,
+			&i.ReplyFileFilename,
+			&i.ReplyRecalledAt,
 			&i.RecalledAt,
 			&i.CreatedAt,
 		); err != nil {
@@ -737,6 +872,28 @@ func (q *Queries) LockConversationForMessage(ctx context.Context, arg LockConver
 	var next_sequence uint64
 	err := row.Scan(&next_sequence)
 	return next_sequence, err
+}
+
+const lockReplyMessage = `-- name: LockReplyMessage :one
+SELECT id
+FROM messages
+WHERE id = ?
+  AND conversation_id = ?
+  AND recalled_at IS NULL
+LIMIT 1
+FOR UPDATE
+`
+
+type LockReplyMessageParams struct {
+	ReplyToMessageID uint64 `db:"reply_to_message_id"`
+	ConversationID   uint64 `db:"conversation_id"`
+}
+
+func (q *Queries) LockReplyMessage(ctx context.Context, arg LockReplyMessageParams) (uint64, error) {
+	row := q.db.QueryRowContext(ctx, lockReplyMessage, arg.ReplyToMessageID, arg.ConversationID)
+	var id uint64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const recallMessage = `-- name: RecallMessage :execresult

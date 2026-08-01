@@ -1,26 +1,32 @@
 import 'package:instant_chat/features/messages/domain/message.dart';
 
 class FailedMessage {
-  const FailedMessage.text({required this.clientMessageId, required this.body})
-    : imagePath = null,
-      filePath = null;
+  const FailedMessage.text({
+    required this.clientMessageId,
+    required this.body,
+    this.replyToMessageId,
+  }) : imagePath = null,
+       filePath = null;
 
   const FailedMessage.image({
     required this.clientMessageId,
     required String this.imagePath,
   }) : body = '',
+       replyToMessageId = null,
        filePath = null;
 
   const FailedMessage.file({
     required this.clientMessageId,
     required String this.filePath,
   }) : body = '',
+       replyToMessageId = null,
        imagePath = null;
 
   final String clientMessageId;
   final String body;
   final String? imagePath;
   final String? filePath;
+  final String? replyToMessageId;
 
   bool get isImage => imagePath != null;
   bool get isFile => filePath != null;

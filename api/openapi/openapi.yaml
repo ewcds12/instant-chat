@@ -1177,6 +1177,9 @@ components:
           type: string
           minLength: 1
           maxLength: 4000
+        reply_to_message_id:
+          description: The message in this conversation being replied to.
+          $ref: "#/components/schemas/ResourceID"
     SendImageMessageRequest:
       type: object
       additionalProperties: false
@@ -1264,6 +1267,7 @@ components:
         - body
         - image
         - file
+        - reply_to
         - created_at
       properties:
         id:
@@ -1293,6 +1297,10 @@ components:
           oneOf:
             - $ref: "#/components/schemas/MessageFile"
             - type: "null"
+        reply_to:
+          oneOf:
+            - $ref: "#/components/schemas/MessageReply"
+            - type: "null"
         recalled_at:
           description: >
             The time the message was recalled. Recalled messages have no body
@@ -1304,6 +1312,38 @@ components:
         created_at:
           type: string
           format: date-time
+    MessageReply:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - sender
+        - kind
+        - body
+        - filename
+        - recalled_at
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        sender:
+          $ref: "#/components/schemas/PublicUser"
+        kind:
+          type: string
+          enum:
+            - text
+            - image
+            - file
+        body:
+          type: string
+          maxLength: 4000
+        filename:
+          type: string
+          maxLength: 255
+        recalled_at:
+          oneOf:
+            - type: string
+              format: date-time
+            - type: "null"
     MessagePage:
       type: object
       additionalProperties: false

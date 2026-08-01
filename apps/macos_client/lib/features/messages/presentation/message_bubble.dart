@@ -6,6 +6,7 @@ import 'package:instant_chat/features/messages/presentation/message_context_menu
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
 import 'package:instant_chat/features/messages/presentation/message_link_text.dart';
+import 'package:instant_chat/features/messages/presentation/message_reply_preview.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -20,6 +21,7 @@ class MessageBubble extends StatelessWidget {
     required this.onDownloadImage,
     required this.onRecall,
     required this.onDelete,
+    this.onReply,
     super.key,
   });
 
@@ -33,6 +35,7 @@ class MessageBubble extends StatelessWidget {
   final Future<void> Function(MessageImage image) onDownloadImage;
   final Future<bool> Function(Message message) onRecall;
   final Future<bool> Function(Message message) onDelete;
+  final ValueChanged<Message>? onReply;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +44,7 @@ class MessageBubble extends StatelessWidget {
       isMine: isMine,
       onRecall: onRecall,
       onDelete: onDelete,
+      onReply: onReply,
       child: _MessageContent(
         message: message,
         isMine: isMine,
@@ -155,22 +159,32 @@ class _MessageContent extends StatelessWidget {
                 ),
               ],
             ),
-            child: MessageLinkText(
-              key: ValueKey('message-link-text-${message.id}'),
-              text: message.body,
-              style:
-                  (Theme.of(context).textTheme.bodyMedium ?? const TextStyle())
-                      .copyWith(
-                        color: isMine ? colors.onPrimary : colors.onSurface,
-                        fontSize: 14,
-                        height: 1.28,
-                      ),
-              linkStyle: TextStyle(
-                color: isMine ? colors.onPrimary : colors.primary,
-                decoration: TextDecoration.underline,
-                decorationColor: isMine ? colors.onPrimary : colors.primary,
-              ),
-              onOpenLink: onOpenLink,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (message.replyTo case final reply?) ...[
+                  MessageReplyPreview(reply: reply, isMine: isMine),
+                  const SizedBox(height: RetroMetrics.messageReplyContentGap),
+                ],
+                MessageLinkText(
+                  key: ValueKey('message-link-text-${message.id}'),
+                  text: message.body,
+                  style:
+                      (Theme.of(context).textTheme.bodyMedium ??
+                              const TextStyle())
+                          .copyWith(
+                            color: isMine ? colors.onPrimary : colors.onSurface,
+                            fontSize: 14,
+                            height: 1.28,
+                          ),
+                  linkStyle: TextStyle(
+                    color: isMine ? colors.onPrimary : colors.primary,
+                    decoration: TextDecoration.underline,
+                    decorationColor: isMine ? colors.onPrimary : colors.primary,
+                  ),
+                  onOpenLink: onOpenLink,
+                ),
+              ],
             ),
           ),
       ],

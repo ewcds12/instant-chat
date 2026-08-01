@@ -87,6 +87,8 @@ The conversation list contains direct-conversation identity, peer information, a
 
 Each message carries a 32-character, client-generated hexadecimal ID. A unique database constraint on the conversation, sender, and client ID makes retries idempotent. The first successful send returns HTTP 201; a retry with the same ID returns the existing message with HTTP 200.
 
+Text messages may reference one earlier message in the same conversation. The API validates that the target exists in that conversation and has not been recalled before persisting the nullable self-reference. History and realtime payloads include the referenced message's sender, kind, content summary, and recall state, so the client can render a reply without requiring the original history page to be loaded. Idempotent retries return the already-created reply before revalidating its target.
+
 Each conversation owns a monotonically increasing sequence. Sending locks the conversation row, allocates its next sequence, creates the message, advances the sequence, and updates the conversation timestamp in one transaction. A unique conversation-and-sequence constraint protects the ordering invariant.
 
 History is returned in ascending sequence order, at most 100 messages per request. The optional `before` cursor requests older sequences. The mutually exclusive `after` cursor requests newer sequences for reconnect recovery. `next_cursor` continues in the requested direction and is null when that direction is complete. Send and history endpoints return the same not-found response when the conversation is missing or the user is not a member. Message sending is limited to 60 attempts per IP address per minute in each API process.

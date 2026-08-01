@@ -79,6 +79,9 @@ func TestHandlerDeliversMessageCreatedToConversationMember(t *testing.T) {
 
 	message := realtimeTestMessage()
 	message.Sender.HasAvatar = true
+	message.ReplyTo = &messages.ReplyPreview{
+		ID: 8, Sender: message.Sender, Kind: messages.KindText, Body: "Original",
+	}
 	hub.PublishMessage(ctx, message)
 
 	var event eventEnvelope
@@ -93,6 +96,9 @@ func TestHandlerDeliversMessageCreatedToConversationMember(t *testing.T) {
 	}
 	if event.Payload.Message.Sender.AvatarURL == nil || *event.Payload.Message.Sender.AvatarURL != "/api/v1/users/7/avatar" {
 		t.Fatalf("sender avatar URL = %v, want /api/v1/users/7/avatar", event.Payload.Message.Sender.AvatarURL)
+	}
+	if event.Payload.Message.ReplyTo == nil || event.Payload.Message.ReplyTo.ID != "8" {
+		t.Fatalf("reply payload = %+v", event.Payload.Message.ReplyTo)
 	}
 }
 

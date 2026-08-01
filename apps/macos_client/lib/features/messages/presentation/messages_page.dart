@@ -29,6 +29,7 @@ import 'package:instant_chat/features/messages/presentation/messages_state.dart'
 import 'package:instant_chat/features/messages/presentation/message_status_bars.dart';
 
 part 'messages_page_attachments.dart';
+part 'messages_page_composer.dart';
 part 'messages_page_contact_info.dart';
 part 'messages_page_navigation.dart';
 
@@ -49,6 +50,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   final _viewportTracker = MessageViewportTracker();
   late final MessageImageDraft _imageDraft;
   MessageDroppedFile? _failedDroppedFile;
+  Message? _replyingTo;
   Timer? _focusedMessageTimer;
   String? _requestedMessageId;
   String? _focusedMessageId;
@@ -84,6 +86,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       _viewportTracker.reset();
       _imageDraft.clear();
       _failedDroppedFile = null;
+      _replyingTo = null;
       _focusedMessageTimer?.cancel();
       _focusedMessageTimer = null;
       _requestedMessageId = null;
@@ -164,6 +167,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                             ref.read(provider.notifier).recall(message),
                         onDelete: (message) =>
                             ref.read(provider.notifier).delete(message),
+                        onReply: _startReply,
                       );
                     },
                   ),
@@ -182,23 +186,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                       return false;
                     },
                     child: SizeChangedLayoutNotifier(
-                      child: AnimatedBuilder(
-                        animation: _imageDraft,
-                        builder: (context, _) => MessageComposer(
-                          controller: _composer,
-                          focusNode: _composerFocus,
-                          disabled: value.isSending,
-                          recipientName: widget.conversation.peer.displayName,
-                          onSend: () => _send(provider),
-                          onPickImage: () => _pickAndSendImage(provider),
-                          onPickFile: () => _pickAndSendFile(provider),
-                          imagePaths: _imageDraft.images
-                              .map((image) => image.path)
-                              .toList(growable: false),
-                          onRemoveImage: _removeDraftImage,
-                          onPasteImage: _imageDraft.paste,
-                        ),
-                      ),
+                      child: _buildMessageComposer(provider, value),
                     ),
                   ),
                 ],
@@ -281,6 +269,17 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
 
   void _setContactInfoVisible(bool visible) =>
       setState(() => _showContactInfo = visible);
+
+  void _startReply(Message message) {
+    setState(() => _replyingTo = message);
+    _focusComposer();
+  }
+
+  void _cancelReply() {
+    if (_replyingTo == null) return;
+    setState(() => _replyingTo = null);
+    _focusComposer();
+  }
 
   void _showFocusedMessage(String messageId) {
     _focusedMessageTimer?.cancel();

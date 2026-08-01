@@ -15,6 +15,7 @@ abstract interface class MessageGateway {
     required String conversationId,
     required String clientMessageId,
     required String body,
+    String? replyToMessageId,
   });
 
   Future<Message> sendImage({

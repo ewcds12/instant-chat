@@ -32,7 +32,7 @@ void main() {
   });
 
   test('send accepts an idempotent existing-message response', () async {
-    final adapter = _StubAdapter(statusCode: 200, body: _message);
+    final adapter = _StubAdapter(statusCode: 200, body: _replyMessage);
     final gateway = DioMessageGateway(_createDio(adapter));
 
     final message = await gateway.send(
@@ -40,11 +40,14 @@ void main() {
       conversationId: '11',
       clientMessageId: '0123456789abcdef0123456789abcdef',
       body: 'Hello.',
+      replyToMessageId: '8',
     );
 
     expect(adapter.method, 'POST');
     expect(adapter.data['client_message_id'], message.clientMessageId);
+    expect(adapter.data['reply_to_message_id'], '8');
     expect(message.body, 'Hello.');
+    expect(message.replyTo?.body, 'Original message');
   });
 
   test('list preserves recalled messages as action stamps', () async {
@@ -232,6 +235,24 @@ final _imageMessage = {
     'url': '/api/v1/message-images/5',
     'content_type': 'image/png',
     'byte_size': 3,
+  },
+};
+
+final _replyMessage = {
+  ..._message,
+  'reply_to': {
+    'id': '8',
+    'sender': {
+      'id': '9',
+      'username': 'peer',
+      'display_name': 'Peer',
+      'avatar_url': null,
+      'created_at': '2026-07-16T11:00:00Z',
+    },
+    'kind': 'text',
+    'body': 'Original message',
+    'filename': '',
+    'recalled_at': null,
   },
 };
 

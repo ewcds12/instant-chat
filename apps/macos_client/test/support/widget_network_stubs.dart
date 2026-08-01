@@ -18,6 +18,7 @@ class StubMessageGateway implements MessageGateway {
   String? sentImagePath;
   final List<String> sentImagePaths = [];
   String? sentFilePath;
+  String? sentReplyToMessageID;
   final List<String> sentAttachmentPaths = [];
   String? downloadedFileID;
   String? downloadedFilePath;
@@ -42,8 +43,13 @@ class StubMessageGateway implements MessageGateway {
     required String conversationId,
     required String clientMessageId,
     required String body,
+    String? replyToMessageId,
   }) async {
     sentBody = body;
+    sentReplyToMessageID = replyToMessageId;
+    final repliedMessage = initialMessages
+        .where((message) => message.id == replyToMessageId)
+        .firstOrNull;
     return Message(
       id: '21',
       conversationId: conversationId,
@@ -53,6 +59,16 @@ class StubMessageGateway implements MessageGateway {
       kind: MessageKind.text,
       body: body,
       image: null,
+      replyTo: repliedMessage == null
+          ? null
+          : MessageReply(
+              id: repliedMessage.id,
+              sender: repliedMessage.sender,
+              kind: repliedMessage.kind,
+              body: repliedMessage.body,
+              filename: repliedMessage.file?.filename ?? '',
+              recalledAt: repliedMessage.recalledAt,
+            ),
       createdAt: DateTime.utc(2026, 7, 15, 13),
     );
   }

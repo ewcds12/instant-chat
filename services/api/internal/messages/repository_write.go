@@ -26,16 +26,18 @@ func createMessage(
 	body string,
 	imageID sql.NullInt64,
 	fileID sql.NullInt64,
+	replyToMessageID sql.NullInt64,
 ) error {
 	_, err := queries.CreateMessage(ctx, store.CreateMessageParams{
-		ConversationID:  conversationID,
-		SenderID:        userID,
-		ClientMessageID: clientMessageID,
-		Sequence:        sequence,
-		Kind:            kind,
-		Body:            body,
-		ImageID:         imageID,
-		FileID:          fileID,
+		ConversationID:   conversationID,
+		SenderID:         userID,
+		ClientMessageID:  clientMessageID,
+		Sequence:         sequence,
+		Kind:             kind,
+		Body:             body,
+		ImageID:          imageID,
+		FileID:           fileID,
+		ReplyToMessageID: replyToMessageID,
 	})
 	if err != nil {
 		return fmt.Errorf("create message: %w", err)
@@ -44,6 +46,13 @@ func createMessage(
 		return fmt.Errorf("advance conversation sequence: %w", err)
 	}
 	return nil
+}
+
+func nullableID(id *uint64) sql.NullInt64 {
+	if id == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: int64(*id), Valid: true}
 }
 
 func createImage(

@@ -21,6 +21,14 @@ abstract final class RetroMetrics {
   static const composerExpandedTextHorizontalInset = 12.0;
   static const composerExpandedTextTopInset = 18.0;
   static const composerExpandedTextBottomInset = 2.0;
+  static const composerReplyHorizontalInset = 12.0;
+  static const composerReplyTopInset = 10.0;
+  static const composerReplyTrailingInset = 8.0;
+  static const composerReplyCardHorizontalInset = 10.0;
+  static const composerReplyCardVerticalInset = 7.0;
+  static const composerReplyCardRadius = 7.0;
+  static const composerReplyAccentWidth = 3.0;
+  static const composerReplyLineGap = 2.0;
   static const composerImagePreviewSize = 88.0;
   static const composerImagePreviewRadius = 14.0;
   static const composerImagePreviewInset = 12.0;
@@ -67,6 +75,12 @@ abstract final class RetroMetrics {
   static const messageAvatarDiameter = 40.0;
   static const messageAvatarGap = 4.0;
   static const messageAvatarSlotWidth = 44.0;
+  static const messageReplyAccentWidth = 2.0;
+  static const messageReplyTextInset = 8.0;
+  static const messageReplyContentGap = 7.0;
+  static const messageReplyLineGap = 1.0;
+  static const messageReplyTitleSize = 11.0;
+  static const messageReplyBodySize = 12.0;
   static const statusIconSize = 20.0;
 }
 

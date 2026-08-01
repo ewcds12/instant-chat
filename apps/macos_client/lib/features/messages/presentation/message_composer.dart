@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_attachment_menu.dart';
 import 'package:instant_chat/features/messages/presentation/message_composer_controls.dart';
 import 'package:instant_chat/features/messages/presentation/message_composer_image_preview.dart';
+import 'package:instant_chat/features/messages/presentation/message_reply_preview.dart';
 
 class MessageComposer extends StatefulWidget {
   const MessageComposer({
@@ -16,6 +18,8 @@ class MessageComposer extends StatefulWidget {
     this.imagePaths = const [],
     this.onRemoveImage,
     this.onPasteImage,
+    this.replyingTo,
+    this.onCancelReply,
     super.key,
   });
 
@@ -29,6 +33,8 @@ class MessageComposer extends StatefulWidget {
   final List<String> imagePaths;
   final ValueChanged<String>? onRemoveImage;
   final Future<bool> Function()? onPasteImage;
+  final Message? replyingTo;
+  final VoidCallback? onCancelReply;
 
   @override
   State<MessageComposer> createState() => _MessageComposerState();
@@ -75,6 +81,7 @@ class _MessageComposerState extends State<MessageComposer>
       width,
       widget.controller.text,
       hasImage: widget.imagePaths.isNotEmpty,
+      hasReply: widget.replyingTo != null,
     );
     return Container(
       key: const Key('message-composer-bar'),
@@ -121,6 +128,11 @@ class _MessageComposerState extends State<MessageComposer>
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (widget.replyingTo case final message?)
+          MessageReplyComposerPreview(
+            message: message,
+            onCancel: widget.onCancelReply ?? () {},
+          ),
         if (widget.imagePaths.isNotEmpty)
           MessageComposerImagePreviews(
             imagePaths: widget.imagePaths,

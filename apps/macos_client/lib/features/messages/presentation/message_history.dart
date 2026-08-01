@@ -21,6 +21,7 @@ class MessageHistory extends StatelessWidget {
     required this.onDownloadImage,
     required this.onRecall,
     required this.onDelete,
+    this.onReply,
     super.key,
   });
 
@@ -35,6 +36,7 @@ class MessageHistory extends StatelessWidget {
   final Future<void> Function(MessageImage image) onDownloadImage;
   final Future<bool> Function(Message message) onRecall;
   final Future<bool> Function(Message message) onDelete;
+  final ValueChanged<Message>? onReply;
 
   @override
   Widget build(BuildContext context) {
@@ -162,6 +164,7 @@ class MessageHistory extends StatelessWidget {
       onDownloadImage: onDownloadImage,
       onRecall: onRecall,
       onDelete: onDelete,
+      onReply: onReply,
     );
   }
 }

@@ -9,6 +9,7 @@ import (
 type fakeRepository struct {
 	sentClientID string
 	sentBody     string
+	replyToID    *uint64
 	imageUpload  *ImageUpload
 	fileUpload   *FileUpload
 	recalledID   uint64
@@ -23,9 +24,11 @@ func (f *fakeRepository) Send(
 	_ context.Context,
 	_, _ uint64,
 	clientMessageID, body string,
+	replyToMessageID *uint64,
 ) (Message, bool, error) {
 	f.sentClientID = clientMessageID
 	f.sentBody = body
+	f.replyToID = replyToMessageID
 	return Message{ID: 9, ClientMessageID: clientMessageID, Body: body}, !f.idempotent, f.err
 }
 
@@ -110,6 +113,7 @@ func TestServiceSendValidatesAndTrimsBody(t *testing.T) {
 	message, created, err := service.Send(
 		context.Background(), 7, 11,
 		"0123456789abcdef0123456789abcdef", "  Hello.  ",
+		nil,
 	)
 
 	if err != nil {
@@ -123,10 +127,28 @@ func TestServiceSendValidatesAndTrimsBody(t *testing.T) {
 	}
 }
 
+func TestServiceSendForwardsReplyTarget(t *testing.T) {
+	repository := &fakeRepository{}
+	service := NewService(repository, &fakePublisher{})
+	replyToID := uint64(8)
+
+	_, _, err := service.Send(
+		context.Background(), 7, 11,
+		"0123456789abcdef0123456789abcdef", "Replying.", &replyToID,
+	)
+
+	if err != nil {
+		t.Fatalf("Send() error = %v", err)
+	}
+	if repository.replyToID == nil || *repository.replyToID != replyToID {
+		t.Fatalf("reply-to ID = %v, want %d", repository.replyToID, replyToID)
+	}
+}
+
 func TestServiceSendRejectsInvalidClientMessageID(t *testing.T) {
 	service := NewService(&fakeRepository{}, &fakePublisher{})
 
-	_, _, err := service.Send(context.Background(), 7, 11, "not-an-id", "Hello.")
+	_, _, err := service.Send(context.Background(), 7, 11, "not-an-id", "Hello.", nil)
 
 	var inputError *InputError
 	if !errors.As(err, &inputError) {
@@ -141,6 +163,7 @@ func TestServiceSendDoesNotRepublishIdempotentMessage(t *testing.T) {
 	_, created, err := service.Send(
 		context.Background(), 7, 11,
 		"0123456789abcdef0123456789abcdef", "Hello.",
+		nil,
 	)
 
 	if err != nil || created || len(publisher.messages) != 0 {

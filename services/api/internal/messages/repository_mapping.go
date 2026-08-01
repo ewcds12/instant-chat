@@ -13,7 +13,10 @@ func messageFromClientRow(row store.GetMessageByClientIDRow) Message {
 		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
-		row.FileByteSize, row.RecalledAt, row.CreatedAt,
+		row.FileByteSize, row.ReplyToID, row.ReplySenderID, row.ReplySenderUsername,
+		row.ReplySenderDisplayName, row.ReplySenderAvatarContentType,
+		row.ReplySenderCreatedAt, row.ReplyKind, row.ReplyBody,
+		row.ReplyFileFilename, row.ReplyRecalledAt, row.RecalledAt, row.CreatedAt,
 	)
 }
 
@@ -23,7 +26,10 @@ func messageFromLatestRow(row store.ListLatestMessagesRow) Message {
 		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
-		row.FileByteSize, row.RecalledAt, row.CreatedAt,
+		row.FileByteSize, row.ReplyToID, row.ReplySenderID, row.ReplySenderUsername,
+		row.ReplySenderDisplayName, row.ReplySenderAvatarContentType,
+		row.ReplySenderCreatedAt, row.ReplyKind, row.ReplyBody,
+		row.ReplyFileFilename, row.ReplyRecalledAt, row.RecalledAt, row.CreatedAt,
 	)
 }
 
@@ -33,7 +39,10 @@ func messageFromBeforeRow(row store.ListMessagesBeforeRow) Message {
 		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
-		row.FileByteSize, row.RecalledAt, row.CreatedAt,
+		row.FileByteSize, row.ReplyToID, row.ReplySenderID, row.ReplySenderUsername,
+		row.ReplySenderDisplayName, row.ReplySenderAvatarContentType,
+		row.ReplySenderCreatedAt, row.ReplyKind, row.ReplyBody,
+		row.ReplyFileFilename, row.ReplyRecalledAt, row.RecalledAt, row.CreatedAt,
 	)
 }
 
@@ -43,7 +52,10 @@ func messageFromAfterRow(row store.ListMessagesAfterRow) Message {
 		row.SenderDisplayName, row.SenderAvatarContentType, row.SenderCreatedAt, row.ClientMessageID,
 		row.Sequence, row.Kind, row.Body, row.ImageID, row.ImageContentType,
 		row.ImageByteSize, row.FileID, row.FileFilename, row.FileContentType,
-		row.FileByteSize, row.RecalledAt, row.CreatedAt,
+		row.FileByteSize, row.ReplyToID, row.ReplySenderID, row.ReplySenderUsername,
+		row.ReplySenderDisplayName, row.ReplySenderAvatarContentType,
+		row.ReplySenderCreatedAt, row.ReplyKind, row.ReplyBody,
+		row.ReplyFileFilename, row.ReplyRecalledAt, row.RecalledAt, row.CreatedAt,
 	)
 }
 
@@ -63,6 +75,16 @@ func newMessage(
 	fileFilename sql.NullString,
 	fileContentType sql.NullString,
 	fileByteSize sql.NullInt64,
+	replyToID sql.NullInt64,
+	replySenderID sql.NullInt64,
+	replySenderUsername sql.NullString,
+	replySenderDisplayName sql.NullString,
+	replySenderAvatarContentType sql.NullString,
+	replySenderCreatedAt sql.NullTime,
+	replyKind sql.NullString,
+	replyBody sql.NullString,
+	replyFilename sql.NullString,
+	replyRecalledAt sql.NullTime,
 	recalledAt sql.NullTime,
 	createdAt time.Time,
 ) Message {
@@ -76,7 +98,12 @@ func newMessage(
 		Sequence:        sequence,
 		Kind:            kind,
 		Body:            body,
-		CreatedAt:       createdAt,
+		ReplyTo: replyFromColumns(
+			replyToID, replySenderID, replySenderUsername, replySenderDisplayName,
+			replySenderAvatarContentType, replySenderCreatedAt, replyKind,
+			replyBody, replyFilename, replyRecalledAt,
+		),
+		CreatedAt: createdAt,
 	}
 	if recalledAt.Valid {
 		value := recalledAt.Time.UTC()
@@ -100,4 +127,32 @@ func newMessage(
 		}
 	}
 	return message
+}
+
+func replyFromColumns(
+	id, senderID sql.NullInt64,
+	username, displayName, avatarContentType sql.NullString,
+	senderCreatedAt sql.NullTime,
+	kind, body, filename sql.NullString,
+	recalledAt sql.NullTime,
+) *ReplyPreview {
+	if !id.Valid || !senderID.Valid || !senderCreatedAt.Valid {
+		return nil
+	}
+	reply := &ReplyPreview{
+		ID: uint64(id.Int64),
+		Sender: Sender{
+			ID: uint64(senderID.Int64), Username: username.String,
+			DisplayName: displayName.String, HasAvatar: avatarContentType.Valid,
+			CreatedAt: senderCreatedAt.Time,
+		},
+		Kind: kind.String, Body: body.String, Filename: filename.String,
+	}
+	if recalledAt.Valid {
+		value := recalledAt.Time.UTC()
+		reply.RecalledAt = &value
+		reply.Body = ""
+		reply.Filename = ""
+	}
+	return reply
 }

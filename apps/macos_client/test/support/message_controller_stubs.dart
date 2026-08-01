@@ -52,9 +52,11 @@ class FakeMessageGateway implements MessageGateway {
 
   final List<MessagePage> pages;
   final List<String> clientIDs = [];
+  final List<String?> replyToMessageIDs = [];
   final List<String> afterCursors = [];
   String? sentImagePath;
   String? sentFilePath;
+  String? sentReplyToMessageID;
   String? downloadedFileID;
   String? downloadedFilePath;
   String? downloadedImageID;
@@ -84,8 +86,11 @@ class FakeMessageGateway implements MessageGateway {
     required String conversationId,
     required String clientMessageId,
     required String body,
+    String? replyToMessageId,
   }) async {
     clientIDs.add(clientMessageId);
+    replyToMessageIDs.add(replyToMessageId);
+    sentReplyToMessageID = replyToMessageId;
     if (failNextSend) {
       failNextSend = false;
       throw const ApiFailure(code: 'network_error', message: 'Offline.');
@@ -99,6 +104,9 @@ class FakeMessageGateway implements MessageGateway {
       kind: MessageKind.text,
       body: body,
       image: null,
+      replyTo: replyToMessageId == null
+          ? null
+          : _replyFromMessage(testMessage(replyToMessageId)),
       createdAt: DateTime.utc(2026, 7, 16, 13),
     );
   }
@@ -196,6 +204,14 @@ class FakeMessageGateway implements MessageGateway {
     return [4, 5, 6];
   }
 }
+
+MessageReply _replyFromMessage(Message message) => MessageReply(
+  id: message.id,
+  sender: message.sender,
+  kind: message.kind,
+  body: message.body,
+  filename: message.file?.filename ?? '',
+);
 
 class FakeRealtimeConnection implements RealtimeConnection {
   final _messages = StreamController<Message>.broadcast();

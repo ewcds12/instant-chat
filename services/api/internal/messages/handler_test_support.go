@@ -16,6 +16,7 @@ type stubMessageService struct {
 	conversationID uint64
 	clientID       string
 	body           string
+	replyToID      *uint64
 	image          ImageUpload
 	file           FileUpload
 }
@@ -24,11 +25,13 @@ func (s *stubMessageService) Send(
 	_ context.Context,
 	userID, conversationID uint64,
 	clientID, body string,
+	replyToMessageID *uint64,
 ) (Message, bool, error) {
 	s.userID = userID
 	s.conversationID = conversationID
 	s.clientID = clientID
 	s.body = body
+	s.replyToID = replyToMessageID
 	return testMessage(), true, nil
 }
 

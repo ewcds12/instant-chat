@@ -47,17 +47,18 @@ type ConversationMember struct {
 }
 
 type Message struct {
-	ID              uint64        `db:"id"`
-	ConversationID  uint64        `db:"conversation_id"`
-	SenderID        uint64        `db:"sender_id"`
-	ClientMessageID string        `db:"client_message_id"`
-	Sequence        uint64        `db:"sequence"`
-	Body            string        `db:"body"`
-	CreatedAt       time.Time     `db:"created_at"`
-	Kind            string        `db:"kind"`
-	ImageID         sql.NullInt64 `db:"image_id"`
-	FileID          sql.NullInt64 `db:"file_id"`
-	RecalledAt      sql.NullTime  `db:"recalled_at"`
+	ID               uint64        `db:"id"`
+	ConversationID   uint64        `db:"conversation_id"`
+	SenderID         uint64        `db:"sender_id"`
+	ClientMessageID  string        `db:"client_message_id"`
+	Sequence         uint64        `db:"sequence"`
+	Body             string        `db:"body"`
+	CreatedAt        time.Time     `db:"created_at"`
+	Kind             string        `db:"kind"`
+	ImageID          sql.NullInt64 `db:"image_id"`
+	FileID           sql.NullInt64 `db:"file_id"`
+	RecalledAt       sql.NullTime  `db:"recalled_at"`
+	ReplyToMessageID sql.NullInt64 `db:"reply_to_message_id"`
 }
 
 type MessageDeletion struct {

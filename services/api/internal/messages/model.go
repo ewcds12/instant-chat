@@ -17,6 +17,8 @@ var (
 	ErrFileNotFound = errors.New("message file not found")
 	// ErrRecallUnavailable indicates that a message cannot be recalled anymore.
 	ErrRecallUnavailable = errors.New("message recall is unavailable")
+	// ErrReplyUnavailable indicates that the referenced message cannot be replied to.
+	ErrReplyUnavailable = errors.New("message reply is unavailable")
 )
 
 const (
@@ -57,8 +59,19 @@ type Message struct {
 	Body            string
 	Image           *ImageAttachment
 	File            *FileAttachment
+	ReplyTo         *ReplyPreview
 	RecalledAt      *time.Time
 	CreatedAt       time.Time
+}
+
+// ReplyPreview is the stable summary rendered above a reply message.
+type ReplyPreview struct {
+	ID         uint64
+	Sender     Sender
+	Kind       string
+	Body       string
+	Filename   string
+	RecalledAt *time.Time
 }
 
 // Recall identifies a message that was recalled for every conversation member.
@@ -136,6 +149,7 @@ type Repository interface {
 		ctx context.Context,
 		userID, conversationID uint64,
 		clientMessageID, body string,
+		replyToMessageID *uint64,
 	) (Message, bool, error)
 	SendImage(
 		ctx context.Context,

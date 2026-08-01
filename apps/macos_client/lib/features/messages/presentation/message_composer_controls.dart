@@ -9,8 +9,9 @@ bool composerNeedsExpandedLayout(
   double width,
   String text, {
   required bool hasImage,
+  bool hasReply = false,
 }) {
-  if (hasImage || text.contains('\n')) {
+  if (hasImage || hasReply || text.contains('\n')) {
     return true;
   }
   if (text.isEmpty) {
