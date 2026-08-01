@@ -155,8 +155,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         accessToken: session.accessToken,
                         currentUserId: session.user.id,
                         targetMessageId: _focusedMessageId,
-                        onLoadOlder: () =>
-                            ref.read(provider.notifier).loadOlder(),
+                        onLoadOlder: () => _loadOlderWithoutJump(provider),
                         onOpenFile: (file) => _openFile(provider, file),
                         onOpenLink: _openLink,
                         onDownloadImage: (image) =>

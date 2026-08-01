@@ -6,6 +6,8 @@ import 'package:instant_chat/features/messages/presentation/message_recall_stamp
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 import 'package:instant_chat/features/messages/presentation/message_timestamp.dart';
 
+part 'message_history_pagination.dart';
+
 class MessageHistory extends StatelessWidget {
   const MessageHistory({
     required this.value,
@@ -62,81 +64,78 @@ class MessageHistory extends StatelessWidget {
     final targetIndex = targetMessageId == null
         ? -1
         : value.messages.indexWhere((message) => message.id == targetMessageId);
-    return Column(
-      children: [
-        if (value.nextCursor != null)
-          Padding(
-            padding: const EdgeInsets.only(top: 8),
-            child: TextButton(
-              onPressed: value.isLoadingOlder || value.isSending
-                  ? null
-                  : onLoadOlder,
-              child: Text(
-                value.isLoadingOlder ? 'Loading…' : 'Load older messages',
-              ),
+    final history = targetIndex < 0
+        ? ListView.separated(
+            key: const Key('message-history-list'),
+            controller: scrollController,
+            padding: const EdgeInsets.fromLTRB(
+              RetroMetrics.messageHistoryHorizontalInset,
+              32,
+              RetroMetrics.messageHistoryHorizontalInset,
+              28,
             ),
-          ),
-        Expanded(
-          child: targetIndex < 0
-              ? ListView.separated(
-                  key: const Key('message-history-list'),
-                  controller: scrollController,
-                  padding: const EdgeInsets.fromLTRB(
-                    RetroMetrics.messageHistoryHorizontalInset,
-                    32,
-                    RetroMetrics.messageHistoryHorizontalInset,
-                    28,
-                  ),
-                  itemCount: value.messages.length,
-                  separatorBuilder: (_, index) {
-                    final nextMessage = value.messages[index + 1];
-                    if (!shouldShowMessageTimestamp(
-                      previousTimestamp: value.messages[index].createdAt,
-                      timestamp: nextMessage.createdAt,
-                    )) {
-                      return const SizedBox(height: 13);
-                    }
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      child: MessageTimestamp(
-                        timestamp: nextMessage.createdAt,
-                        now: now,
-                      ),
-                    );
-                  },
-                  itemBuilder: (context, index) {
-                    final bubble = _messageBubble(
-                      context,
-                      value.messages[index],
-                      imageMessages,
-                    );
-                    if (index != 0) {
-                      return bubble;
-                    }
-                    return Column(
-                      children: [
-                        MessageTimestamp(
-                          timestamp: value.messages[index].createdAt,
-                          now: now,
-                        ),
-                        const SizedBox(height: 16),
-                        bubble,
-                      ],
-                    );
-                  },
-                )
-              : _TargetedMessageHistory(
-                  value: value,
-                  scrollController: scrollController,
-                  targetIndex: targetIndex,
-                  messageBuilder: (index) => _messageBubble(
-                    context,
-                    value.messages[index],
-                    imageMessages,
-                  ),
+            itemCount: value.messages.length,
+            separatorBuilder: (_, index) {
+              final nextMessage = value.messages[index + 1];
+              if (!shouldShowMessageTimestamp(
+                previousTimestamp: value.messages[index].createdAt,
+                timestamp: nextMessage.createdAt,
+              )) {
+                return const SizedBox(height: 13);
+              }
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                child: MessageTimestamp(
+                  timestamp: nextMessage.createdAt,
                   now: now,
                 ),
+              );
+            },
+            itemBuilder: (context, index) {
+              final bubble = _messageBubble(
+                context,
+                value.messages[index],
+                imageMessages,
+              );
+              if (index != 0) {
+                return bubble;
+              }
+              return Column(
+                children: [
+                  MessageTimestamp(
+                    timestamp: value.messages[index].createdAt,
+                    now: now,
+                  ),
+                  const SizedBox(height: 16),
+                  bubble,
+                ],
+              );
+            },
+          )
+        : _TargetedMessageHistory(
+            value: value,
+            scrollController: scrollController,
+            targetIndex: targetIndex,
+            messageBuilder: (index) =>
+                _messageBubble(context, value.messages[index], imageMessages),
+            now: now,
+          );
+    return Stack(
+      children: [
+        NotificationListener<ScrollNotification>(
+          onNotification: (notification) {
+            if (_shouldLoadOlderMessages(
+              notification,
+              value: value,
+              targetIndex: targetIndex,
+            )) {
+              onLoadOlder();
+            }
+            return false;
+          },
+          child: history,
         ),
+        if (value.isLoadingOlder) const _MessageHistoryLoadingIndicator(),
       ],
     );
   }
