@@ -6,7 +6,6 @@ import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message_page.dart';
-import 'package:instant_chat/features/messages/presentation/message_navigation_target.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_page.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
@@ -25,6 +24,10 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final gateway = FakeMessageGateway(
       pages: [
+        MessagePage(
+          messages: List.generate(30, (index) => testMessage('${index + 1}')),
+          nextCursor: null,
+        ),
         MessagePage(
           messages: List.generate(30, (index) => testMessage('${index + 1}')),
           nextCursor: null,
@@ -49,9 +52,6 @@ void main() {
     );
     addTearDown(container.dispose);
     await container.read(authControllerProvider.future);
-    container
-        .read(messageNavigationTargetProvider.notifier)
-        .select(conversationId: _conversation.id, messageId: '5');
 
     await tester.pumpWidget(
       UncontrolledProviderScope(
@@ -61,6 +61,20 @@ void main() {
           home: Scaffold(body: MessagesPage(conversation: _conversation)),
         ),
       ),
+    );
+    await _pumpUntil(tester, find.byTooltip('Search messages'));
+    await tester.tap(find.byTooltip('Search messages'));
+    await _pumpUntil(
+      tester,
+      find.byKey(const Key('contact-message-search-dialog')),
+    );
+    await tester.enterText(
+      find.byKey(const Key('contact-message-search-field')),
+      'Message 5',
+    );
+    await tester.pump();
+    await tester.tap(
+      find.byKey(const ValueKey('contact-message-search-result-5')),
     );
     await _pumpUntil(
       tester,

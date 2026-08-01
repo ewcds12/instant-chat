@@ -13,7 +13,7 @@ The authentication, contacts, direct conversations, and persisted message founda
 - The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
 - The authenticated client provides modern chats, contacts, and system-status workspaces.
 - The account card opens an in-app Profile sheet where users can set a profile photo, Name, Gender, Region, and ID. Changes persist to MySQL, are restored with the session, and update connected peers through the authenticated realtime channel.
-- The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, and a persistent desktop master-detail layout.
+- The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, a focused complete-history search with direct result navigation, and a persistent desktop master-detail layout.
 - Message rows top-align sender avatars with their bubbles so multiline content expands downward without shifting its starting edge.
 - The resizable macOS window opens at 1,180 by 660 points.
 - The Contacts workspace provides an alphabetical directory with local name and ID filtering, exact ID lookup for new people, an inline friend-request drawer, a selected-contact detail panel with an enlarged and downloadable profile-photo preview, real shared photos, files, and web links, complete-history message search with direct navigation and a three-second highlight on the matching chat message, safe removal confirmation, and direct-message navigation.

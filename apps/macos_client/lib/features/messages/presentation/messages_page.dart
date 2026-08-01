@@ -9,6 +9,7 @@ import 'package:instant_chat/core/platform/macos_file_picker.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_message_search.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
@@ -20,7 +21,6 @@ import 'package:instant_chat/features/messages/presentation/message_history.dart
 import 'package:instant_chat/features/messages/presentation/message_image_draft.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_navigation_target.dart';
-import 'package:instant_chat/features/messages/presentation/message_search.dart';
 import 'package:instant_chat/features/messages/presentation/message_read_tracker.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
@@ -99,8 +99,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       children: [
         MessageHeader(
           conversation: widget.conversation,
-          onSearch: () =>
-              showMessageSearch(context, state.value?.messages ?? const []),
+          onSearch: () => _openMessageHistorySearch(
+            currentUserId: session.user.id,
+            accessToken: session.accessToken,
+          ),
         ),
         Expanded(
           child: MessageDropZone(

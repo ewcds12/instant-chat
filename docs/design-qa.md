@@ -64,6 +64,7 @@ Final result: passed
 ## Interaction Verification
 
 - Opening the header search action presents the sheet immediately and focuses the query field.
+- The same focused complete-history search is available from the Chats conversation header and uses the selected Contact Info layout and result behavior unchanged.
 - The dialog loads every cursor-paginated message page through the existing authenticated gateway, excludes recalled messages, matches body text case-insensitively, and sorts matches newest first.
 - Clearing the field restores the initial guidance, failures provide a retry action, and no-match states remain explicit.
 - Clicking Open or a result row closes the sheet, switches to Chats, selects the existing direct conversation, loads older pages until the target is present, scrolls it into view, and applies a three-second highlight without moving the retained history position when the highlight clears.
@@ -74,6 +75,19 @@ Final result: passed
 
 - Resolved P2: the initial implementation omitted the selected visual's keyboard hint even though Return already opened the first result.
 - No actionable P0, P1, or P2 visual, interaction, or accessibility findings remain after the normalized full-view and focused comparisons.
+
+### Chats Entry Consistency
+
+- Contact Info source capture: `/tmp/instant-chat-contact-history-search-final.png`.
+- Chats implementation capture: `/tmp/instant-chat-chats-history-search.png`.
+- Full-window comparison: `/tmp/instant-chat-chats-history-search-comparison.png`.
+- Focused modal comparison: `/tmp/instant-chat-chats-history-search-focused-comparison.png`.
+- Result-navigation capture: `/tmp/instant-chat-chats-search-target.jpeg`.
+- Both captures are 1,150 × 722 pixels and were compared at 1:1 scale without density normalization.
+- The source state searches Kylian Mbappé's history for `https`; the Chats state searches Cristiano Ronaldo's history for `What`. These real-data differences intentionally change only participant copy, result count, timestamps, and message bodies.
+- Typography, spacing and layout, colors and tokens, assets and icons, and fixed interface copy match because both entry points render the same history-search component.
+- Native verification confirmed that the Chats header opens the complete cursor-paginated history search and that selecting a result closes the sheet, retains the loaded history position, and uses the same three-second target highlight.
+- No actionable P0, P1, or P2 visual, interaction, or accessibility findings remain in the Chats entry comparison.
 
 Final result: passed
 

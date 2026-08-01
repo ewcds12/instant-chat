@@ -15,10 +15,28 @@ Future<Message?> showContactMessageSearch({
   required String accessToken,
   required MessageGateway gateway,
 }) {
+  return showMessageHistorySearch(
+    context: context,
+    participantName: contact.user.displayName,
+    currentUserId: currentUserId,
+    conversationId: conversationId,
+    accessToken: accessToken,
+    gateway: gateway,
+  );
+}
+
+Future<Message?> showMessageHistorySearch({
+  required BuildContext context,
+  required String participantName,
+  required String currentUserId,
+  required String conversationId,
+  required String accessToken,
+  required MessageGateway gateway,
+}) {
   return showDialog<Message>(
     context: context,
     builder: (context) => _ContactMessageSearchDialog(
-      contact: contact,
+      participantName: participantName,
       currentUserId: currentUserId,
       conversationId: conversationId,
       accessToken: accessToken,
@@ -29,14 +47,14 @@ Future<Message?> showContactMessageSearch({
 
 class _ContactMessageSearchDialog extends StatefulWidget {
   const _ContactMessageSearchDialog({
-    required this.contact,
+    required this.participantName,
     required this.currentUserId,
     required this.conversationId,
     required this.accessToken,
     required this.gateway,
   });
 
-  final Contact contact;
+  final String participantName;
   final String currentUserId;
   final String conversationId;
   final String accessToken;
@@ -89,7 +107,7 @@ class _ContactMessageSearchDialogState
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _SearchHeader(
-                contactName: widget.contact.user.displayName,
+                contactName: widget.participantName,
                 onCancel: () => Navigator.of(context).pop(),
               ),
               const SizedBox(height: RetroMetrics.spaceMedium),
