@@ -6,17 +6,19 @@ class MessageReplyPreview extends StatelessWidget {
   const MessageReplyPreview({
     required this.reply,
     required this.isMine,
+    this.onOpen,
     super.key,
   });
 
   final MessageReply reply;
   final bool isMine;
+  final VoidCallback? onOpen;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final foreground = isMine ? colors.onPrimary : colors.onSurfaceVariant;
-    return _ReplyPreviewBody(
+    final preview = _ReplyPreviewBody(
       key: ValueKey('message-reply-preview-${reply.id}'),
       senderName: reply.sender.displayName,
       summary: messageReplySummary(
@@ -28,6 +30,26 @@ class MessageReplyPreview extends StatelessWidget {
       titleColor: isMine ? foreground.withValues(alpha: 0.86) : colors.primary,
       bodyColor: foreground.withValues(alpha: isMine ? 0.74 : 1),
       accentColor: foreground.withValues(alpha: isMine ? 0.68 : 0.55),
+    );
+    final onOpen = this.onOpen;
+    if (onOpen == null) {
+      return preview;
+    }
+    return Semantics(
+      button: true,
+      label: 'Go to original message',
+      child: Tooltip(
+        message: 'Go to original message',
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onOpen,
+            mouseCursor: SystemMouseCursors.click,
+            borderRadius: BorderRadius.circular(RetroMetrics.corner),
+            child: preview,
+          ),
+        ),
+      ),
     );
   }
 }

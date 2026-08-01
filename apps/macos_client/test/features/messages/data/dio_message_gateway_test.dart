@@ -77,6 +77,35 @@ void main() {
     expect(page.messages.single.body, isEmpty);
   });
 
+  test('list accepts an empty reply body for attachment previews', () async {
+    final adapter = _StubAdapter(
+      statusCode: 200,
+      body: {
+        'messages': [
+          {
+            ..._replyMessage,
+            'reply_to': {
+              ...?_replyMessage['reply_to'] as Map<String, Object?>?,
+              'kind': 'file',
+              'body': '',
+              'filename': 'Notes.pdf',
+            },
+          },
+        ],
+        'next_cursor': null,
+      },
+    );
+    final gateway = DioMessageGateway(_createDio(adapter));
+
+    final page = await gateway.list(
+      accessToken: 'access-token',
+      conversationId: '11',
+    );
+
+    expect(page.messages.single.replyTo?.body, isEmpty);
+    expect(page.messages.single.replyTo?.filename, 'Notes.pdf');
+  });
+
   test('sendImage posts a multipart image message', () async {
     final image = File('${Directory.systemTemp.path}/instant-chat-test.png');
     await image.writeAsBytes([1, 2, 3]);

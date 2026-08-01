@@ -5,14 +5,12 @@ const _olderMessageLoadThreshold = 120.0;
 bool _shouldLoadOlderMessages(
   ScrollNotification notification, {
   required MessagesState value,
-  required int targetIndex,
 }) {
-  if (targetIndex >= 0 ||
-      value.nextCursor == null ||
+  if (value.nextCursor == null ||
       value.isLoadingOlder ||
       value.isSending ||
       notification.depth != 0 ||
-      notification.metrics.pixels > _olderMessageLoadThreshold) {
+      notification.metrics.extentBefore > _olderMessageLoadThreshold) {
     return false;
   }
   return switch (notification) {

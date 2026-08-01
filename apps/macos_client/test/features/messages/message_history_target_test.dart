@@ -31,6 +31,7 @@ void main() {
             accessToken: 'access-token',
             currentUserId: 'current-user',
             targetMessageId: 'target',
+            highlightedMessageId: 'target',
             onLoadOlder: () {},
             onOpenFile: (_) {},
             onOpenLink: (_) async {},

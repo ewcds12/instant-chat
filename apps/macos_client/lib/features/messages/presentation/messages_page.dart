@@ -53,6 +53,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   Message? _replyingTo;
   Timer? _focusedMessageTimer;
   String? _requestedMessageId;
+  String? _anchoredMessageId;
   String? _focusedMessageId;
   var _preserveHistoryPosition = false;
   var _showContactInfo = false;
@@ -90,6 +91,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       _focusedMessageTimer?.cancel();
       _focusedMessageTimer = null;
       _requestedMessageId = null;
+      _anchoredMessageId = null;
       _focusedMessageId = null;
       _preserveHistoryPosition = false;
       _showContactInfo = false;
@@ -157,7 +159,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         scrollController: _historyScroll,
                         accessToken: session.accessToken,
                         currentUserId: session.user.id,
-                        targetMessageId: _focusedMessageId,
+                        targetMessageId: _anchoredMessageId,
+                        highlightedMessageId: _focusedMessageId,
                         onLoadOlder: () => _loadOlderWithoutJump(provider),
                         onOpenFile: (file) => _openFile(provider, file),
                         onOpenLink: _openLink,
@@ -168,6 +171,12 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         onDelete: (message) =>
                             ref.read(provider.notifier).delete(message),
                         onReply: _startReply,
+                        onOpenReply: (messageId) => ref
+                            .read(messageNavigationTargetProvider.notifier)
+                            .select(
+                              conversationId: widget.conversation.id,
+                              messageId: messageId,
+                            ),
                       );
                     },
                   ),
@@ -284,6 +293,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   void _showFocusedMessage(String messageId) {
     _focusedMessageTimer?.cancel();
     setState(() {
+      _anchoredMessageId = messageId;
       _focusedMessageId = messageId;
       _preserveHistoryPosition = true;
     });

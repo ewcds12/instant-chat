@@ -22,6 +22,7 @@ class MessageBubble extends StatelessWidget {
     required this.onRecall,
     required this.onDelete,
     this.onReply,
+    this.onOpenReply,
     super.key,
   });
 
@@ -36,6 +37,7 @@ class MessageBubble extends StatelessWidget {
   final Future<bool> Function(Message message) onRecall;
   final Future<bool> Function(Message message) onDelete;
   final ValueChanged<Message>? onReply;
+  final ValueChanged<String>? onOpenReply;
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +55,7 @@ class MessageBubble extends StatelessWidget {
         onOpenFile: onOpenFile,
         onOpenLink: onOpenLink,
         onDownloadImage: onDownloadImage,
+        onOpenReply: onOpenReply,
       ),
     );
     final avatar = _MessageSenderAvatar(
@@ -90,6 +93,7 @@ class _MessageContent extends StatelessWidget {
     required this.onOpenFile,
     required this.onOpenLink,
     required this.onDownloadImage,
+    required this.onOpenReply,
   });
 
   final Message message;
@@ -99,12 +103,14 @@ class _MessageContent extends StatelessWidget {
   final ValueChanged<MessageFile> onOpenFile;
   final Future<void> Function(Uri link) onOpenLink;
   final Future<void> Function(MessageImage image) onDownloadImage;
+  final ValueChanged<String>? onOpenReply;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final image = message.kind == MessageKind.image ? message.image : null;
     final file = message.kind == MessageKind.file ? message.file : null;
+    final openReply = onOpenReply;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: isMine
@@ -163,7 +169,13 @@ class _MessageContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (message.replyTo case final reply?) ...[
-                  MessageReplyPreview(reply: reply, isMine: isMine),
+                  MessageReplyPreview(
+                    reply: reply,
+                    isMine: isMine,
+                    onOpen: openReply == null
+                        ? null
+                        : () => openReply(reply.id),
+                  ),
                   const SizedBox(height: RetroMetrics.messageReplyContentGap),
                 ],
                 MessageLinkText(

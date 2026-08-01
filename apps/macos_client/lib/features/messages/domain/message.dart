@@ -121,7 +121,7 @@ class MessageReply {
       id: requiredString(json, 'id'),
       sender: PublicUser.fromJson(_stringKeyed(sender)),
       kind: MessageKind.fromWire(json['kind']),
-      body: requiredString(json, 'body'),
+      body: _requiredText(json, 'body'),
       filename: _requiredText(json, 'filename'),
       recalledAt: _optionalDateTime(json, 'recalled_at'),
     );

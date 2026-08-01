@@ -15,6 +15,7 @@ class MessageHistory extends StatelessWidget {
     required this.accessToken,
     required this.currentUserId,
     this.targetMessageId,
+    this.highlightedMessageId,
     required this.onLoadOlder,
     required this.onOpenFile,
     required this.onOpenLink,
@@ -22,6 +23,7 @@ class MessageHistory extends StatelessWidget {
     required this.onRecall,
     required this.onDelete,
     this.onReply,
+    this.onOpenReply,
     super.key,
   });
 
@@ -30,6 +32,7 @@ class MessageHistory extends StatelessWidget {
   final String accessToken;
   final String currentUserId;
   final String? targetMessageId;
+  final String? highlightedMessageId;
   final VoidCallback onLoadOlder;
   final ValueChanged<MessageFile> onOpenFile;
   final Future<void> Function(Uri link) onOpenLink;
@@ -37,6 +40,7 @@ class MessageHistory extends StatelessWidget {
   final Future<bool> Function(Message message) onRecall;
   final Future<bool> Function(Message message) onDelete;
   final ValueChanged<Message>? onReply;
+  final ValueChanged<String>? onOpenReply;
 
   @override
   Widget build(BuildContext context) {
@@ -118,6 +122,7 @@ class MessageHistory extends StatelessWidget {
             value: value,
             scrollController: scrollController,
             targetIndex: targetIndex,
+            highlightedMessageId: highlightedMessageId,
             messageBuilder: (index) =>
                 _messageBubble(context, value.messages[index], imageMessages),
             now: now,
@@ -126,11 +131,7 @@ class MessageHistory extends StatelessWidget {
       children: [
         NotificationListener<ScrollNotification>(
           onNotification: (notification) {
-            if (_shouldLoadOlderMessages(
-              notification,
-              value: value,
-              targetIndex: targetIndex,
-            )) {
+            if (_shouldLoadOlderMessages(notification, value: value)) {
               onLoadOlder();
             }
             return false;
@@ -165,6 +166,7 @@ class MessageHistory extends StatelessWidget {
       onRecall: onRecall,
       onDelete: onDelete,
       onReply: onReply,
+      onOpenReply: onOpenReply,
     );
   }
 }
@@ -174,6 +176,7 @@ class _TargetedMessageHistory extends StatelessWidget {
     required this.value,
     required this.scrollController,
     required this.targetIndex,
+    required this.highlightedMessageId,
     required this.messageBuilder,
     required this.now,
   });
@@ -181,12 +184,14 @@ class _TargetedMessageHistory extends StatelessWidget {
   final MessagesState value;
   final ScrollController scrollController;
   final int targetIndex;
+  final String? highlightedMessageId;
   final Widget Function(int index) messageBuilder;
   final DateTime now;
 
   @override
   Widget build(BuildContext context) {
     final target = value.messages[targetIndex];
+    final isHighlighted = target.id == highlightedMessageId;
     final centerKey = ValueKey('message-history-center-${target.id}');
     return CustomScrollView(
       key: const Key('message-history-list'),
@@ -218,13 +223,22 @@ class _TargetedMessageHistory extends StatelessWidget {
               children: [
                 _separator(targetIndex, target),
                 Container(
-                  key: ValueKey('message-history-target-${target.id}'),
+                  key: ValueKey('message-history-anchor-${target.id}'),
                   padding: const EdgeInsets.symmetric(vertical: 4),
-                  decoration: BoxDecoration(
-                    color: RetroColors.primarySoft,
-                    borderRadius: BorderRadius.circular(RetroMetrics.corner),
+                  decoration: isHighlighted
+                      ? BoxDecoration(
+                          color: RetroColors.primarySoft,
+                          borderRadius: BorderRadius.circular(
+                            RetroMetrics.corner,
+                          ),
+                        )
+                      : null,
+                  child: KeyedSubtree(
+                    key: isHighlighted
+                        ? ValueKey('message-history-target-${target.id}')
+                        : null,
+                    child: messageBuilder(targetIndex),
                   ),
-                  child: messageBuilder(targetIndex),
                 ),
               ],
             ),
