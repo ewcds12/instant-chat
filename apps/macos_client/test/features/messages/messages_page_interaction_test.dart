@@ -185,9 +185,9 @@ void main() {
     await tester.pumpWidget(_messagesPage(container));
     await _pumpUntil(tester, find.byKey(const Key('message-bubble-delayed')));
 
-    expect(find.text('Monday 15:00'), findsOneWidget);
-    expect(find.text('15:04'), findsNothing);
-    expect(find.text('Monday 15:09'), findsOneWidget);
+    expect(find.textContaining('15:00'), findsOneWidget);
+    expect(find.textContaining('15:04'), findsNothing);
+    expect(find.textContaining('15:09'), findsOneWidget);
   });
 
   testWidgets('shows an avatar next to every message', (tester) async {

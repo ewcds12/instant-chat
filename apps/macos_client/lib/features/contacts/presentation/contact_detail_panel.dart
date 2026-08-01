@@ -3,13 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/core/theme/glass.dart';
-import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_content.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_detail_header.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_message_search.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_shared_content.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_shared_links_dialog.dart';
+import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
+import 'package:instant_chat/features/messages/presentation/message_navigation_target.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 
 class ContactDetailPanel extends StatelessWidget {
@@ -32,7 +37,7 @@ class ContactDetailPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return LiquidGradientBackground(
       child: contact == null
-          ? const _NoContactSelected()
+          ? const ContactDetailEmptyState()
           : _ContactDetail(
               contact: contact!,
               accessToken: accessToken,
@@ -73,8 +78,9 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _ContactDetailHeader(
+        ContactDetailHeader(
           disabled: widget.disabled,
+          onSearch: _openHistorySearch,
           onRemove: widget.onRemove,
         ),
         Expanded(
@@ -83,7 +89,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
             accessToken: widget.accessToken,
             disabled: widget.disabled,
             sharedContent: shared,
-            onMessage: widget.onMessage,
+            onMessage: _openConversation,
             onOpenAvatar: widget.contact.user.avatarUrl == null
                 ? null
                 : _openAvatar,
@@ -107,6 +113,55 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
       accessToken: widget.accessToken,
       onDownload: _downloadImage,
     );
+  }
+
+  void _openConversation() {
+    ref.read(messageNavigationTargetProvider.notifier).clear();
+    widget.onMessage();
+  }
+
+  Future<void> _openHistorySearch() async {
+    final contact = widget.contact;
+    try {
+      final authState = await ref.read(authControllerProvider.future);
+      final session = authState.session;
+      if (!mounted || session == null) {
+        return;
+      }
+      final conversations = await ref.read(
+        conversationsControllerProvider.future,
+      );
+      final conversation = _conversationForContact(
+        conversations.conversations,
+        contact.user.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      if (conversation == null) {
+        _showMessage('This chat is not available yet.');
+        return;
+      }
+      final message = await showContactMessageSearch(
+        context: context,
+        contact: contact,
+        currentUserId: session.user.id,
+        conversationId: conversation.id,
+        accessToken: widget.accessToken,
+        gateway: ref.read(messageGatewayProvider),
+      );
+      if (!mounted || message == null) {
+        return;
+      }
+      ref
+          .read(messageNavigationTargetProvider.notifier)
+          .select(conversationId: conversation.id, messageId: message.id);
+      widget.onMessage();
+    } catch (_) {
+      if (mounted) {
+        _showMessage('Message history could not be opened.');
+      }
+    }
   }
 
   void _openAvatar() {
@@ -196,90 +251,15 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
   }
 }
 
-class _ContactDetailHeader extends StatelessWidget {
-  const _ContactDetailHeader({required this.disabled, required this.onRemove});
-
-  final bool disabled;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return GlassPanel(
-      radius: 0,
-      tint: RetroColors.glassStrong,
-      borderColor: Colors.transparent,
-      shadows: const [],
-      child: Container(
-        key: const Key('contact-detail-header'),
-        height: RetroMetrics.contactDetailHeaderHeight,
-        padding: const EdgeInsets.symmetric(horizontal: 18),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: colors.outlineVariant)),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Contact Info',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ),
-            PopupMenuButton<_ContactMenuAction>(
-              tooltip: 'Contact options',
-              enabled: !disabled,
-              onSelected: (action) {
-                if (action == _ContactMenuAction.remove) {
-                  onRemove();
-                }
-              },
-              itemBuilder: (context) => const [
-                PopupMenuItem(
-                  value: _ContactMenuAction.remove,
-                  child: Text('Remove Contact…'),
-                ),
-              ],
-              icon: const Icon(Icons.more_horiz_rounded, size: 19),
-            ),
-          ],
-        ),
-      ),
-    );
+Conversation? _conversationForContact(
+  List<Conversation> conversations,
+  String contactUserId,
+) {
+  for (final conversation in conversations) {
+    if (conversation.kind == 'direct' &&
+        conversation.peer.id == contactUserId) {
+      return conversation;
+    }
   }
+  return null;
 }
-
-class _NoContactSelected extends StatelessWidget {
-  const _NoContactSelected();
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            Icons.people_outline_rounded,
-            size: 32,
-            color: colors.onSurfaceVariant,
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Select a contact',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Choose a contact from the directory to view their details.',
-            textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-enum _ContactMenuAction { remove }

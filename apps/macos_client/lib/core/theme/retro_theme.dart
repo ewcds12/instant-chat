@@ -43,6 +43,8 @@ abstract final class RetroMetrics {
   static const contactDetailContentVerticalInset = 18.0;
   static const contactDetailHeroHeight = 112.0;
   static const contactDetailMessageHeight = 36.0;
+  static const contactMessageSearchMaxWidth = 780.0;
+  static const contactMessageSearchMaxHeight = 560.0;
   static const contactSharedThumbnailGap = 12.0;
   static const contactSharedThumbnailRadius = 10.0;
   static const contactSharedThumbnailExtent = 164.0;

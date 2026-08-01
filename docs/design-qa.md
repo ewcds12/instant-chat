@@ -41,6 +41,44 @@ Final result: passed
 
 ---
 
+# Contact Message History Search Design QA
+
+## Comparison Target
+
+- Selected Product Design visual: `/Users/ewcds/.codex/visualizations/2026/07/31/019fb7bb-097b-7e61-a06b-1f260f8cc2ca/history-search-sheet.png`
+- Native macOS implementation capture: `/tmp/instant-chat-contact-history-search-final.png`
+- Full-view comparison: `/tmp/instant-chat-contact-history-search-comparison.png`
+- Focused modal comparison: `/tmp/instant-chat-contact-history-search-focused-comparison.png`
+- Older target-message navigation capture: `/tmp/instant-chat-message-target-older.png`
+- Native verification viewport: 1,150 × 722.
+- Verification state: Kylian Mbappé selected with the query `https` and two matching real messages. The source uses Antoine and six illustrative results, so content volume differs while the interaction and layout remain equivalent.
+
+## Visual Comparison
+
+- The implementation preserves the selected focused-sheet composition, approximately two-thirds of the detail-column width, with a dimmed Contact Info workspace behind it.
+- Title, Cancel action, focused search field, result count, bordered results surface, compact sender and timestamp metadata, trailing Open actions, and the Return-key hint follow the selected hierarchy.
+- The search icon, clear icon, typography, colors, outline, corner radius, focus treatment, and spacing use the existing Instant Chat macOS theme rather than introducing a parallel visual system.
+- The result surface intentionally retains open space when the real query has only two matches. It does not fabricate messages to fill the selected visual's six-row example.
+- Both the complete window and focused modal were normalized and inspected side by side at the same visible scale.
+
+## Interaction Verification
+
+- Opening the header search action presents the sheet immediately and focuses the query field.
+- The dialog loads every cursor-paginated message page through the existing authenticated gateway, excludes recalled messages, matches body text case-insensitively, and sorts matches newest first.
+- Clearing the field restores the initial guidance, failures provide a retry action, and no-match states remain explicit.
+- Clicking Open or a result row closes the sheet, switches to Chats, selects the existing direct conversation, loads older pages until the target is present, scrolls it into view, and applies a three-second highlight without moving the retained history position when the highlight clears.
+- Pressing Return opens the first visible result, matching the footer instruction.
+- Native verification confirmed the complete Contact Info → search → result → highlighted chat-message path without sending or changing any message.
+
+## Findings
+
+- Resolved P2: the initial implementation omitted the selected visual's keyboard hint even though Return already opened the first result.
+- No actionable P0, P1, or P2 visual, interaction, or accessibility findings remain after the normalized full-view and focused comparisons.
+
+Final result: passed
+
+---
+
 # Contact Info Redesign Design QA
 
 ## Comparison Target

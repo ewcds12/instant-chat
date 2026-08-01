@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ import 'package:instant_chat/features/messages/presentation/message_header.dart'
 import 'package:instant_chat/features/messages/presentation/message_history.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_draft.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
+import 'package:instant_chat/features/messages/presentation/message_navigation_target.dart';
 import 'package:instant_chat/features/messages/presentation/message_search.dart';
 import 'package:instant_chat/features/messages/presentation/message_read_tracker.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
@@ -25,6 +27,7 @@ import 'package:instant_chat/features/messages/presentation/messages_state.dart'
 import 'package:instant_chat/features/messages/presentation/message_status_bars.dart';
 
 part 'messages_page_attachments.dart';
+part 'messages_page_navigation.dart';
 
 class MessagesPage extends ConsumerStatefulWidget {
   const MessagesPage({required this.conversation, super.key});
@@ -43,6 +46,10 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   final _viewportTracker = MessageViewportTracker();
   late final MessageImageDraft _imageDraft;
   MessageDroppedFile? _failedDroppedFile;
+  Timer? _focusedMessageTimer;
+  String? _requestedMessageId;
+  String? _focusedMessageId;
+  var _preserveHistoryPosition = false;
 
   @override
   void initState() {
@@ -56,6 +63,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
 
   @override
   void dispose() {
+    _focusedMessageTimer?.cancel();
     _composerFocus.removeListener(_updateNativePasteState);
     _imageDraft.dispose();
     _composer.dispose();
@@ -72,6 +80,11 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       _viewportTracker.reset();
       _imageDraft.clear();
       _failedDroppedFile = null;
+      _focusedMessageTimer?.cancel();
+      _focusedMessageTimer = null;
+      _requestedMessageId = null;
+      _focusedMessageId = null;
+      _preserveHistoryPosition = false;
     }
   }
 
@@ -79,6 +92,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   Widget build(BuildContext context) {
     final provider = messagesControllerProvider(widget.conversation.id);
     final state = ref.watch(provider);
+    final navigationTarget = ref.watch(messageNavigationTargetProvider);
     final session = ref.read(authControllerProvider).requireValue.session!;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -102,11 +116,22 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                       onRetry: () => ref.invalidate(provider),
                     ),
                     data: (value) {
-                      _viewportTracker.schedule(
-                        value,
-                        _historyScroll,
-                        () => mounted,
-                      );
+                      final targetMessageId =
+                          navigationTarget?.conversationId ==
+                              widget.conversation.id
+                          ? navigationTarget?.messageId
+                          : null;
+                      if (targetMessageId != null) {
+                        _scheduleMessageTarget(provider, targetMessageId);
+                      }
+                      if (targetMessageId == null &&
+                          !_preserveHistoryPosition) {
+                        _viewportTracker.schedule(
+                          value,
+                          _historyScroll,
+                          () => mounted,
+                        );
+                      }
                       _readTracker.schedule(
                         state: value,
                         markRead: (sequence) => ref
@@ -118,6 +143,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                         scrollController: _historyScroll,
                         accessToken: session.accessToken,
                         currentUserId: session.user.id,
+                        targetMessageId: _focusedMessageId,
                         onLoadOlder: () =>
                             ref.read(provider.notifier).loadOlder(),
                         onOpenFile: (file) => _openFile(provider, file),
@@ -243,22 +269,18 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     ).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  void _focusComposer() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
+  void _showFocusedMessage(String messageId) {
+    _focusedMessageTimer?.cancel();
+    setState(() {
+      _focusedMessageId = messageId;
+      _preserveHistoryPosition = true;
+    });
+    _focusedMessageTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted || _focusedMessageId != messageId) {
         return;
       }
-      _composerFocus.requestFocus();
-    });
-  }
-
-  void _updateNativePasteState() {
-    _imageDraft.setPasteEnabled(_composerFocus.hasFocus);
-  }
-
-  void _snapHistoryToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _viewportTracker.snapToBottom(_historyScroll, () => mounted);
+      _focusedMessageTimer = null;
+      setState(() => _focusedMessageId = null);
     });
   }
 }

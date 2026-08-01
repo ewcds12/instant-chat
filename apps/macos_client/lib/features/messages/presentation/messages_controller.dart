@@ -164,6 +164,30 @@ class MessagesController extends AsyncNotifier<MessagesState>
     }
   }
 
+  Future<bool> loadThroughMessage(String messageId) async {
+    while (_active && state.hasValue) {
+      final current = state.requireValue;
+      if (current.messages.any((message) => message.id == messageId)) {
+        return true;
+      }
+      if (current.nextCursor == null) {
+        return false;
+      }
+      final previousCursor = current.nextCursor;
+      final previousCount = current.messages.length;
+      await loadOlder();
+      final latest = state.requireValue;
+      if (latest.messages.any((message) => message.id == messageId)) {
+        return true;
+      }
+      if (latest.nextCursor == previousCursor &&
+          latest.messages.length == previousCount) {
+        return false;
+      }
+    }
+    return false;
+  }
+
   Future<bool> _send(FailedMessage pending) async {
     final current = state.requireValue;
     state = AsyncData(

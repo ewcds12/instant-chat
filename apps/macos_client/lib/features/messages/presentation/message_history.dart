@@ -12,6 +12,7 @@ class MessageHistory extends StatelessWidget {
     required this.scrollController,
     required this.accessToken,
     required this.currentUserId,
+    this.targetMessageId,
     required this.onLoadOlder,
     required this.onOpenFile,
     required this.onOpenLink,
@@ -25,6 +26,7 @@ class MessageHistory extends StatelessWidget {
   final ScrollController scrollController;
   final String accessToken;
   final String currentUserId;
+  final String? targetMessageId;
   final VoidCallback onLoadOlder;
   final ValueChanged<MessageFile> onOpenFile;
   final Future<void> Function(Uri link) onOpenLink;
@@ -57,6 +59,9 @@ class MessageHistory extends StatelessWidget {
       );
     }
     final now = DateTime.now();
+    final targetIndex = targetMessageId == null
+        ? -1
+        : value.messages.indexWhere((message) => message.id == targetMessageId);
     return Column(
       children: [
         if (value.nextCursor != null)
@@ -72,65 +77,199 @@ class MessageHistory extends StatelessWidget {
             ),
           ),
         Expanded(
-          child: ListView.separated(
-            key: const Key('message-history-list'),
-            controller: scrollController,
-            padding: const EdgeInsets.fromLTRB(
-              RetroMetrics.messageHistoryHorizontalInset,
-              32,
-              RetroMetrics.messageHistoryHorizontalInset,
-              28,
-            ),
-            itemCount: value.messages.length,
-            separatorBuilder: (_, index) {
-              final nextMessage = value.messages[index + 1];
-              if (!shouldShowMessageTimestamp(
-                previousTimestamp: value.messages[index].createdAt,
-                timestamp: nextMessage.createdAt,
-              )) {
-                return const SizedBox(height: 13);
-              }
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: MessageTimestamp(
-                  timestamp: nextMessage.createdAt,
+          child: targetIndex < 0
+              ? ListView.separated(
+                  key: const Key('message-history-list'),
+                  controller: scrollController,
+                  padding: const EdgeInsets.fromLTRB(
+                    RetroMetrics.messageHistoryHorizontalInset,
+                    32,
+                    RetroMetrics.messageHistoryHorizontalInset,
+                    28,
+                  ),
+                  itemCount: value.messages.length,
+                  separatorBuilder: (_, index) {
+                    final nextMessage = value.messages[index + 1];
+                    if (!shouldShowMessageTimestamp(
+                      previousTimestamp: value.messages[index].createdAt,
+                      timestamp: nextMessage.createdAt,
+                    )) {
+                      return const SizedBox(height: 13);
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: MessageTimestamp(
+                        timestamp: nextMessage.createdAt,
+                        now: now,
+                      ),
+                    );
+                  },
+                  itemBuilder: (context, index) {
+                    final bubble = _messageBubble(
+                      context,
+                      value.messages[index],
+                      imageMessages,
+                    );
+                    if (index != 0) {
+                      return bubble;
+                    }
+                    return Column(
+                      children: [
+                        MessageTimestamp(
+                          timestamp: value.messages[index].createdAt,
+                          now: now,
+                        ),
+                        const SizedBox(height: 16),
+                        bubble,
+                      ],
+                    );
+                  },
+                )
+              : _TargetedMessageHistory(
+                  value: value,
+                  scrollController: scrollController,
+                  targetIndex: targetIndex,
+                  messageBuilder: (index) => _messageBubble(
+                    context,
+                    value.messages[index],
+                    imageMessages,
+                  ),
                   now: now,
                 ),
-              );
-            },
-            itemBuilder: (context, index) {
-              final message = value.messages[index];
-              final bubble = message.recalledAt == null
-                  ? MessageBubble(
-                      message: message,
-                      isMine: message.sender.id == currentUserId,
-                      showSenderAvatar: true,
-                      imageMessages: imageMessages,
-                      accessToken: accessToken,
-                      onOpenFile: onOpenFile,
-                      onOpenLink: onOpenLink,
-                      onDownloadImage: onDownloadImage,
-                      onRecall: onRecall,
-                      onDelete: onDelete,
-                    )
-                  : MessageRecallStamp(
-                      message: message,
-                      isMine: message.sender.id == currentUserId,
-                    );
-              if (index != 0) {
-                return bubble;
-              }
-              return Column(
-                children: [
-                  MessageTimestamp(timestamp: message.createdAt, now: now),
-                  const SizedBox(height: 16),
-                  bubble,
-                ],
-              );
-            },
+        ),
+      ],
+    );
+  }
+
+  Widget _messageBubble(
+    BuildContext context,
+    Message message,
+    List<MessageImage> imageMessages,
+  ) {
+    if (message.recalledAt != null) {
+      return MessageRecallStamp(
+        message: message,
+        isMine: message.sender.id == currentUserId,
+      );
+    }
+    return MessageBubble(
+      message: message,
+      isMine: message.sender.id == currentUserId,
+      showSenderAvatar: true,
+      imageMessages: imageMessages,
+      accessToken: accessToken,
+      onOpenFile: onOpenFile,
+      onOpenLink: onOpenLink,
+      onDownloadImage: onDownloadImage,
+      onRecall: onRecall,
+      onDelete: onDelete,
+    );
+  }
+}
+
+class _TargetedMessageHistory extends StatelessWidget {
+  const _TargetedMessageHistory({
+    required this.value,
+    required this.scrollController,
+    required this.targetIndex,
+    required this.messageBuilder,
+    required this.now,
+  });
+
+  final MessagesState value;
+  final ScrollController scrollController;
+  final int targetIndex;
+  final Widget Function(int index) messageBuilder;
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final target = value.messages[targetIndex];
+    final centerKey = ValueKey('message-history-center-${target.id}');
+    return CustomScrollView(
+      key: const Key('message-history-list'),
+      controller: scrollController,
+      center: centerKey,
+      anchor: 0.34,
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            RetroMetrics.messageHistoryHorizontalInset,
+            32,
+            RetroMetrics.messageHistoryHorizontalInset,
+            0,
+          ),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _entry(context, index),
+              childCount: targetIndex,
+            ),
+          ),
+        ),
+        SliverPadding(
+          key: centerKey,
+          padding: const EdgeInsets.symmetric(
+            horizontal: RetroMetrics.messageHistoryHorizontalInset,
+          ),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              children: [
+                _separator(targetIndex, target),
+                Container(
+                  key: ValueKey('message-history-target-${target.id}'),
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  decoration: BoxDecoration(
+                    color: RetroColors.primarySoft,
+                    borderRadius: BorderRadius.circular(RetroMetrics.corner),
+                  ),
+                  child: messageBuilder(targetIndex),
+                ),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(
+            RetroMetrics.messageHistoryHorizontalInset,
+            0,
+            RetroMetrics.messageHistoryHorizontalInset,
+            28,
+          ),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (context, index) => _entry(context, targetIndex + index + 1),
+              childCount: value.messages.length - targetIndex - 1,
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _entry(BuildContext context, int index, {bool includeGap = true}) {
+    final message = value.messages[index];
+    final separator = _separator(index, message);
+    return Column(children: [if (includeGap) separator, messageBuilder(index)]);
+  }
+
+  Widget _separator(int index, Message message) {
+    if (index == 0) {
+      return Column(
+        children: [
+          MessageTimestamp(timestamp: message.createdAt, now: now),
+          const SizedBox(height: 16),
+        ],
+      );
+    }
+    if (!shouldShowMessageTimestamp(
+      previousTimestamp: value.messages[index - 1].createdAt,
+      timestamp: message.createdAt,
+    )) {
+      return const SizedBox(height: 13);
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: MessageTimestamp(timestamp: message.createdAt, now: now),
     );
   }
 }

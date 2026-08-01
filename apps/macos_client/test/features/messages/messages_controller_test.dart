@@ -87,6 +87,48 @@ void main() {
     expect(container.read(provider).requireValue.nextCursor, isNull);
   });
 
+  test('loadThroughMessage pages backward until it finds the target', () async {
+    final gateway = FakeMessageGateway(
+      pages: [
+        MessagePage(messages: [testMessage('5')], nextCursor: '5'),
+        MessagePage(messages: [testMessage('3')], nextCursor: '3'),
+        MessagePage(messages: [testMessage('2')], nextCursor: null),
+      ],
+    );
+    final realtime = FakeRealtimeConnection();
+    final container = ProviderContainer(
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => StubAuthController(AuthState(session: testAuthSession)),
+        ),
+        messageGatewayProvider.overrideWithValue(gateway),
+        realtimeConnectionProvider.overrideWithValue(realtime),
+      ],
+    );
+    addTearDown(container.dispose);
+    addTearDown(realtime.close);
+    await container.read(authControllerProvider.future);
+    final provider = messagesControllerProvider('11');
+    final subscription = container.listen(provider, (_, _) {});
+    addTearDown(subscription.close);
+    await container.read(provider.future);
+
+    final found = await container
+        .read(provider.notifier)
+        .loadThroughMessage('2');
+
+    expect(found, isTrue);
+    expect(gateway.listIndex, 3);
+    expect(
+      container
+          .read(provider)
+          .requireValue
+          .messages
+          .map((message) => message.sequence),
+      ['2', '3', '5'],
+    );
+  });
+
   test('sendImage appends an image message', () async {
     final gateway = FakeMessageGateway();
     final realtime = FakeRealtimeConnection();

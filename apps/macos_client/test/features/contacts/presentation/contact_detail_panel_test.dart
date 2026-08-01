@@ -7,13 +7,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
+import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_panel.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_shared_content.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_shared_section.dart';
+import 'package:instant_chat/features/conversations/domain/conversation.dart';
+import 'package:instant_chat/features/conversations/domain/conversation_gateway.dart';
+import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
+import 'package:instant_chat/features/messages/presentation/message_navigation_target.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
+import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
 import '../../../support/widget_network_stubs.dart';
@@ -218,6 +225,79 @@ void main() {
     expect(find.byKey(const Key('contact-detail-avatar')), findsNothing);
     expect(find.byTooltip('View profile photo'), findsNothing);
   });
+
+  testWidgets('searches contact history and opens the selected message', (
+    tester,
+  ) async {
+    var messageOpenCount = 0;
+    final gateway = StubMessageGateway(
+      _authUser,
+      initialMessages: [_searchMessage],
+    );
+    await tester.binding.setSurfaceSize(const Size(1000, 760));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          conversationGatewayProvider.overrideWithValue(
+            _ContactConversationGateway(),
+          ),
+          conversationRecoveryIntervalProvider.overrideWithValue(null),
+          realtimeConnectionProvider.overrideWithValue(
+            const StubRealtimeConnection(),
+          ),
+          contactSharedContentProvider.overrideWith(
+            (ref, request) async => const ContactSharedContent.empty(),
+          ),
+          messageGatewayProvider.overrideWithValue(gateway),
+        ],
+        child: MaterialApp(
+          theme: RetroTheme.data,
+          home: Scaffold(
+            body: ContactDetailPanel(
+              contact: _contact,
+              accessToken: _session.accessToken,
+              disabled: false,
+              onMessage: () => messageOpenCount += 1,
+              onRemove: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('contact-message-search-open')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('contact-message-search-dialog')),
+      findsOneWidget,
+    );
+
+    await tester.enterText(
+      find.byKey(const Key('contact-message-search-field')),
+      'project',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        const ValueKey('contact-message-search-result-search-message'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final container = ProviderScope.containerOf(
+      tester.element(find.byType(ContactDetailPanel)),
+    );
+    final target = container.read(messageNavigationTargetProvider);
+    expect(messageOpenCount, 1);
+    expect(target?.conversationId, _conversation.id);
+    expect(target?.messageId, _searchMessage.id);
+  });
 }
 
 final _sharedContent = ContactSharedContent(
@@ -248,6 +328,14 @@ final _authUser = AuthUser(
   createdAt: DateTime.utc(2026, 7, 15),
 );
 
+final _session = AuthSession(
+  user: _authUser,
+  accessToken: 'access-token',
+  accessExpiresAt: DateTime.utc(2026, 7, 15, 14),
+  refreshToken: 'refresh-token',
+  refreshExpiresAt: DateTime.utc(2026, 8, 15),
+);
+
 final _contact = Contact(
   relationshipId: 'relationship-antoine',
   user: PublicUser(
@@ -258,6 +346,27 @@ final _contact = Contact(
     createdAt: DateTime.utc(2026, 7, 15),
   ),
   connectedAt: DateTime.utc(2026, 7, 15),
+);
+
+final _conversation = Conversation(
+  id: 'conversation-antoine',
+  kind: 'direct',
+  peer: _contact.user,
+  createdAt: DateTime.utc(2026, 7, 15),
+  updatedAt: DateTime.utc(2026, 7, 31),
+  unreadCount: 0,
+);
+
+final _searchMessage = Message(
+  id: 'search-message',
+  conversationId: _conversation.id,
+  sender: _contact.user,
+  clientMessageId: 'client-search-message',
+  sequence: '7',
+  kind: MessageKind.text,
+  body: 'The project files are ready.',
+  image: null,
+  createdAt: DateTime.utc(2026, 7, 31, 10, 42),
 );
 
 class _FakeFileActions implements LocalFileActions {
@@ -284,6 +393,33 @@ class _FakeUrlLauncher implements LocalUrlLauncher {
 
   @override
   Future<void> open(Uri url) async => opened = url;
+}
+
+class _StubAuthController extends AuthController {
+  _StubAuthController(this.value);
+
+  final AuthState value;
+
+  @override
+  Future<AuthState> build() async => value;
+}
+
+class _ContactConversationGateway implements ConversationGateway {
+  @override
+  Future<Conversation> createDirect({
+    required String accessToken,
+    required String contactUserId,
+  }) async => _conversation;
+
+  @override
+  Future<List<Conversation>> list(String accessToken) async => [_conversation];
+
+  @override
+  Future<void> markRead({
+    required String accessToken,
+    required String conversationId,
+    required String sequence,
+  }) async {}
 }
 
 final _sharedReloadIndexProvider = StateProvider<int>((ref) => 0);
