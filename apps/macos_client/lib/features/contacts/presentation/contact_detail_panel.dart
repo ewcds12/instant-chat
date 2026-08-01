@@ -4,7 +4,6 @@ import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
-import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_content.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_header.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_message_search.dart';
@@ -16,34 +15,41 @@ import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/features/messages/presentation/message_navigation_target.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
+import 'package:instant_chat/features/users/domain/public_user.dart';
 
 class ContactDetailPanel extends StatelessWidget {
   const ContactDetailPanel({
-    required this.contact,
+    required this.user,
     required this.accessToken,
     required this.disabled,
     required this.onMessage,
     required this.onRemove,
+    this.conversationId,
+    this.onBack,
     super.key,
   });
 
-  final Contact? contact;
+  final PublicUser? user;
   final String accessToken;
   final bool disabled;
   final VoidCallback? onMessage;
   final VoidCallback? onRemove;
+  final String? conversationId;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
     return LiquidGradientBackground(
-      child: contact == null
+      child: user == null
           ? const ContactDetailEmptyState()
           : _ContactDetail(
-              contact: contact!,
+              user: user!,
               accessToken: accessToken,
               disabled: disabled,
               onMessage: onMessage!,
               onRemove: onRemove!,
+              conversationId: conversationId,
+              onBack: onBack,
             ),
     );
   }
@@ -51,18 +57,22 @@ class ContactDetailPanel extends StatelessWidget {
 
 class _ContactDetail extends ConsumerStatefulWidget {
   const _ContactDetail({
-    required this.contact,
+    required this.user,
     required this.accessToken,
     required this.disabled,
     required this.onMessage,
     required this.onRemove,
+    required this.conversationId,
+    required this.onBack,
   });
 
-  final Contact contact;
+  final PublicUser user;
   final String accessToken;
   final bool disabled;
   final VoidCallback onMessage;
   final VoidCallback onRemove;
+  final String? conversationId;
+  final VoidCallback? onBack;
 
   @override
   ConsumerState<_ContactDetail> createState() => _ContactDetailState();
@@ -70,7 +80,7 @@ class _ContactDetail extends ConsumerStatefulWidget {
 
 class _ContactDetailState extends ConsumerState<_ContactDetail> {
   ContactSharedContentRequest get _request =>
-      (contactUserId: widget.contact.user.id, accessToken: widget.accessToken);
+      (contactUserId: widget.user.id, accessToken: widget.accessToken);
 
   @override
   Widget build(BuildContext context) {
@@ -82,17 +92,16 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
           disabled: widget.disabled,
           onSearch: _openHistorySearch,
           onRemove: widget.onRemove,
+          onBack: widget.onBack,
         ),
         Expanded(
           child: ContactDetailContent(
-            contact: widget.contact,
+            user: widget.user,
             accessToken: widget.accessToken,
             disabled: widget.disabled,
             sharedContent: shared,
             onMessage: _openConversation,
-            onOpenAvatar: widget.contact.user.avatarUrl == null
-                ? null
-                : _openAvatar,
+            onOpenAvatar: widget.user.avatarUrl == null ? null : _openAvatar,
             onRetryShared: () =>
                 ref.invalidate(contactSharedContentProvider(_request)),
             onOpenImage: (image) => _openImage(shared.value?.images, image),
@@ -121,32 +130,34 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
   }
 
   Future<void> _openHistorySearch() async {
-    final contact = widget.contact;
     try {
       final authState = await ref.read(authControllerProvider.future);
       final session = authState.session;
       if (!mounted || session == null) {
         return;
       }
-      final conversations = await ref.read(
-        conversationsControllerProvider.future,
-      );
-      final conversation = _conversationForContact(
-        conversations.conversations,
-        contact.user.id,
-      );
+      var conversationId = widget.conversationId;
+      if (conversationId == null) {
+        final conversations = await ref.read(
+          conversationsControllerProvider.future,
+        );
+        conversationId = _conversationForContact(
+          conversations.conversations,
+          widget.user.id,
+        )?.id;
+      }
       if (!mounted) {
         return;
       }
-      if (conversation == null) {
+      if (conversationId == null) {
         _showMessage('This chat is not available yet.');
         return;
       }
-      final message = await showContactMessageSearch(
+      final message = await showMessageHistorySearch(
         context: context,
-        contact: contact,
+        participantName: widget.user.displayName,
         currentUserId: session.user.id,
-        conversationId: conversation.id,
+        conversationId: conversationId,
         accessToken: widget.accessToken,
         gateway: ref.read(messageGatewayProvider),
       );
@@ -155,7 +166,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
       }
       ref
           .read(messageNavigationTargetProvider.notifier)
-          .select(conversationId: conversation.id, messageId: message.id);
+          .select(conversationId: conversationId, messageId: message.id);
       widget.onMessage();
     } catch (_) {
       if (mounted) {
@@ -165,7 +176,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
   }
 
   void _openAvatar() {
-    final user = widget.contact.user;
+    final user = widget.user;
     final avatar = MessageImage(
       id: 'contact-avatar-${user.id}',
       url: user.avatarUrl!,

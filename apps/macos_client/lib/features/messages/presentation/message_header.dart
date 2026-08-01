@@ -7,11 +7,13 @@ class MessageHeader extends StatelessWidget {
   const MessageHeader({
     required this.conversation,
     required this.onSearch,
+    required this.onContactInfo,
     super.key,
   });
 
   final Conversation conversation;
   final VoidCallback onSearch;
+  final VoidCallback onContactInfo;
 
   @override
   Widget build(BuildContext context) {
@@ -53,9 +55,16 @@ class MessageHeader extends StatelessWidget {
               ),
             ),
             IconButton(
+              key: const Key('message-search-open'),
               tooltip: 'Search messages',
               onPressed: onSearch,
               icon: const Icon(Icons.search_rounded, size: 19),
+            ),
+            IconButton(
+              key: const Key('message-contact-info-open'),
+              tooltip: 'View contact info',
+              onPressed: onContactInfo,
+              icon: const Icon(Icons.person_outline_rounded, size: 19),
             ),
           ],
         ),

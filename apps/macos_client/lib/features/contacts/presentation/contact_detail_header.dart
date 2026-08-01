@@ -7,12 +7,14 @@ class ContactDetailHeader extends StatelessWidget {
     required this.disabled,
     required this.onSearch,
     required this.onRemove,
+    this.onBack,
     super.key,
   });
 
   final bool disabled;
   final VoidCallback onSearch;
   final VoidCallback onRemove;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +33,15 @@ class ContactDetailHeader extends StatelessWidget {
         ),
         child: Row(
           children: [
+            if (onBack != null) ...[
+              IconButton(
+                key: const Key('contact-detail-back'),
+                tooltip: 'Back to conversation',
+                onPressed: onBack,
+                icon: const Icon(Icons.arrow_back_rounded, size: 19),
+              ),
+              const SizedBox(width: 4),
+            ],
             Expanded(
               child: Text(
                 'Contact Info',

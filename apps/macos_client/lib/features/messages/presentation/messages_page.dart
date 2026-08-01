@@ -9,7 +9,9 @@ import 'package:instant_chat/core/platform/macos_file_picker.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_detail_panel.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_message_search.dart';
+import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
@@ -27,6 +29,7 @@ import 'package:instant_chat/features/messages/presentation/messages_state.dart'
 import 'package:instant_chat/features/messages/presentation/message_status_bars.dart';
 
 part 'messages_page_attachments.dart';
+part 'messages_page_contact_info.dart';
 part 'messages_page_navigation.dart';
 
 class MessagesPage extends ConsumerStatefulWidget {
@@ -50,6 +53,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   String? _requestedMessageId;
   String? _focusedMessageId;
   var _preserveHistoryPosition = false;
+  var _showContactInfo = false;
 
   @override
   void initState() {
@@ -85,6 +89,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       _requestedMessageId = null;
       _focusedMessageId = null;
       _preserveHistoryPosition = false;
+      _showContactInfo = false;
     }
   }
 
@@ -94,6 +99,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     final state = ref.watch(provider);
     final navigationTarget = ref.watch(messageNavigationTargetProvider);
     final session = ref.read(authControllerProvider).requireValue.session!;
+    if (_showContactInfo) {
+      return _buildContactInfo(session.accessToken);
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -103,6 +111,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
             currentUserId: session.user.id,
             accessToken: session.accessToken,
           ),
+          onContactInfo: _openContactInfo,
         ),
         Expanded(
           child: MessageDropZone(
@@ -270,6 +279,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
   }
+
+  void _setContactInfoVisible(bool visible) =>
+      setState(() => _showContactInfo = visible);
 
   void _showFocusedMessage(String messageId) {
     _focusedMessageTimer?.cancel();

@@ -50,7 +50,7 @@ void main() {
           theme: RetroTheme.data,
           home: Scaffold(
             body: ContactDetailPanel(
-              contact: _contact,
+              user: _contact.user,
               accessToken: 'access-token',
               disabled: false,
               onMessage: () => messageOpenCount += 1,
@@ -206,11 +206,7 @@ void main() {
           theme: RetroTheme.data,
           home: Scaffold(
             body: ContactDetailPanel(
-              contact: Contact(
-                relationshipId: _contact.relationshipId,
-                user: _contact.user.copyWith(clearAvatarUrl: true),
-                connectedAt: _contact.connectedAt,
-              ),
+              user: _contact.user.copyWith(clearAvatarUrl: true),
               accessToken: 'access-token',
               disabled: false,
               onMessage: () {},
@@ -259,7 +255,7 @@ void main() {
           theme: RetroTheme.data,
           home: Scaffold(
             body: ContactDetailPanel(
-              contact: _contact,
+              user: _contact.user,
               accessToken: _session.accessToken,
               disabled: false,
               onMessage: () => messageOpenCount += 1,

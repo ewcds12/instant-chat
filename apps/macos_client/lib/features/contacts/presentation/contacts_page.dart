@@ -80,7 +80,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
             ),
             Expanded(
               child: ContactDetailPanel(
-                contact: selectedContact,
+                user: selectedContact?.user,
                 accessToken: accessToken,
                 disabled: contacts.isSubmitting,
                 onMessage: selectedContact == null

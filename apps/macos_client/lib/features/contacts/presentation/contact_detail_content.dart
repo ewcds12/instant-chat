@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
-import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_shared_content.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_shared_section.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
+import 'package:instant_chat/features/users/domain/public_user.dart';
 
 class ContactDetailContent extends StatelessWidget {
   const ContactDetailContent({
-    required this.contact,
+    required this.user,
     required this.accessToken,
     required this.disabled,
     required this.sharedContent,
@@ -22,7 +22,7 @@ class ContactDetailContent extends StatelessWidget {
     super.key,
   });
 
-  final Contact contact;
+  final PublicUser user;
   final String accessToken;
   final bool disabled;
   final AsyncValue<ContactSharedContent> sharedContent;
@@ -52,7 +52,7 @@ class ContactDetailContent extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _IdentityRow(
-                contact: contact,
+                user: user,
                 accessToken: accessToken,
                 disabled: disabled,
                 onMessage: onMessage,
@@ -79,14 +79,14 @@ class ContactDetailContent extends StatelessWidget {
 
 class _IdentityRow extends StatelessWidget {
   const _IdentityRow({
-    required this.contact,
+    required this.user,
     required this.accessToken,
     required this.disabled,
     required this.onMessage,
     required this.onOpenAvatar,
   });
 
-  final Contact contact;
+  final PublicUser user;
   final String accessToken;
   final bool disabled;
   final VoidCallback onMessage;
@@ -94,7 +94,6 @@ class _IdentityRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = contact.user;
     final colors = Theme.of(context).colorScheme;
     return SizedBox(
       key: const Key('contact-detail-identity'),
