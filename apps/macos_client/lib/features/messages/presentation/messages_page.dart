@@ -189,6 +189,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                             ),
                         translations: _messageTranslations,
                         onTranslate: _translateMessage,
+                        onRemoveTranslation: _removeMessageTranslation,
                         onTranslationSettings: _openTranslationSettings,
                       );
                     },

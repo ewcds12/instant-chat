@@ -46,6 +46,13 @@ abstract interface class LocalMessageTranslation {
     required String translatedText,
   });
 
+  Future<void> removeStoredTranslation({
+    required String accountId,
+    required String conversationId,
+    required String messageId,
+    required MessageTranslationLanguage targetLanguage,
+  });
+
   Future<String> translate({
     required String text,
     required MessageTranslationLanguage targetLanguage,
@@ -99,6 +106,21 @@ class MacOSMessageTranslation implements LocalMessageTranslation {
       'message_id': messageId,
       'target_language': targetLanguage.code,
       'translated_text': translatedText,
+    });
+  }
+
+  @override
+  Future<void> removeStoredTranslation({
+    required String accountId,
+    required String conversationId,
+    required String messageId,
+    required MessageTranslationLanguage targetLanguage,
+  }) {
+    return _channel.invokeMethod<void>('removeStoredTranslation', {
+      'account_id': accountId,
+      'conversation_id': conversationId,
+      'message_id': messageId,
+      'target_language': targetLanguage.code,
     });
   }
 

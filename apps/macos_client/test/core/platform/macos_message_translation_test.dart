@@ -56,7 +56,7 @@ void main() {
   });
 
   test(
-    'reads and stores translated messages by account and conversation',
+    'reads, stores, and removes translations by account and conversation',
     () async {
       final calls = <MethodCall>[];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -81,6 +81,12 @@ void main() {
         targetLanguage: MessageTranslationLanguage.simplifiedChinese,
         translatedText: '再见。',
       );
+      await translation.removeStoredTranslation(
+        accountId: '7',
+        conversationId: '11',
+        messageId: '42',
+        targetLanguage: MessageTranslationLanguage.simplifiedChinese,
+      );
 
       expect(stored, {'42': '你好。'});
       expect(calls[0].method, 'getStoredTranslations');
@@ -96,6 +102,13 @@ void main() {
         'message_id': '43',
         'target_language': 'zh-Hans',
         'translated_text': '再见。',
+      });
+      expect(calls[2].method, 'removeStoredTranslation');
+      expect(calls[2].arguments, {
+        'account_id': '7',
+        'conversation_id': '11',
+        'message_id': '42',
+        'target_language': 'zh-Hans',
       });
     },
   );

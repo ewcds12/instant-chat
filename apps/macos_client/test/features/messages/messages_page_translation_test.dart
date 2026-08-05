@@ -114,6 +114,44 @@ void main() {
     expect(translation.translateCount, 0);
     expect(find.text('Translating…'), findsNothing);
   });
+
+  testWidgets('removes a stored translation from the message menu', (
+    tester,
+  ) async {
+    final translation = _StubMessageTranslation(
+      currentLanguage: MessageTranslationLanguage.simplifiedChinese,
+      storedTranslations: const {'1': '你好。'},
+    );
+    final container = await _container(translation);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(
+      tester,
+      find.byKey(const ValueKey('message-translation-text-1')),
+    );
+
+    final bubbleFinder = find.byKey(const ValueKey('message-bubble-1'));
+    await _rightClick(tester, bubbleFinder);
+    expect(find.text('Original'), findsOneWidget);
+    expect(find.text('Translate'), findsNothing);
+    await tester.tap(find.text('Original'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Hello.'), findsOneWidget);
+    expect(find.text('你好。'), findsNothing);
+    expect(translation.storedTranslations, isEmpty);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(tester, bubbleFinder);
+    await tester.pump();
+
+    expect(find.text('你好。'), findsNothing);
+    await _rightClick(tester, bubbleFinder);
+    expect(find.text('Translate'), findsOneWidget);
+    expect(find.text('Original'), findsNothing);
+  });
 }
 
 Future<ProviderContainer> _container(
@@ -169,13 +207,20 @@ Future<void> _pumpUntil(WidgetTester tester, Finder finder) async {
 }
 
 class _StubMessageTranslation implements LocalMessageTranslation {
-  _StubMessageTranslation({this.currentLanguage});
+  _StubMessageTranslation({
+    this.currentLanguage,
+    Map<String, String> storedTranslations = const {},
+  }) {
+    _storedTranslations.addAll(storedTranslations);
+  }
 
   MessageTranslationLanguage? currentLanguage;
   MessageTranslationLanguage? savedLanguage;
   var translateCount = 0;
   Completer<String>? _translation;
   final _storedTranslations = <String, String>{};
+  Map<String, String> get storedTranslations =>
+      Map.unmodifiable(_storedTranslations);
 
   @override
   Future<MessageTranslationLanguage?> getTargetLanguage() async =>
@@ -203,6 +248,16 @@ class _StubMessageTranslation implements LocalMessageTranslation {
     required String translatedText,
   }) async {
     _storedTranslations[messageId] = translatedText;
+  }
+
+  @override
+  Future<void> removeStoredTranslation({
+    required String accountId,
+    required String conversationId,
+    required String messageId,
+    required MessageTranslationLanguage targetLanguage,
+  }) async {
+    _storedTranslations.remove(messageId);
   }
 
   @override

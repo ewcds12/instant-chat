@@ -11,6 +11,7 @@ enum _MessageMenuAction {
   reply,
   copy,
   translate,
+  removeTranslation,
   translationSettings,
   recall,
   delete,
@@ -24,7 +25,9 @@ class MessageContextMenu extends StatelessWidget {
     required this.onDelete,
     this.onReply,
     this.onTranslate,
+    this.onRemoveTranslation,
     this.onTranslationSettings,
+    this.translationVisible = false,
     required this.child,
     super.key,
   });
@@ -35,7 +38,9 @@ class MessageContextMenu extends StatelessWidget {
   final Future<bool> Function(Message message) onDelete;
   final ValueChanged<Message>? onReply;
   final Future<void> Function(Message message)? onTranslate;
+  final Future<void> Function(Message message)? onRemoveTranslation;
   final Future<void> Function()? onTranslationSettings;
+  final bool translationVisible;
   final Widget child;
 
   @override
@@ -78,6 +83,8 @@ class MessageContextMenu extends StatelessWidget {
         await Clipboard.setData(ClipboardData(text: message.body));
       case _MessageMenuAction.translate:
         await onTranslate?.call(message);
+      case _MessageMenuAction.removeTranslation:
+        await onRemoveTranslation?.call(message);
       case _MessageMenuAction.translationSettings:
         await onTranslationSettings?.call();
       case _MessageMenuAction.recall:
@@ -97,7 +104,15 @@ class MessageContextMenu extends StatelessWidget {
     if (message.kind == MessageKind.text) {
       items.add(_item(_MessageMenuAction.copy, Icons.copy_outlined, 'Copy'));
       if (onTranslate != null && onTranslationSettings != null) {
-        items.add(_translationItem(context));
+        items.add(
+          _translationItem(
+            context,
+            action: translationVisible
+                ? _MessageMenuAction.removeTranslation
+                : _MessageMenuAction.translate,
+            label: translationVisible ? 'Original' : 'Translate',
+          ),
+        );
       }
     }
     if (isMine && _canRecall(message.createdAt)) {
@@ -115,14 +130,18 @@ class MessageContextMenu extends StatelessWidget {
     return items;
   }
 
-  PopupMenuItem<_MessageMenuAction> _translationItem(BuildContext context) {
+  PopupMenuItem<_MessageMenuAction> _translationItem(
+    BuildContext context, {
+    required _MessageMenuAction action,
+    required String label,
+  }) {
     return PopupMenuItem(
-      value: _MessageMenuAction.translate,
+      value: action,
       child: Row(
         children: [
           const Icon(Icons.translate_rounded, size: 17),
           const SizedBox(width: 10),
-          const Expanded(child: Text('Translate')),
+          Expanded(child: Text(label)),
           IconButton(
             key: const Key('message-translation-settings'),
             tooltip: 'Translation settings',

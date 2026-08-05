@@ -75,6 +75,41 @@ extension _MessagesPageTranslation on _MessagesPageState {
     );
   }
 
+  Future<void> _removeMessageTranslation(Message message) async {
+    final translation = _messageTranslations[message.id];
+    if (translation?.status != MessageTranslationStatus.translated) {
+      return;
+    }
+    final conversationId = widget.conversation.id;
+    final accountId = ref
+        .read(authControllerProvider)
+        .requireValue
+        .session!
+        .user
+        .id;
+    _updateTranslationState(() {
+      _messageTranslations.remove(message.id);
+    });
+    try {
+      await ref
+          .read(localMessageTranslationProvider)
+          .removeStoredTranslation(
+            accountId: accountId,
+            conversationId: conversationId,
+            messageId: message.id,
+            targetLanguage: translation!.language,
+          );
+    } catch (_) {
+      if (!mounted || widget.conversation.id != conversationId) {
+        return;
+      }
+      _updateTranslationState(() {
+        _messageTranslations.putIfAbsent(message.id, () => translation!);
+      });
+      _showSaveError('Translation could not be removed.');
+    }
+  }
+
   Future<MessageTranslationLanguage?> _requireTranslationLanguage() async {
     final currentLanguage = await _loadTranslationLanguage();
     if (!mounted || currentLanguage != null) {

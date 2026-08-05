@@ -27,6 +27,7 @@ class MessageHistory extends StatelessWidget {
     this.onOpenReply,
     this.translations = const {},
     this.onTranslate,
+    this.onRemoveTranslation,
     this.onTranslationSettings,
     super.key,
   });
@@ -47,6 +48,7 @@ class MessageHistory extends StatelessWidget {
   final ValueChanged<String>? onOpenReply;
   final Map<String, MessageTranslationPresentation> translations;
   final Future<void> Function(Message message)? onTranslate;
+  final Future<void> Function(Message message)? onRemoveTranslation;
   final Future<void> Function()? onTranslationSettings;
 
   @override
@@ -176,6 +178,7 @@ class MessageHistory extends StatelessWidget {
       onOpenReply: onOpenReply,
       translation: translations[message.id],
       onTranslate: onTranslate,
+      onRemoveTranslation: onRemoveTranslation,
       onTranslationSettings: onTranslationSettings,
     );
   }

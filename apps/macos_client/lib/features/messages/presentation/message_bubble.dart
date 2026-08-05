@@ -26,6 +26,7 @@ class MessageBubble extends StatelessWidget {
     this.onOpenReply,
     this.translation,
     this.onTranslate,
+    this.onRemoveTranslation,
     this.onTranslationSettings,
     super.key,
   });
@@ -44,6 +45,7 @@ class MessageBubble extends StatelessWidget {
   final ValueChanged<String>? onOpenReply;
   final MessageTranslationPresentation? translation;
   final Future<void> Function(Message message)? onTranslate;
+  final Future<void> Function(Message message)? onRemoveTranslation;
   final Future<void> Function()? onTranslationSettings;
 
   @override
@@ -55,7 +57,10 @@ class MessageBubble extends StatelessWidget {
       onDelete: onDelete,
       onReply: onReply,
       onTranslate: onTranslate,
+      onRemoveTranslation: onRemoveTranslation,
       onTranslationSettings: onTranslationSettings,
+      translationVisible:
+          translation?.status == MessageTranslationStatus.translated,
       child: _MessageContent(
         message: message,
         isMine: isMine,

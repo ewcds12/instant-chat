@@ -94,6 +94,34 @@ final class MessageTranslationChannel {
       translations[messageID] = translatedText
       UserDefaults.standard.set(translations, forKey: key)
       result(nil)
+    case "removeStoredTranslation":
+      guard let arguments = call.arguments as? [String: Any],
+        let accountID = arguments["account_id"] as? String,
+        !accountID.isEmpty,
+        let conversationID = arguments["conversation_id"] as? String,
+        !conversationID.isEmpty,
+        let messageID = arguments["message_id"] as? String,
+        !messageID.isEmpty,
+        let targetCode = arguments["target_language"] as? String,
+        let target = MessageTranslationLanguage(rawValue: targetCode)
+      else {
+        result(invalidArgumentsError)
+        return
+      }
+      let key = translationStoreKey(
+        accountID: accountID,
+        conversationID: conversationID,
+        target: target
+      )
+      var translations = UserDefaults.standard.dictionary(forKey: key)?
+        .compactMapValues { $0 as? String } ?? [:]
+      translations.removeValue(forKey: messageID)
+      if translations.isEmpty {
+        UserDefaults.standard.removeObject(forKey: key)
+      } else {
+        UserDefaults.standard.set(translations, forKey: key)
+      }
+      result(nil)
     case "translate":
       guard let arguments = call.arguments as? [String: Any],
         let text = arguments["text"] as? String,
