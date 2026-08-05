@@ -13,7 +13,6 @@ import 'package:instant_chat/features/messages/presentation/message_image_previe
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_page.dart';
-import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
 
@@ -190,10 +189,7 @@ void main() {
     expect(find.textContaining('15:09'), findsOneWidget);
   });
 
-  testWidgets('shows an avatar next to every message', (tester) async {
-    final avatarPeer = _conversation.peer.copyWith(
-      avatarUrl: '/api/v1/users/8/avatar',
-    );
+  testWidgets('omits sender avatars from message history', (tester) async {
     final gateway = StubMessageGateway(
       _session.user,
       initialMessages: [
@@ -201,7 +197,7 @@ void main() {
         _message('peer-2', 'Second', sequence: '2'),
         _ownMessage('mine-1', 'Third', sequence: '3'),
         _ownMessage('mine-2', 'Fourth', sequence: '4'),
-        _message('peer-3', 'Fifth', sequence: '5', sender: avatarPeer),
+        _message('peer-3', 'Fifth', sequence: '5'),
       ],
     );
     final container = await _container(gateway: gateway);
@@ -210,31 +206,11 @@ void main() {
     await tester.pumpWidget(_messagesPage(container));
     await _pumpUntil(tester, find.byKey(const Key('message-bubble-peer-3')));
 
-    expect(
-      find.byKey(const Key('message-sender-avatar-peer-1')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('message-sender-avatar-peer-2')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('message-sender-avatar-mine-1')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('message-sender-avatar-mine-2')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const Key('message-sender-avatar-peer-3')),
-      findsOneWidget,
-    );
-    final avatar = tester.widget<ProfileAvatar>(
-      find.byKey(const Key('message-sender-avatar-peer-3')),
-    );
-    expect(avatar.avatarUrl, '/api/v1/users/8/avatar');
-    expect(avatar.radius, 18);
+    expect(find.byKey(const Key('message-sender-avatar-peer-1')), findsNothing);
+    expect(find.byKey(const Key('message-sender-avatar-peer-2')), findsNothing);
+    expect(find.byKey(const Key('message-sender-avatar-mine-1')), findsNothing);
+    expect(find.byKey(const Key('message-sender-avatar-mine-2')), findsNothing);
+    expect(find.byKey(const Key('message-sender-avatar-peer-3')), findsNothing);
 
     final firstIncomingBubble = tester.getRect(
       find.byKey(const Key('message-bubble-peer-1')),

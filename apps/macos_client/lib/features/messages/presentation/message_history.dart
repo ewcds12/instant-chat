@@ -3,6 +3,7 @@ import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_bubble.dart';
 import 'package:instant_chat/features/messages/presentation/message_recall_stamp.dart';
+import 'package:instant_chat/features/messages/presentation/message_translation_view.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 import 'package:instant_chat/features/messages/presentation/message_timestamp.dart';
 
@@ -24,6 +25,9 @@ class MessageHistory extends StatelessWidget {
     required this.onDelete,
     this.onReply,
     this.onOpenReply,
+    this.translations = const {},
+    this.onTranslate,
+    this.onTranslationSettings,
     super.key,
   });
 
@@ -41,6 +45,9 @@ class MessageHistory extends StatelessWidget {
   final Future<bool> Function(Message message) onDelete;
   final ValueChanged<Message>? onReply;
   final ValueChanged<String>? onOpenReply;
+  final Map<String, MessageTranslationPresentation> translations;
+  final Future<void> Function(Message message)? onTranslate;
+  final Future<void> Function()? onTranslationSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -157,7 +164,7 @@ class MessageHistory extends StatelessWidget {
     return MessageBubble(
       message: message,
       isMine: message.sender.id == currentUserId,
-      showSenderAvatar: true,
+      showSenderAvatar: false,
       imageMessages: imageMessages,
       accessToken: accessToken,
       onOpenFile: onOpenFile,
@@ -167,6 +174,9 @@ class MessageHistory extends StatelessWidget {
       onDelete: onDelete,
       onReply: onReply,
       onOpenReply: onOpenReply,
+      translation: translations[message.id],
+      onTranslate: onTranslate,
+      onTranslationSettings: onTranslationSettings,
     );
   }
 }

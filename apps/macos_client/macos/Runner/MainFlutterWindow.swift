@@ -7,6 +7,7 @@ class MainFlutterWindow: NSWindow {
   private static let standardTrafficLightOrigin = NSPoint(x: 7, y: 6)
   private static let trafficLightSpacing = CGFloat(20)
   private var clipboardImageChannel: ClipboardImageChannel?
+  private var messageTranslationChannel: MessageTranslationChannel?
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
@@ -21,6 +22,9 @@ class MainFlutterWindow: NSWindow {
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     clipboardImageChannel = ClipboardImageChannel(
+      controller: flutterViewController
+    )
+    messageTranslationChannel = MessageTranslationChannel(
       controller: flutterViewController
     )
     configurePasteMenuItem()

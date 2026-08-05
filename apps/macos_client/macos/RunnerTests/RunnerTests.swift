@@ -53,4 +53,11 @@ class RunnerTests: XCTestCase {
       XCTAssertEqual(button.frame.minY, originalFrames[index].minY - 8)
     }
   }
+
+  func testMessageTranslationLanguagesUseSupportedLocaleIdentifiers() {
+    XCTAssertEqual(MessageTranslationLanguage.english.rawValue, "en")
+    XCTAssertEqual(MessageTranslationLanguage.simplifiedChinese.rawValue, "zh-Hans")
+    XCTAssertEqual(MessageTranslationLanguage.japanese.rawValue, "ja")
+    XCTAssertNil(MessageTranslationLanguage(rawValue: "unsupported"))
+  }
 }

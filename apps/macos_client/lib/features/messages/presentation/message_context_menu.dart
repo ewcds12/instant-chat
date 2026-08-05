@@ -7,7 +7,14 @@ import 'package:instant_chat/features/messages/domain/message.dart';
 
 const _recallWindow = Duration(minutes: 5);
 
-enum _MessageMenuAction { reply, copy, recall, delete }
+enum _MessageMenuAction {
+  reply,
+  copy,
+  translate,
+  translationSettings,
+  recall,
+  delete,
+}
 
 class MessageContextMenu extends StatelessWidget {
   const MessageContextMenu({
@@ -16,6 +23,8 @@ class MessageContextMenu extends StatelessWidget {
     required this.onRecall,
     required this.onDelete,
     this.onReply,
+    this.onTranslate,
+    this.onTranslationSettings,
     required this.child,
     super.key,
   });
@@ -25,6 +34,8 @@ class MessageContextMenu extends StatelessWidget {
   final Future<bool> Function(Message message) onRecall;
   final Future<bool> Function(Message message) onDelete;
   final ValueChanged<Message>? onReply;
+  final Future<void> Function(Message message)? onTranslate;
+  final Future<void> Function()? onTranslationSettings;
   final Widget child;
 
   @override
@@ -65,6 +76,10 @@ class MessageContextMenu extends StatelessWidget {
         onReply?.call(message);
       case _MessageMenuAction.copy:
         await Clipboard.setData(ClipboardData(text: message.body));
+      case _MessageMenuAction.translate:
+        await onTranslate?.call(message);
+      case _MessageMenuAction.translationSettings:
+        await onTranslationSettings?.call();
       case _MessageMenuAction.recall:
         await onRecall(message);
       case _MessageMenuAction.delete:
@@ -81,6 +96,9 @@ class MessageContextMenu extends StatelessWidget {
     }
     if (message.kind == MessageKind.text) {
       items.add(_item(_MessageMenuAction.copy, Icons.copy_outlined, 'Copy'));
+      if (onTranslate != null && onTranslationSettings != null) {
+        items.add(_translationItem(context));
+      }
     }
     if (isMine && _canRecall(message.createdAt)) {
       items.add(_item(_MessageMenuAction.recall, Icons.undo_rounded, 'Recall'));
@@ -95,6 +113,35 @@ class MessageContextMenu extends StatelessWidget {
       );
     }
     return items;
+  }
+
+  PopupMenuItem<_MessageMenuAction> _translationItem(BuildContext context) {
+    return PopupMenuItem(
+      value: _MessageMenuAction.translate,
+      child: Row(
+        children: [
+          const Icon(Icons.translate_rounded, size: 17),
+          const SizedBox(width: 10),
+          const Expanded(child: Text('Translate')),
+          IconButton(
+            key: const Key('message-translation-settings'),
+            tooltip: 'Translation settings',
+            visualDensity: VisualDensity.compact,
+            constraints: const BoxConstraints.tightFor(
+              width: RetroMetrics.messageMenuSettingsDiameter,
+              height: RetroMetrics.messageMenuSettingsDiameter,
+            ),
+            padding: EdgeInsets.zero,
+            onPressed: () =>
+                Navigator.pop(context, _MessageMenuAction.translationSettings),
+            icon: const Icon(
+              Icons.settings_outlined,
+              size: RetroMetrics.messageMenuSettingsIconSize,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   PopupMenuItem<_MessageMenuAction> _item(

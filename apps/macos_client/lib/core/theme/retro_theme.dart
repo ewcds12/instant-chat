@@ -75,12 +75,20 @@ abstract final class RetroMetrics {
   static const messageAvatarDiameter = 40.0;
   static const messageAvatarGap = 4.0;
   static const messageAvatarSlotWidth = 44.0;
+  static const messageBubbleMaxWidth = 520.0;
+  static const messageBubbleHorizontalInset = 20.0;
+  static const messageBubbleVerticalInset = 12.0;
   static const messageReplyAccentWidth = 2.0;
   static const messageReplyTextInset = 8.0;
   static const messageReplyContentGap = 7.0;
   static const messageReplyLineGap = 1.0;
   static const messageReplyTitleSize = 11.0;
   static const messageReplyBodySize = 12.0;
+  static const messageTranslationProgressSize = 12.0;
+  static const messageTranslationStatusIconSize = 14.0;
+  static const messageTranslationDialogWidth = 280.0;
+  static const messageMenuSettingsDiameter = 28.0;
+  static const messageMenuSettingsIconSize = 15.0;
   static const statusIconSize = 20.0;
 }
 

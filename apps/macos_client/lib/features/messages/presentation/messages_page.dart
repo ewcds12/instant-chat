@@ -7,6 +7,7 @@ import 'package:instant_chat/core/platform/macos_clipboard_image.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_file_picker.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
+import 'package:instant_chat/core/platform/macos_message_translation.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_panel.dart';
@@ -27,11 +28,14 @@ import 'package:instant_chat/features/messages/presentation/message_read_tracker
 import 'package:instant_chat/features/messages/presentation/messages_controller.dart';
 import 'package:instant_chat/features/messages/presentation/messages_state.dart';
 import 'package:instant_chat/features/messages/presentation/message_status_bars.dart';
+import 'package:instant_chat/features/messages/presentation/message_translation_dialog.dart';
+import 'package:instant_chat/features/messages/presentation/message_translation_view.dart';
 
 part 'messages_page_attachments.dart';
 part 'messages_page_composer.dart';
 part 'messages_page_contact_info.dart';
 part 'messages_page_navigation.dart';
+part 'messages_page_translation.dart';
 
 class MessagesPage extends ConsumerStatefulWidget {
   const MessagesPage({required this.conversation, super.key});
@@ -51,6 +55,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
   late final MessageImageDraft _imageDraft;
   MessageDroppedFile? _failedDroppedFile;
   Message? _replyingTo;
+  final _messageTranslations = <String, MessageTranslationPresentation>{};
+  MessageTranslationLanguage? _translationLanguage;
+  var _translationLanguageLoaded = false;
   Timer? _focusedMessageTimer;
   String? _requestedMessageId;
   String? _anchoredMessageId;
@@ -66,6 +73,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       onLimitReached: _showImageLimit,
     );
     _composerFocus.addListener(_updateNativePasteState);
+    unawaited(_restoreStoredTranslations());
   }
 
   @override
@@ -88,6 +96,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       _imageDraft.clear();
       _failedDroppedFile = null;
       _replyingTo = null;
+      _messageTranslations.clear();
       _focusedMessageTimer?.cancel();
       _focusedMessageTimer = null;
       _requestedMessageId = null;
@@ -95,6 +104,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       _focusedMessageId = null;
       _preserveHistoryPosition = false;
       _showContactInfo = false;
+      unawaited(_restoreStoredTranslations());
     }
   }
 
@@ -177,6 +187,9 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                               conversationId: widget.conversation.id,
                               messageId: messageId,
                             ),
+                        translations: _messageTranslations,
+                        onTranslate: _translateMessage,
+                        onTranslationSettings: _openTranslationSettings,
                       );
                     },
                   ),
@@ -278,6 +291,8 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
 
   void _setContactInfoVisible(bool visible) =>
       setState(() => _showContactInfo = visible);
+
+  void _updateTranslationState(VoidCallback update) => setState(update);
 
   void _startReply(Message message) {
     setState(() => _replyingTo = message);

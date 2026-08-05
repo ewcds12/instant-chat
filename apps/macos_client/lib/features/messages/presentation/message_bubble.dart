@@ -7,6 +7,7 @@ import 'package:instant_chat/features/messages/presentation/message_image_previe
 import 'package:instant_chat/features/messages/presentation/message_image_view.dart';
 import 'package:instant_chat/features/messages/presentation/message_link_text.dart';
 import 'package:instant_chat/features/messages/presentation/message_reply_preview.dart';
+import 'package:instant_chat/features/messages/presentation/message_translation_view.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -23,6 +24,9 @@ class MessageBubble extends StatelessWidget {
     required this.onDelete,
     this.onReply,
     this.onOpenReply,
+    this.translation,
+    this.onTranslate,
+    this.onTranslationSettings,
     super.key,
   });
 
@@ -38,6 +42,9 @@ class MessageBubble extends StatelessWidget {
   final Future<bool> Function(Message message) onDelete;
   final ValueChanged<Message>? onReply;
   final ValueChanged<String>? onOpenReply;
+  final MessageTranslationPresentation? translation;
+  final Future<void> Function(Message message)? onTranslate;
+  final Future<void> Function()? onTranslationSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +54,8 @@ class MessageBubble extends StatelessWidget {
       onRecall: onRecall,
       onDelete: onDelete,
       onReply: onReply,
+      onTranslate: onTranslate,
+      onTranslationSettings: onTranslationSettings,
       child: _MessageContent(
         message: message,
         isMine: isMine,
@@ -56,29 +65,29 @@ class MessageBubble extends StatelessWidget {
         onOpenLink: onOpenLink,
         onDownloadImage: onDownloadImage,
         onOpenReply: onOpenReply,
+        translation: translation,
       ),
     );
     final avatar = _MessageSenderAvatar(
       message: message,
       accessToken: accessToken,
-      showAvatar: showSenderAvatar,
     );
     return Align(
       alignment: isMine ? Alignment.centerRight : Alignment.centerLeft,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: isMine
-            ? [
-                content,
-                const SizedBox(width: RetroMetrics.messageAvatarGap),
-                avatar,
-              ]
-            : [
-                avatar,
-                const SizedBox(width: RetroMetrics.messageAvatarGap),
-                content,
-              ],
+        children: [
+          if (showSenderAvatar && !isMine) ...[
+            avatar,
+            const SizedBox(width: RetroMetrics.messageAvatarGap),
+          ],
+          content,
+          if (showSenderAvatar && isMine) ...[
+            const SizedBox(width: RetroMetrics.messageAvatarGap),
+            avatar,
+          ],
+        ],
       ),
     );
   }
@@ -94,6 +103,7 @@ class _MessageContent extends StatelessWidget {
     required this.onOpenLink,
     required this.onDownloadImage,
     required this.onOpenReply,
+    required this.translation,
   });
 
   final Message message;
@@ -104,6 +114,7 @@ class _MessageContent extends StatelessWidget {
   final Future<void> Function(Uri link) onOpenLink;
   final Future<void> Function(MessageImage image) onDownloadImage;
   final ValueChanged<String>? onOpenReply;
+  final MessageTranslationPresentation? translation;
 
   @override
   Widget build(BuildContext context) {
@@ -111,6 +122,15 @@ class _MessageContent extends StatelessWidget {
     final image = message.kind == MessageKind.image ? message.image : null;
     final file = message.kind == MessageKind.file ? message.file : null;
     final openReply = onOpenReply;
+    final messageTextStyle =
+        (Theme.of(context).textTheme.bodyMedium ?? const TextStyle()).copyWith(
+          color: isMine ? colors.onPrimary : colors.onSurface,
+          fontSize: 14,
+          height: 1.28,
+        );
+    final translationWidth = translation == null
+        ? null
+        : _measureMessageTextWidth(context, messageTextStyle);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: isMine
@@ -142,8 +162,13 @@ class _MessageContent extends StatelessWidget {
         else
           Container(
             key: ValueKey('message-bubble-${message.id}'),
-            constraints: const BoxConstraints(maxWidth: 520),
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            constraints: const BoxConstraints(
+              maxWidth: RetroMetrics.messageBubbleMaxWidth,
+            ),
+            padding: const EdgeInsets.symmetric(
+              horizontal: RetroMetrics.messageBubbleHorizontalInset,
+              vertical: RetroMetrics.messageBubbleVerticalInset,
+            ),
             decoration: BoxDecoration(
               color: isMine ? null : RetroColors.glassStrong,
               gradient: isMine
@@ -181,14 +206,7 @@ class _MessageContent extends StatelessWidget {
                 MessageLinkText(
                   key: ValueKey('message-link-text-${message.id}'),
                   text: message.body,
-                  style:
-                      (Theme.of(context).textTheme.bodyMedium ??
-                              const TextStyle())
-                          .copyWith(
-                            color: isMine ? colors.onPrimary : colors.onSurface,
-                            fontSize: 14,
-                            height: 1.28,
-                          ),
+                  style: messageTextStyle,
                   linkStyle: TextStyle(
                     color: isMine ? colors.onPrimary : colors.primary,
                     decoration: TextDecoration.underline,
@@ -196,11 +214,47 @@ class _MessageContent extends StatelessWidget {
                   ),
                   onOpenLink: onOpenLink,
                 ),
+                if (translation case final translation?) ...[
+                  const SizedBox(height: RetroMetrics.spaceSmall),
+                  SizedBox(
+                    width: translationWidth,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Divider(
+                          color: (isMine ? colors.onPrimary : colors.onSurface)
+                              .withValues(alpha: 0.18),
+                        ),
+                        MessageTranslationView(
+                          messageId: message.id,
+                          translation: translation,
+                          isMine: isMine,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
       ],
     );
+  }
+
+  double _measureMessageTextWidth(BuildContext context, TextStyle style) {
+    final painter =
+        TextPainter(
+          text: TextSpan(text: message.body, style: style),
+          textDirection: Directionality.of(context),
+          textScaler: MediaQuery.textScalerOf(context),
+        )..layout(
+          maxWidth:
+              RetroMetrics.messageBubbleMaxWidth -
+              (RetroMetrics.messageBubbleHorizontalInset * 2),
+        );
+    final width = painter.width;
+    painter.dispose();
+    return width;
   }
 }
 
@@ -208,50 +262,46 @@ class _MessageSenderAvatar extends StatelessWidget {
   const _MessageSenderAvatar({
     required this.message,
     required this.accessToken,
-    required this.showAvatar,
   });
 
   final Message message;
   final String accessToken;
-  final bool showAvatar;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: RetroMetrics.messageAvatarSlotWidth,
-      child: showAvatar
-          ? Align(
-              alignment: Alignment.topCenter,
-              child: DecoratedBox(
-                key: Key('message-sender-avatar-frame-${message.id}'),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x220F172A),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: ProfileAvatar(
-                    key: Key('message-sender-avatar-${message.id}'),
-                    name: message.sender.displayName,
-                    avatarUrl: message.sender.avatarUrl,
-                    accessToken: accessToken,
-                    radius: (RetroMetrics.messageAvatarDiameter - 4) / 2,
-                    textStyle: Theme.of(context).textTheme.labelLarge,
-                  ),
-                ),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: DecoratedBox(
+          key: Key('message-sender-avatar-frame-${message.id}'),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x220F172A),
+                blurRadius: 8,
+                offset: Offset(0, 3),
               ),
-            )
-          : null,
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(2),
+            child: ProfileAvatar(
+              key: Key('message-sender-avatar-${message.id}'),
+              name: message.sender.displayName,
+              avatarUrl: message.sender.avatarUrl,
+              accessToken: accessToken,
+              radius: (RetroMetrics.messageAvatarDiameter - 4) / 2,
+              textStyle: Theme.of(context).textTheme.labelLarge,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
