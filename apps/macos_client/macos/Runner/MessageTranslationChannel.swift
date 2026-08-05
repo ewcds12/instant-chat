@@ -3,10 +3,30 @@ import FlutterMacOS
 import SwiftUI
 import Translation
 
-enum MessageTranslationLanguage: String, CaseIterable {
-  case english = "en"
-  case simplifiedChinese = "zh-Hans"
-  case japanese = "ja"
+struct MessageTranslationLanguage: Equatable {
+  private static let identifierPattern =
+    #"^[A-Za-z]{2,3}(?:-[A-Za-z]{4})?(?:-(?:[A-Za-z]{2}|[0-9]{3}))?$"#
+
+  static let english = MessageTranslationLanguage(rawValue: "en")!
+  static let simplifiedChinese = MessageTranslationLanguage(rawValue: "zh-Hans")!
+  static let japanese = MessageTranslationLanguage(rawValue: "ja")!
+  static let traditionalChinese = MessageTranslationLanguage(rawValue: "zh-Hant")!
+  static let spanish = MessageTranslationLanguage(rawValue: "es")!
+  static let britishEnglish = MessageTranslationLanguage(rawValue: "en-GB")!
+  static let french = MessageTranslationLanguage(rawValue: "fr")!
+  static let korean = MessageTranslationLanguage(rawValue: "ko")!
+
+  let rawValue: String
+
+  init?(rawValue: String) {
+    guard rawValue.range(
+      of: Self.identifierPattern,
+      options: .regularExpression
+    ) != nil else {
+      return nil
+    }
+    self.rawValue = rawValue
+  }
 
   @available(macOS 15.0, *)
   var localeLanguage: Locale.Language {
@@ -39,6 +59,21 @@ final class MessageTranslationChannel {
     switch call.method {
     case "getTargetLanguage":
       result(UserDefaults.standard.string(forKey: Self.preferenceKey))
+    case "getSupportedLanguages":
+      guard #available(macOS 15.0, *) else {
+        result(
+          FlutterError(
+            code: "translation_unavailable",
+            message: "Translation requires macOS 15 or later.",
+            details: nil
+          )
+        )
+        return
+      }
+      Task { @MainActor in
+        let languages = await LanguageAvailability().supportedLanguages
+        result(Self.supportedLanguagePayload(languages))
+      }
     case "setTargetLanguage":
       guard let code = call.arguments as? String,
         MessageTranslationLanguage(rawValue: code) != nil
@@ -154,6 +189,48 @@ final class MessageTranslationChannel {
       message: "The translation request is invalid.",
       details: nil
     )
+  }
+
+  @available(macOS 15.0, *)
+  private static func supportedLanguagePayload(
+    _ languages: [Locale.Language]
+  ) -> [[String: String]] {
+    let englishLocale = Locale(identifier: "en_US")
+    let preferredLabels = [
+      "en": "English",
+      "zh-Hans": "Simplified Chinese",
+      "ja": "Japanese",
+      "zh-Hant": "Traditional Chinese",
+      "es": "Spanish",
+      "en-GB": "English (UK)",
+      "fr": "French",
+      "ko": "Korean",
+    ]
+    var labelsByCode: [String: String] = [:]
+    for language in languages {
+      let code = stableLanguageIdentifier(language.minimalIdentifier)
+      labelsByCode[code] = preferredLabels[code]
+        ?? englishLocale.localizedString(forIdentifier: code)
+        ?? code
+    }
+    return labelsByCode
+      .map { ["code": $0.key, "label": $0.value] }
+      .sorted {
+        $0["label"]!.localizedCaseInsensitiveCompare($1["label"]!) == .orderedAscending
+      }
+  }
+
+  private static func stableLanguageIdentifier(_ identifier: String) -> String {
+    switch identifier.lowercased() {
+    case "en-us": return "en"
+    case "es-es": return "es"
+    case "fr-fr": return "fr"
+    case "ja-jp": return "ja"
+    case "ko-kr": return "ko"
+    case "zh-cn", "zh-hans": return "zh-Hans"
+    case "zh-tw", "zh-hant": return "zh-Hant"
+    default: return identifier
+    }
   }
 
   private func translationStoreKey(

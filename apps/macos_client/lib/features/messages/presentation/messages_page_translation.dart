@@ -140,9 +140,24 @@ extension _MessagesPageTranslation on _MessagesPageState {
     required MessageTranslationLanguage? currentLanguage,
     required bool selectionRequired,
   }) async {
+    var languages = MessageTranslationLanguage.fallbackValues;
+    try {
+      final supported = await ref
+          .read(localMessageTranslationProvider)
+          .getSupportedLanguages();
+      if (supported.isNotEmpty) {
+        languages = supported;
+      }
+    } catch (_) {
+      languages = MessageTranslationLanguage.fallbackValues;
+    }
+    if (!mounted) {
+      return null;
+    }
     final selected = await showMessageTranslationLanguageDialog(
       context: context,
       currentLanguage: currentLanguage,
+      languages: languages,
       selectionRequired: selectionRequired,
     );
     if (!mounted || selected == null) {

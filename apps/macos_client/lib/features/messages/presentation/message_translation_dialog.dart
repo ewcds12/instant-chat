@@ -5,6 +5,7 @@ import 'package:instant_chat/core/theme/retro_theme.dart';
 Future<MessageTranslationLanguage?> showMessageTranslationLanguageDialog({
   required BuildContext context,
   required MessageTranslationLanguage? currentLanguage,
+  required List<MessageTranslationLanguage> languages,
   required bool selectionRequired,
 }) {
   return showDialog<MessageTranslationLanguage>(
@@ -23,15 +24,21 @@ Future<MessageTranslationLanguage?> showMessageTranslationLanguageDialog({
         ),
         content: SizedBox(
           width: RetroMetrics.messageTranslationDialogWidth,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              for (final language in MessageTranslationLanguage.values)
-                _LanguageOption(
-                  language: language,
-                  selected: language == currentLanguage,
-                ),
-            ],
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(
+              maxHeight: RetroMetrics.messageTranslationDialogMaxHeight,
+            ),
+            child: ListView(
+              key: const Key('message-translation-language-list'),
+              shrinkWrap: true,
+              children: [
+                for (final language in languages)
+                  _LanguageOption(
+                    language: language,
+                    selected: language == currentLanguage,
+                  ),
+              ],
+            ),
           ),
         ),
         actions: selectionRequired

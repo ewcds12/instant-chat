@@ -11,6 +11,42 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
+  test('maps every translation language code to its display label', () {
+    expect(
+      {
+        for (final language in MessageTranslationLanguage.fallbackValues)
+          language.code: language.label,
+      },
+      {
+        'en': 'English',
+        'zh-Hans': 'Simplified Chinese',
+        'ja': 'Japanese',
+        'zh-Hant': 'Traditional Chinese',
+        'es': 'Spanish',
+        'en-GB': 'English (UK)',
+        'fr': 'French',
+        'ko': 'Korean',
+      },
+    );
+  });
+
+  test('parses languages returned by the current Mac', () async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(channel, (call) async {
+          expect(call.method, 'getSupportedLanguages');
+          return <Map<String, String>>[
+            {'code': 'de', 'label': 'German'},
+            {'code': 'cy', 'label': 'Welsh'},
+          ];
+        });
+    const translation = MacOSMessageTranslation(channel);
+
+    expect(await translation.getSupportedLanguages(), const [
+      MessageTranslationLanguage('de', 'German'),
+      MessageTranslationLanguage('cy', 'Welsh'),
+    ]);
+  });
+
   test('reads and saves the target language', () async {
     MethodCall? savedCall;
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger

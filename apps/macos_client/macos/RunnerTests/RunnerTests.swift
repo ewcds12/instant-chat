@@ -58,6 +58,12 @@ class RunnerTests: XCTestCase {
     XCTAssertEqual(MessageTranslationLanguage.english.rawValue, "en")
     XCTAssertEqual(MessageTranslationLanguage.simplifiedChinese.rawValue, "zh-Hans")
     XCTAssertEqual(MessageTranslationLanguage.japanese.rawValue, "ja")
+    XCTAssertEqual(MessageTranslationLanguage.traditionalChinese.rawValue, "zh-Hant")
+    XCTAssertEqual(MessageTranslationLanguage.spanish.rawValue, "es")
+    XCTAssertEqual(MessageTranslationLanguage.britishEnglish.rawValue, "en-GB")
+    XCTAssertEqual(MessageTranslationLanguage.french.rawValue, "fr")
+    XCTAssertEqual(MessageTranslationLanguage.korean.rawValue, "ko")
+    XCTAssertEqual(MessageTranslationLanguage(rawValue: "de")?.rawValue, "de")
     XCTAssertNil(MessageTranslationLanguage(rawValue: "unsupported"))
   }
 }

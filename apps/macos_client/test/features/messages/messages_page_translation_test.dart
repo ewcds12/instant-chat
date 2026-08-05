@@ -90,6 +90,10 @@ void main() {
   ) async {
     final translation = _StubMessageTranslation(
       currentLanguage: MessageTranslationLanguage.english,
+      supportedLanguages: const [
+        ...MessageTranslationLanguage.fallbackValues,
+        MessageTranslationLanguage('de', 'German'),
+      ],
     );
     final container = await _container(translation);
     addTearDown(container.dispose);
@@ -105,12 +109,23 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Cancel'), findsOneWidget);
+    expect(find.text('Traditional Chinese'), findsOneWidget);
+    expect(find.text('Spanish'), findsOneWidget);
+    await tester.drag(
+      find.byKey(const Key('message-translation-language-list')),
+      const Offset(0, -240),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('German'), findsOneWidget);
     await tester.tap(
-      find.byKey(const ValueKey('message-translation-language-ja')),
+      find.byKey(const ValueKey('message-translation-language-de')),
     );
     await tester.pumpAndSettle();
 
-    expect(translation.savedLanguage, MessageTranslationLanguage.japanese);
+    expect(
+      translation.savedLanguage,
+      const MessageTranslationLanguage('de', 'German'),
+    );
     expect(translation.translateCount, 0);
     expect(find.text('Translating…'), findsNothing);
   });
@@ -151,6 +166,27 @@ void main() {
     await _rightClick(tester, bubbleFinder);
     expect(find.text('Translate'), findsOneWidget);
     expect(find.text('Original'), findsNothing);
+  });
+
+  testWidgets('uses fallback languages when the system query fails', (
+    tester,
+  ) async {
+    final translation = _StubMessageTranslation(
+      currentLanguage: MessageTranslationLanguage.english,
+      supportedLanguageError: true,
+    );
+    final container = await _container(translation);
+    addTearDown(container.dispose);
+    await tester.pumpWidget(_messagesPage(container));
+    await _pumpUntil(tester, find.byKey(const ValueKey('message-bubble-1')));
+
+    await _rightClick(tester, find.byKey(const ValueKey('message-bubble-1')));
+    await tester.tap(find.byKey(const Key('message-translation-settings')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('English'), findsOneWidget);
+    expect(find.text('Simplified Chinese'), findsOneWidget);
+    expect(find.text('Japanese'), findsOneWidget);
   });
 }
 
@@ -209,6 +245,8 @@ Future<void> _pumpUntil(WidgetTester tester, Finder finder) async {
 class _StubMessageTranslation implements LocalMessageTranslation {
   _StubMessageTranslation({
     this.currentLanguage,
+    this.supportedLanguages = MessageTranslationLanguage.fallbackValues,
+    this.supportedLanguageError = false,
     Map<String, String> storedTranslations = const {},
   }) {
     _storedTranslations.addAll(storedTranslations);
@@ -216,6 +254,8 @@ class _StubMessageTranslation implements LocalMessageTranslation {
 
   MessageTranslationLanguage? currentLanguage;
   MessageTranslationLanguage? savedLanguage;
+  final List<MessageTranslationLanguage> supportedLanguages;
+  final bool supportedLanguageError;
   var translateCount = 0;
   Completer<String>? _translation;
   final _storedTranslations = <String, String>{};
@@ -230,6 +270,14 @@ class _StubMessageTranslation implements LocalMessageTranslation {
   Future<void> setTargetLanguage(MessageTranslationLanguage language) async {
     currentLanguage = language;
     savedLanguage = language;
+  }
+
+  @override
+  Future<List<MessageTranslationLanguage>> getSupportedLanguages() async {
+    if (supportedLanguageError) {
+      throw StateError('Supported languages are unavailable.');
+    }
+    return supportedLanguages;
   }
 
   @override

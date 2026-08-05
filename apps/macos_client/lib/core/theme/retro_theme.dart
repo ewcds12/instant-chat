@@ -87,6 +87,7 @@ abstract final class RetroMetrics {
   static const messageTranslationProgressSize = 12.0;
   static const messageTranslationStatusIconSize = 14.0;
   static const messageTranslationDialogWidth = 280.0;
+  static const messageTranslationDialogMaxHeight = 360.0;
   static const messageMenuSettingsDiameter = 28.0;
   static const messageMenuSettingsIconSize = 15.0;
   static const statusIconSize = 20.0;

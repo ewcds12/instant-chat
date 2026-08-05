@@ -7,30 +7,66 @@ final localMessageTranslationProvider = Provider<LocalMessageTranslation>((
   return MacOSMessageTranslation();
 });
 
-enum MessageTranslationLanguage {
-  english('en', 'English'),
-  simplifiedChinese('zh-Hans', 'Simplified Chinese'),
-  japanese('ja', 'Japanese');
-
+class MessageTranslationLanguage {
   const MessageTranslationLanguage(this.code, this.label);
+
+  static const english = MessageTranslationLanguage('en', 'English');
+  static const simplifiedChinese = MessageTranslationLanguage(
+    'zh-Hans',
+    'Simplified Chinese',
+  );
+  static const japanese = MessageTranslationLanguage('ja', 'Japanese');
+  static const traditionalChinese = MessageTranslationLanguage(
+    'zh-Hant',
+    'Traditional Chinese',
+  );
+  static const spanish = MessageTranslationLanguage('es', 'Spanish');
+  static const britishEnglish = MessageTranslationLanguage(
+    'en-GB',
+    'English (UK)',
+  );
+  static const french = MessageTranslationLanguage('fr', 'French');
+  static const korean = MessageTranslationLanguage('ko', 'Korean');
+  static const fallbackValues = [
+    english,
+    simplifiedChinese,
+    japanese,
+    traditionalChinese,
+    spanish,
+    britishEnglish,
+    french,
+    korean,
+  ];
 
   final String code;
   final String label;
 
   static MessageTranslationLanguage? fromCode(String? code) {
-    for (final language in values) {
+    if (code == null || code.trim().isEmpty) {
+      return null;
+    }
+    for (final language in fallbackValues) {
       if (language.code == code) {
         return language;
       }
     }
-    return null;
+    return MessageTranslationLanguage(code, code);
   }
+
+  @override
+  bool operator ==(Object other) =>
+      other is MessageTranslationLanguage && other.code == code;
+
+  @override
+  int get hashCode => code.hashCode;
 }
 
 abstract interface class LocalMessageTranslation {
   Future<MessageTranslationLanguage?> getTargetLanguage();
 
   Future<void> setTargetLanguage(MessageTranslationLanguage language);
+
+  Future<List<MessageTranslationLanguage>> getSupportedLanguages();
 
   Future<Map<String, String>> getStoredTranslations({
     required String accountId,
@@ -75,6 +111,19 @@ class MacOSMessageTranslation implements LocalMessageTranslation {
   @override
   Future<void> setTargetLanguage(MessageTranslationLanguage language) {
     return _channel.invokeMethod<void>('setTargetLanguage', language.code);
+  }
+
+  @override
+  Future<List<MessageTranslationLanguage>> getSupportedLanguages() async {
+    final result = await _channel.invokeListMethod<Object?>(
+      'getSupportedLanguages',
+    );
+    if (result == null) {
+      throw const FormatException(
+        'Supported translation languages are invalid.',
+      );
+    }
+    return [for (final entry in result) _parseSupportedLanguage(entry)];
   }
 
   @override
@@ -137,5 +186,20 @@ class MacOSMessageTranslation implements LocalMessageTranslation {
       throw const FormatException('Translation response is invalid.');
     }
     return translatedText;
+  }
+
+  MessageTranslationLanguage _parseSupportedLanguage(Object? value) {
+    if (value is! Map<Object?, Object?>) {
+      throw const FormatException('Translation language entry is invalid.');
+    }
+    final code = value['code'];
+    final label = value['label'];
+    if (code is! String ||
+        code.trim().isEmpty ||
+        label is! String ||
+        label.trim().isEmpty) {
+      throw const FormatException('Translation language entry is invalid.');
+    }
+    return MessageTranslationLanguage(code, label);
   }
 }
