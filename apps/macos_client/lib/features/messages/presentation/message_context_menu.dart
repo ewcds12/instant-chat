@@ -66,13 +66,16 @@ class MessageContextMenu extends StatelessWidget {
       color: colors.surface,
       surfaceTintColor: colors.surface,
       shadowColor: colors.scrim.withValues(alpha: 0.24),
-      elevation: 16,
+      elevation: 12,
+      constraints: const BoxConstraints.tightFor(
+        width: RetroMetrics.messageMenuWidth,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(RetroMetrics.corner),
         side: BorderSide(color: colors.outlineVariant),
       ),
       menuPadding: const EdgeInsets.symmetric(
-        vertical: RetroMetrics.spaceSmall,
+        vertical: RetroMetrics.messageMenuVerticalInset,
       ),
       items: _items(context),
     );
@@ -137,11 +140,18 @@ class MessageContextMenu extends StatelessWidget {
   }) {
     return PopupMenuItem(
       value: action,
+      height: RetroMetrics.messageMenuItemHeight,
+      padding: const EdgeInsets.symmetric(
+        horizontal: RetroMetrics.messageMenuHorizontalInset,
+      ),
       child: Row(
         children: [
-          const Icon(Icons.translate_rounded, size: 17),
-          const SizedBox(width: 10),
-          Expanded(child: Text(label)),
+          const Icon(
+            Icons.translate_rounded,
+            size: RetroMetrics.messageMenuIconSize,
+          ),
+          const SizedBox(width: RetroMetrics.messageMenuItemGap),
+          Expanded(child: _MessageMenuLabel(label)),
           IconButton(
             key: const Key('message-translation-settings'),
             tooltip: 'Translation settings',
@@ -171,12 +181,37 @@ class MessageContextMenu extends StatelessWidget {
   }) {
     return PopupMenuItem(
       value: action,
+      height: RetroMetrics.messageMenuItemHeight,
+      padding: const EdgeInsets.symmetric(
+        horizontal: RetroMetrics.messageMenuHorizontalInset,
+      ),
       child: Row(
         children: [
-          Icon(icon, size: 17, color: color),
-          const SizedBox(width: 10),
-          Text(label, style: TextStyle(color: color)),
+          Icon(icon, size: RetroMetrics.messageMenuIconSize, color: color),
+          const SizedBox(width: RetroMetrics.messageMenuItemGap),
+          _MessageMenuLabel(label, color: color),
         ],
+      ),
+    );
+  }
+}
+
+class _MessageMenuLabel extends StatelessWidget {
+  const _MessageMenuLabel(this.label, {this.color});
+
+  final String label;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+        color: color,
+        fontSize: RetroMetrics.messageMenuTextSize,
+        fontWeight: FontWeight.w500,
       ),
     );
   }

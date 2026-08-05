@@ -85,7 +85,32 @@ void main() {
           .first,
     );
     expect(menuMaterial.color, RetroTheme.data.colorScheme.surface);
-    expect(menuMaterial.elevation, 16);
+    expect(menuMaterial.elevation, 12);
+  });
+
+  testWidgets('uses compact message menu rows', (tester) async {
+    await tester.pumpWidget(_menu(message: _message(DateTime.now().toUtc())));
+
+    await _rightClick(tester, find.byKey(const Key('message-menu-target')));
+
+    final item = tester.widget<PopupMenuItem>(
+      find
+          .ancestor(
+            of: find.text('Copy'),
+            matching: find.byWidgetPredicate(
+              (widget) => widget is PopupMenuItem,
+            ),
+          )
+          .first,
+    );
+    expect(item.height, RetroMetrics.messageMenuItemHeight);
+    expect(
+      item.padding,
+      const EdgeInsets.symmetric(
+        horizontal: RetroMetrics.messageMenuHorizontalInset,
+      ),
+    );
+    expect(tester.getSize(find.text('Copy')).height, lessThanOrEqualTo(18));
   });
 }
 

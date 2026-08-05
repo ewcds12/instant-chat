@@ -93,8 +93,15 @@ abstract final class RetroMetrics {
   static const messageTranslationEmptyHeight = 88.0;
   static const messageTranslationSearchIconSize = 16.0;
   static const messageTranslationCheckIconSize = 16.0;
-  static const messageMenuSettingsDiameter = 28.0;
-  static const messageMenuSettingsIconSize = 15.0;
+  static const messageMenuWidth = 156.0;
+  static const messageMenuVerticalInset = 4.0;
+  static const messageMenuItemHeight = 34.0;
+  static const messageMenuHorizontalInset = 10.0;
+  static const messageMenuIconSize = 15.0;
+  static const messageMenuItemGap = 8.0;
+  static const messageMenuTextSize = 13.0;
+  static const messageMenuSettingsDiameter = 22.0;
+  static const messageMenuSettingsIconSize = 13.0;
   static const statusIconSize = 20.0;
 }
 
