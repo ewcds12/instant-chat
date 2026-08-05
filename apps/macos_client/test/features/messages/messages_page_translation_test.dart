@@ -111,12 +111,26 @@ void main() {
     expect(find.text('Cancel'), findsOneWidget);
     expect(find.text('Traditional Chinese'), findsOneWidget);
     expect(find.text('Spanish'), findsOneWidget);
-    await tester.drag(
-      find.byKey(const Key('message-translation-language-list')),
-      const Offset(0, -240),
+    await tester.enterText(
+      find.byKey(const Key('message-translation-language-search')),
+      'missing language',
     );
-    await tester.pumpAndSettle();
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('message-translation-language-empty')),
+      findsOneWidget,
+    );
+    expect(find.text('No languages found'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const Key('message-translation-language-search')),
+      'germ',
+    );
+    await tester.pump();
+
     expect(find.text('German'), findsOneWidget);
+    expect(find.text('English (US)'), findsNothing);
     await tester.tap(
       find.byKey(const ValueKey('message-translation-language-de')),
     );
@@ -184,7 +198,7 @@ void main() {
     await tester.tap(find.byKey(const Key('message-translation-settings')));
     await tester.pumpAndSettle();
 
-    expect(find.text('English'), findsOneWidget);
+    expect(find.text('English (US)'), findsOneWidget);
     expect(find.text('Simplified Chinese'), findsOneWidget);
     expect(find.text('Japanese'), findsOneWidget);
   });

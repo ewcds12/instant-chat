@@ -197,7 +197,8 @@ final class MessageTranslationChannel {
   ) -> [[String: String]] {
     let englishLocale = Locale(identifier: "en_US")
     let preferredLabels = [
-      "en": "English",
+      "en": "English (US)",
+      "zh": "Simplified Chinese",
       "zh-Hans": "Simplified Chinese",
       "ja": "Japanese",
       "zh-Hant": "Traditional Chinese",
@@ -227,7 +228,7 @@ final class MessageTranslationChannel {
     case "fr-fr": return "fr"
     case "ja-jp": return "ja"
     case "ko-kr": return "ko"
-    case "zh-cn", "zh-hans": return "zh-Hans"
+    case "zh", "zh-cn", "zh-hans": return "zh-Hans"
     case "zh-tw", "zh-hant": return "zh-Hant"
     default: return identifier
     }

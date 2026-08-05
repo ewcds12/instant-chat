@@ -86,8 +86,13 @@ abstract final class RetroMetrics {
   static const messageReplyBodySize = 12.0;
   static const messageTranslationProgressSize = 12.0;
   static const messageTranslationStatusIconSize = 14.0;
-  static const messageTranslationDialogWidth = 280.0;
-  static const messageTranslationDialogMaxHeight = 360.0;
+  static const messageTranslationDialogWidth = 264.0;
+  static const messageTranslationDialogMaxHeight = 320.0;
+  static const messageTranslationSearchHeight = 34.0;
+  static const messageTranslationRowHeight = 38.0;
+  static const messageTranslationEmptyHeight = 88.0;
+  static const messageTranslationSearchIconSize = 16.0;
+  static const messageTranslationCheckIconSize = 16.0;
   static const messageMenuSettingsDiameter = 28.0;
   static const messageMenuSettingsIconSize = 15.0;
   static const statusIconSize = 20.0;

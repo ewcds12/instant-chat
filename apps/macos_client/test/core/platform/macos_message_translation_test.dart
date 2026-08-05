@@ -18,7 +18,7 @@ void main() {
           language.code: language.label,
       },
       {
-        'en': 'English',
+        'en': 'English (US)',
         'zh-Hans': 'Simplified Chinese',
         'ja': 'Japanese',
         'zh-Hant': 'Traditional Chinese',
@@ -35,6 +35,8 @@ void main() {
         .setMockMethodCallHandler(channel, (call) async {
           expect(call.method, 'getSupportedLanguages');
           return <Map<String, String>>[
+            {'code': 'en', 'label': 'English'},
+            {'code': 'zh-Hans', 'label': 'Chinese'},
             {'code': 'de', 'label': 'German'},
             {'code': 'cy', 'label': 'Welsh'},
           ];
@@ -42,6 +44,8 @@ void main() {
     const translation = MacOSMessageTranslation(channel);
 
     expect(await translation.getSupportedLanguages(), const [
+      MessageTranslationLanguage.english,
+      MessageTranslationLanguage.simplifiedChinese,
       MessageTranslationLanguage('de', 'German'),
       MessageTranslationLanguage('cy', 'Welsh'),
     ]);

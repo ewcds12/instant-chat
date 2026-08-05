@@ -10,7 +10,7 @@ final localMessageTranslationProvider = Provider<LocalMessageTranslation>((
 class MessageTranslationLanguage {
   const MessageTranslationLanguage(this.code, this.label);
 
-  static const english = MessageTranslationLanguage('en', 'English');
+  static const english = MessageTranslationLanguage('en', 'English (US)');
   static const simplifiedChinese = MessageTranslationLanguage(
     'zh-Hans',
     'Simplified Chinese',
@@ -199,6 +199,10 @@ class MacOSMessageTranslation implements LocalMessageTranslation {
         label is! String ||
         label.trim().isEmpty) {
       throw const FormatException('Translation language entry is invalid.');
+    }
+    final knownLanguage = MessageTranslationLanguage.fromCode(code);
+    if (knownLanguage != null && knownLanguage.label != code) {
+      return knownLanguage;
     }
     return MessageTranslationLanguage(code, label);
   }
