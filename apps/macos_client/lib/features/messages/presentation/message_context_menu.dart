@@ -119,7 +119,14 @@ class MessageContextMenu extends StatelessWidget {
       }
     }
     if (isMine && _canRecall(message.createdAt)) {
-      items.add(_item(_MessageMenuAction.recall, Icons.undo_rounded, 'Recall'));
+      items.add(
+        _item(
+          _MessageMenuAction.recall,
+          Icons.undo_rounded,
+          'Recall',
+          color: Theme.of(context).colorScheme.error,
+        ),
+      );
     } else {
       items.add(
         _item(

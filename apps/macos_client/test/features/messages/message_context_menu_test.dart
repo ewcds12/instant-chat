@@ -30,6 +30,12 @@ void main() {
     expect(find.text('Copy'), findsOneWidget);
     expect(find.text('Recall'), findsOneWidget);
     expect(find.text('Delete'), findsNothing);
+    final errorColor = RetroTheme.data.colorScheme.error;
+    expect(tester.widget<Text>(find.text('Recall')).style?.color, errorColor);
+    expect(
+      tester.widget<Icon>(find.byIcon(Icons.undo_rounded)).color,
+      errorColor,
+    );
   });
 
   testWidgets('shows Delete after the recall window expires', (tester) async {
