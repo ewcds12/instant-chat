@@ -191,10 +191,19 @@ class ContactsController extends AsyncNotifier<ContactsState> {
     );
   }
 
-  Future<void> remove(String userId) {
-    return _mutate(
-      () => _gateway.removeContact(accessToken: _accessToken, userId: userId),
-    );
+  Future<bool> remove(String userId) async {
+    final current = state.requireValue;
+    state = AsyncData(current.copyWith(isSubmitting: true, clearError: true));
+    try {
+      await _gateway.removeContact(accessToken: _accessToken, userId: userId);
+      state = AsyncData(await _load());
+      return true;
+    } on ApiFailure catch (failure) {
+      _setFailure(current, failure.message);
+    } on FormatException {
+      _setFailure(current, 'The server returned an invalid response.');
+    }
+    return false;
   }
 
   Future<ContactsState> _load() async {

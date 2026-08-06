@@ -80,6 +80,35 @@ void main() {
     },
   );
 
+  test('delete reports success and refreshes the contact snapshot', () async {
+    final gateway = _FakeContactGateway();
+    final container = ProviderContainer(
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => _StubAuthController(AuthState(session: _session)),
+        ),
+        contactGatewayProvider.overrideWithValue(gateway),
+      ],
+    );
+    addTearDown(container.dispose);
+    await container.read(authControllerProvider.future);
+    final subscription = container.listen(
+      contactsControllerProvider,
+      (_, _) {},
+      fireImmediately: true,
+    );
+    addTearDown(subscription.close);
+    await container.read(contactsControllerProvider.future);
+
+    final deleted = await container
+        .read(contactsControllerProvider.notifier)
+        .remove(_otherUser.id);
+
+    expect(deleted, isTrue);
+    expect(gateway.removedUserId, _otherUser.id);
+    expect(gateway.listContactsCalls, 2);
+  });
+
   test('fallback refresh discovers an incoming request', () async {
     final gateway = _FakeContactGateway();
     final container = ProviderContainer(
@@ -154,6 +183,7 @@ class _FakeContactGateway implements ContactGateway {
   String? sentUsername;
   String? acceptedRequestId;
   String? canceledRequestId;
+  String? removedUserId;
   int listContactsCalls = 0;
   List<ContactRequest> incoming = [];
 
@@ -224,8 +254,8 @@ class _FakeContactGateway implements ContactGateway {
   Future<void> removeContact({
     required String accessToken,
     required String userId,
-  }) {
-    throw UnimplementedError();
+  }) async {
+    removedUserId = userId;
   }
 }
 

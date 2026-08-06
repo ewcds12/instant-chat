@@ -8,6 +8,7 @@ import 'package:instant_chat/features/contacts/presentation/contact_detail_panel
 import 'package:instant_chat/features/contacts/presentation/contact_directory.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
+import 'package:instant_chat/features/conversations/presentation/conversation_selection.dart';
 
 class ContactsPage extends ConsumerStatefulWidget {
   const ContactsPage({required this.onOpenConversation, super.key});
@@ -136,9 +137,9 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Contact?'),
+        title: const Text('Delete Contact?'),
         content: Text(
-          'Remove ${contact.user.displayName} from your contacts? You can send a new contact request later.',
+          'Delete ${contact.user.displayName} from your contacts and remove this chat from Chats? Message history will return if you add each other again.',
         ),
         actions: [
           TextButton(
@@ -146,8 +147,12 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
             child: const Text('Cancel'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -155,7 +160,14 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
     if (confirmed != true || !mounted) {
       return;
     }
-    await ref.read(contactsControllerProvider.notifier).remove(contact.user.id);
+    final deleted = await ref
+        .read(contactsControllerProvider.notifier)
+        .remove(contact.user.id);
+    if (!deleted || !mounted) {
+      return;
+    }
+    ref.read(selectedConversationIdProvider.notifier).select(null);
+    ref.invalidate(conversationsControllerProvider);
     if (!mounted ||
         ref.read(selectedContactUserIdProvider) != contact.user.id) {
       return;

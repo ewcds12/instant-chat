@@ -318,7 +318,7 @@ paths:
         - $ref: "#/components/parameters/RequestID"
       responses:
         "200":
-          description: Accepted contact with a direct conversation created for both users
+          description: Accepted contact with its direct conversation created or reactivated for both users
           content:
             application/json:
               schema:
@@ -389,14 +389,14 @@ paths:
   /contacts/{user_id}:
     delete:
       operationId: removeContact
-      summary: Remove an accepted contact
+      summary: Delete an accepted contact and suspend the direct chat
       security:
         - bearerAuth: []
       parameters:
         - $ref: "#/components/parameters/UserID"
       responses:
         "204":
-          description: Contact removed
+          description: Contact deleted and direct chat hidden with history preserved
         "400":
           $ref: "#/components/responses/InvalidArgument"
         "401":

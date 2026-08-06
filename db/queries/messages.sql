@@ -5,6 +5,7 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = conversation.id
 WHERE conversation.id = sqlc.arg(conversation_id)
   AND membership.user_id = sqlc.arg(user_id)
+  AND membership.is_active = TRUE
 LIMIT 1
 FOR UPDATE;
 
@@ -118,7 +119,8 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE message.id = sqlc.arg(message_id)
   AND message.conversation_id = sqlc.arg(conversation_id)
-  AND membership.user_id = sqlc.arg(user_id);
+  AND membership.user_id = sqlc.arg(user_id)
+  AND membership.is_active = TRUE;
 
 -- name: IsConversationMember :one
 SELECT EXISTS (
@@ -126,6 +128,7 @@ SELECT EXISTS (
   FROM conversation_members
   WHERE conversation_id = sqlc.arg(conversation_id)
     AND user_id = sqlc.arg(user_id)
+    AND is_active = TRUE
 ) AS is_member;
 
 -- name: ListLatestMessages :many
@@ -281,6 +284,7 @@ LIMIT ?;
 SELECT user_id
 FROM conversation_members
 WHERE conversation_id = ?
+  AND is_active = TRUE
 ORDER BY user_id ASC;
 
 -- name: GetMessageImageForMember :one
@@ -294,6 +298,7 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE image.id = sqlc.arg(image_id)
   AND membership.user_id = sqlc.arg(user_id)
+  AND membership.is_active = TRUE
   AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
@@ -316,6 +321,7 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE file.id = sqlc.arg(file_id)
   AND membership.user_id = sqlc.arg(user_id)
+  AND membership.is_active = TRUE
   AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1

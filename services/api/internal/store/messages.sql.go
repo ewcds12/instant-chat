@@ -255,6 +255,7 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE file.id = ?
   AND membership.user_id = ?
+  AND membership.is_active = TRUE
   AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
@@ -302,6 +303,7 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = message.conversation_id
 WHERE image.id = ?
   AND membership.user_id = ?
+  AND membership.is_active = TRUE
   AND message.recalled_at IS NULL
   AND NOT EXISTS (
     SELECT 1
@@ -339,6 +341,7 @@ JOIN conversation_members AS membership
 WHERE message.id = ?
   AND message.conversation_id = ?
   AND membership.user_id = ?
+  AND membership.is_active = TRUE
 `
 
 type HideMessageForUserParams struct {
@@ -363,6 +366,7 @@ SELECT EXISTS (
   FROM conversation_members
   WHERE conversation_id = ?
     AND user_id = ?
+    AND is_active = TRUE
 ) AS is_member
 `
 
@@ -382,6 +386,7 @@ const listConversationMemberIDs = `-- name: ListConversationMemberIDs :many
 SELECT user_id
 FROM conversation_members
 WHERE conversation_id = ?
+  AND is_active = TRUE
 ORDER BY user_id ASC
 `
 
@@ -858,6 +863,7 @@ JOIN conversation_members AS membership
   ON membership.conversation_id = conversation.id
 WHERE conversation.id = ?
   AND membership.user_id = ?
+  AND membership.is_active = TRUE
 LIMIT 1
 FOR UPDATE
 `

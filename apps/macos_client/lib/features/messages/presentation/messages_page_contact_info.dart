@@ -27,9 +27,9 @@ extension _MessagesPageContactInfo on _MessagesPageState {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Remove Contact?'),
+        title: const Text('Delete Contact?'),
         content: Text(
-          'Remove ${peer.displayName} from your contacts? You can send a new contact request later.',
+          'Delete ${peer.displayName} from your contacts and remove this chat from Chats? Message history will return if you add each other again.',
         ),
         actions: [
           TextButton(
@@ -37,8 +37,12 @@ extension _MessagesPageContactInfo on _MessagesPageState {
             child: const Text('Cancel'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Remove'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -50,9 +54,14 @@ extension _MessagesPageContactInfo on _MessagesPageState {
     if (!mounted) {
       return;
     }
-    await ref.read(contactsControllerProvider.notifier).remove(peer.id);
-    if (mounted) {
-      _closeContactInfo();
+    final deleted = await ref
+        .read(contactsControllerProvider.notifier)
+        .remove(peer.id);
+    if (!deleted || !mounted) {
+      return;
     }
+    ref.read(selectedConversationIdProvider.notifier).select(null);
+    ref.invalidate(conversationsControllerProvider);
+    _closeContactInfo();
   }
 }

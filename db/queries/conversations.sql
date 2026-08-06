@@ -44,6 +44,7 @@ FROM conversations AS conversation
 JOIN conversation_members AS membership
   ON membership.conversation_id = conversation.id
   AND membership.user_id = sqlc.arg(current_user_id)
+  AND membership.is_active = TRUE
 LEFT JOIN messages AS latest_message
   ON latest_message.id = (
     SELECT visible_message.id
@@ -122,6 +123,7 @@ JOIN users AS other_user
     ELSE conversation.direct_lower_user_id
   END
 WHERE membership.user_id = sqlc.arg(current_user_id)
+  AND membership.is_active = TRUE
 ORDER BY conversation.updated_at DESC, conversation.id DESC
 LIMIT 200;
 
@@ -131,6 +133,7 @@ SELECT EXISTS(
   FROM conversation_members
   WHERE conversation_id = sqlc.arg(conversation_id)
     AND user_id = sqlc.arg(user_id)
+    AND is_active = TRUE
 ) AS is_member;
 
 -- name: MarkConversationRead :exec
@@ -141,4 +144,5 @@ SET membership.last_read_sequence = GREATEST(
   LEAST(sqlc.arg(sequence), conversation.next_sequence - 1)
 )
 WHERE membership.conversation_id = sqlc.arg(conversation_id)
-  AND membership.user_id = sqlc.arg(user_id);
+  AND membership.user_id = sqlc.arg(user_id)
+  AND membership.is_active = TRUE;

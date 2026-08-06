@@ -28,9 +28,16 @@ void main() {
   });
 
   testWidgets(
-    'selects a contact, opens a direct message, and confirms remove',
+    'selects a contact, opens a direct message, and confirms deletion',
     (tester) async {
       String? openedUserId;
+      final contactsController = _StubContactsController(
+        ContactsState(
+          contacts: [_contact('amy', 'Amy Adams'), _contact('zoe', 'Zoe Day')],
+          incoming: const [],
+          outgoing: const [],
+        ),
+      );
       await tester.binding.setSurfaceSize(const Size(1200, 760));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
@@ -39,18 +46,7 @@ void main() {
             authControllerProvider.overrideWith(
               () => _StubAuthController(AuthState(session: _session)),
             ),
-            contactsControllerProvider.overrideWith(
-              () => _StubContactsController(
-                ContactsState(
-                  contacts: [
-                    _contact('amy', 'Amy Adams'),
-                    _contact('zoe', 'Zoe Day'),
-                  ],
-                  incoming: const [],
-                  outgoing: const [],
-                ),
-              ),
-            ),
+            contactsControllerProvider.overrideWith(() => contactsController),
             contactSharedContentProvider.overrideWith(
               (ref, request) async => const ContactSharedContent.empty(),
             ),
@@ -129,12 +125,24 @@ void main() {
 
       await tester.tap(find.byTooltip('Contact options'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Remove Contact…'));
+      await tester.tap(find.text('Delete Contact…'));
       await tester.pumpAndSettle();
-      expect(find.text('Remove Contact?'), findsOneWidget);
+      expect(find.text('Delete Contact?'), findsOneWidget);
+      expect(
+        find.textContaining('Message history will return'),
+        findsOneWidget,
+      );
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
-      expect(find.text('Remove Contact?'), findsNothing);
+      expect(find.text('Delete Contact?'), findsNothing);
+
+      await tester.tap(find.byTooltip('Contact options'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Delete Contact…'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+      expect(contactsController.removedUserId, 'user-zoe');
     },
   );
 
@@ -295,6 +303,7 @@ class _StubContactsController extends ContactsController {
   final ContactsState contactsState;
   String? acceptedRequestId;
   String? rejectedRequestId;
+  String? removedUserId;
 
   @override
   Future<ContactsState> build() async => contactsState;
@@ -335,5 +344,19 @@ class _StubContactsController extends ContactsController {
             .toList(growable: false),
       ),
     );
+  }
+
+  @override
+  Future<bool> remove(String userId) async {
+    removedUserId = userId;
+    final current = state.requireValue;
+    state = AsyncData(
+      current.copyWith(
+        contacts: current.contacts
+            .where((contact) => contact.user.id != userId)
+            .toList(growable: false),
+      ),
+    );
+    return true;
   }
 }

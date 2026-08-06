@@ -16,6 +16,8 @@ type fakeRepository struct {
 	canceledRequestID uint64
 	acceptedUserID    uint64
 	acceptedRequestID uint64
+	removedUserID     uint64
+	removedContactID  uint64
 	requests          []Request
 }
 
@@ -52,7 +54,11 @@ func (f *fakeRepository) CancelRequest(_ context.Context, userID, requestID uint
 
 func (f *fakeRepository) ListContacts(context.Context, uint64) ([]Contact, error) { return nil, nil }
 
-func (f *fakeRepository) RemoveContact(context.Context, uint64, uint64) error { return nil }
+func (f *fakeRepository) RemoveContact(_ context.Context, userID, contactUserID uint64) error {
+	f.removedUserID = userID
+	f.removedContactID = contactUserID
+	return nil
+}
 
 func (f *fakeRepository) AreContacts(context.Context, uint64, uint64) (bool, error) {
 	return false, nil
@@ -113,6 +119,16 @@ func TestServiceAcceptRequestCreatesConversation(t *testing.T) {
 
 	if err != nil || contact.RelationshipID != 9 || repository.acceptedUserID != 7 || repository.acceptedRequestID != 9 {
 		t.Fatalf("contact = %+v, error = %v, user ID = %d, request ID = %d", contact, err, repository.acceptedUserID, repository.acceptedRequestID)
+	}
+}
+
+func TestServiceRemoveContactSuspendsDirectChat(t *testing.T) {
+	repository := &fakeRepository{}
+
+	err := NewService(repository).RemoveContact(context.Background(), 7, 8)
+
+	if err != nil || repository.removedUserID != 7 || repository.removedContactID != 8 {
+		t.Fatalf("error = %v, user ID = %d, contact ID = %d", err, repository.removedUserID, repository.removedContactID)
 	}
 }
 

@@ -93,6 +93,18 @@ func (r *MySQLRepository) AcceptRequestAndCreateConversation(
 	if err := createDirectConversation(ctx, queries, userID, request.User.ID); err != nil {
 		return Contact{}, rollbackContactAcceptance(tx, err)
 	}
+	lowerID, higherID := orderedPair(userID, request.User.ID)
+	if err := queries.ReactivateDirectConversationMembers(
+		ctx,
+		store.ReactivateDirectConversationMembersParams{
+			LowerUserID: lowerID, HigherUserID: higherID,
+		},
+	); err != nil {
+		return Contact{}, rollbackContactAcceptance(
+			tx,
+			fmt.Errorf("reactivate direct conversation: %w", err),
+		)
+	}
 	if err := tx.Commit(); err != nil {
 		return Contact{}, fmt.Errorf("commit contact acceptance transaction: %w", err)
 	}
@@ -138,16 +150,38 @@ func (r *MySQLRepository) ListContacts(ctx context.Context, userID uint64) ([]Co
 	return contacts, nil
 }
 
-// RemoveContact deletes an accepted relationship.
+// RemoveContact deletes an accepted relationship and suspends its direct conversation.
 func (r *MySQLRepository) RemoveContact(ctx context.Context, userID, contactUserID uint64) error {
 	lowerID, higherID := orderedPair(userID, contactUserID)
-	result, err := r.queries.RemoveAcceptedContact(ctx, store.RemoveAcceptedContactParams{
+	tx, err := r.database.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin contact deletion transaction: %w", err)
+	}
+	queries := r.queries.WithTx(tx)
+	result, err := queries.RemoveAcceptedContact(ctx, store.RemoveAcceptedContactParams{
 		LowerUserID: lowerID, HigherUserID: higherID,
 	})
 	if err != nil {
-		return fmt.Errorf("remove contact: %w", err)
+		return rollbackContactDeletion(tx, fmt.Errorf("delete contact: %w", err))
 	}
-	return requireOneRow(result, ErrContactNotFound)
+	if err := requireOneRow(result, ErrContactNotFound); err != nil {
+		return rollbackContactDeletion(tx, err)
+	}
+	if err := queries.DeactivateDirectConversationMembers(
+		ctx,
+		store.DeactivateDirectConversationMembersParams{
+			LowerUserID: lowerID, HigherUserID: higherID,
+		},
+	); err != nil {
+		return rollbackContactDeletion(
+			tx,
+			fmt.Errorf("deactivate direct conversation: %w", err),
+		)
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit contact deletion transaction: %w", err)
+	}
+	return nil
 }
 
 // AreContacts reports whether the pair has an accepted relationship.
@@ -238,6 +272,13 @@ func isDuplicateEntry(err error) bool {
 func rollbackContactAcceptance(tx *sql.Tx, cause error) error {
 	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 		return errors.Join(cause, fmt.Errorf("roll back contact acceptance: %w", err))
+	}
+	return cause
+}
+
+func rollbackContactDeletion(tx *sql.Tx, cause error) error {
+	if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		return errors.Join(cause, fmt.Errorf("roll back contact deletion: %w", err))
 	}
 	return cause
 }

@@ -74,7 +74,7 @@ func (s *Service) ListContacts(ctx context.Context, userID uint64) ([]Contact, e
 	return s.repository.ListContacts(ctx, userID)
 }
 
-// RemoveContact removes an accepted relationship.
+// RemoveContact removes an accepted relationship and suspends its direct chat.
 func (s *Service) RemoveContact(ctx context.Context, userID, contactUserID uint64) error {
 	if userID == contactUserID {
 		return ErrContactNotFound

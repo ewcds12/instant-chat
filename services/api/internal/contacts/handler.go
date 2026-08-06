@@ -154,7 +154,7 @@ func (h *Handler) ListContacts(w http.ResponseWriter, r *http.Request) {
 	}{Contacts: responses})
 }
 
-// RemoveContact removes an accepted contact.
+// RemoveContact deletes an accepted contact and suspends its direct chat.
 func (h *Handler) RemoveContact(w http.ResponseWriter, r *http.Request) {
 	contactUserID, ok := pathID(w, r, "user_id")
 	if !ok {

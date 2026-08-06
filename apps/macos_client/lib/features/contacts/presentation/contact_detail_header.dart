@@ -58,14 +58,17 @@ class ContactDetailHeader extends StatelessWidget {
               tooltip: 'Contact options',
               enabled: !disabled,
               onSelected: (action) {
-                if (action == _ContactMenuAction.remove) {
+                if (action == _ContactMenuAction.delete) {
                   onRemove();
                 }
               },
-              itemBuilder: (context) => const [
+              itemBuilder: (context) => [
                 PopupMenuItem(
-                  value: _ContactMenuAction.remove,
-                  child: Text('Remove Contact…'),
+                  value: _ContactMenuAction.delete,
+                  child: Text(
+                    'Delete Contact…',
+                    style: TextStyle(color: colors.error),
+                  ),
                 ),
               ],
               icon: const Icon(Icons.more_horiz_rounded, size: 19),
@@ -111,4 +114,4 @@ class ContactDetailEmptyState extends StatelessWidget {
   }
 }
 
-enum _ContactMenuAction { remove }
+enum _ContactMenuAction { delete }

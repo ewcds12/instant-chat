@@ -44,6 +44,7 @@ type ConversationMember struct {
 	UserID           uint64    `db:"user_id"`
 	JoinedAt         time.Time `db:"joined_at"`
 	LastReadSequence uint64    `db:"last_read_sequence"`
+	IsActive         bool      `db:"is_active"`
 }
 
 type Message struct {

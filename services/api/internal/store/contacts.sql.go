@@ -93,6 +93,24 @@ func (q *Queries) CreateContactRelationship(ctx context.Context, arg CreateConta
 	return q.db.ExecContext(ctx, createContactRelationship, arg.LowerUserID, arg.HigherUserID, arg.RequestedByUserID)
 }
 
+const deactivateDirectConversationMembers = `-- name: DeactivateDirectConversationMembers :exec
+UPDATE conversation_members AS membership
+JOIN conversations AS conversation ON conversation.id = membership.conversation_id
+SET membership.is_active = FALSE
+WHERE conversation.direct_lower_user_id = ?
+  AND conversation.direct_higher_user_id = ?
+`
+
+type DeactivateDirectConversationMembersParams struct {
+	LowerUserID  uint64 `db:"lower_user_id"`
+	HigherUserID uint64 `db:"higher_user_id"`
+}
+
+func (q *Queries) DeactivateDirectConversationMembers(ctx context.Context, arg DeactivateDirectConversationMembersParams) error {
+	_, err := q.db.ExecContext(ctx, deactivateDirectConversationMembers, arg.LowerUserID, arg.HigherUserID)
+	return err
+}
+
 const findPublicUserByUsername = `-- name: FindPublicUserByUsername :one
 SELECT id, username, display_name, avatar_content_type, created_at
 FROM users
@@ -345,6 +363,24 @@ func (q *Queries) ListPendingContactRelationships(ctx context.Context, arg ListP
 		return nil, err
 	}
 	return items, nil
+}
+
+const reactivateDirectConversationMembers = `-- name: ReactivateDirectConversationMembers :exec
+UPDATE conversation_members AS membership
+JOIN conversations AS conversation ON conversation.id = membership.conversation_id
+SET membership.is_active = TRUE
+WHERE conversation.direct_lower_user_id = ?
+  AND conversation.direct_higher_user_id = ?
+`
+
+type ReactivateDirectConversationMembersParams struct {
+	LowerUserID  uint64 `db:"lower_user_id"`
+	HigherUserID uint64 `db:"higher_user_id"`
+}
+
+func (q *Queries) ReactivateDirectConversationMembers(ctx context.Context, arg ReactivateDirectConversationMembersParams) error {
+	_, err := q.db.ExecContext(ctx, reactivateDirectConversationMembers, arg.LowerUserID, arg.HigherUserID)
+	return err
 }
 
 const rejectContactRelationship = `-- name: RejectContactRelationship :execresult

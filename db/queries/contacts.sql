@@ -124,6 +124,20 @@ WHERE lower_user_id = sqlc.arg(lower_user_id)
   AND higher_user_id = sqlc.arg(higher_user_id)
   AND status = 'accepted';
 
+-- name: DeactivateDirectConversationMembers :exec
+UPDATE conversation_members AS membership
+JOIN conversations AS conversation ON conversation.id = membership.conversation_id
+SET membership.is_active = FALSE
+WHERE conversation.direct_lower_user_id = sqlc.arg(lower_user_id)
+  AND conversation.direct_higher_user_id = sqlc.arg(higher_user_id);
+
+-- name: ReactivateDirectConversationMembers :exec
+UPDATE conversation_members AS membership
+JOIN conversations AS conversation ON conversation.id = membership.conversation_id
+SET membership.is_active = TRUE
+WHERE conversation.direct_lower_user_id = sqlc.arg(lower_user_id)
+  AND conversation.direct_higher_user_id = sqlc.arg(higher_user_id);
+
 -- name: ContactRelationshipStatus :one
 SELECT status
 FROM contact_relationships
