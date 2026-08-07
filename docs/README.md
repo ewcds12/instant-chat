@@ -8,14 +8,14 @@ The product and repository use American English (`en-US`) exclusively.
 
 The authentication, contacts, direct conversations, and persisted message foundations are in place:
 
-- The Flutter macOS client provides modern registration and sign-in forms.
+- The Flutter macOS client opens registration and sign-in in a compact, fixed-size authentication window, then expands the same native window into the resizable chat workspace after authentication succeeds.
 - Registration uses a unique lowercase username and password, with no email address required.
 - The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
 - The authenticated client provides modern chats, contacts, and system-status workspaces.
 - The account card opens an in-app Profile sheet where users can set a profile photo, Name, Gender, Region, and ID. Changes persist to MySQL, are restored with the session, and update connected peers through the authenticated realtime channel.
 - The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, automatic older-history loading while scrolling, a focused complete-history search with direct result navigation, an inline Contact Info view with back navigation, and a persistent desktop master-detail layout.
 - Message rows omit sender avatars so incoming and outgoing content align cleanly with the chat area edges.
-- The resizable macOS window opens at 1,180 by 660 points.
+- The authentication window opens at 420 by 500 points. The authenticated chat window expands to 1,150 by 750 points and remains resizable down to 960 by 620 points.
 - The Contacts workspace provides an alphabetical directory with private contact remarks searchable alongside original names and IDs, exact ID lookup for new people, an inline friend-request drawer, a selected-contact detail panel with an enlarged and downloadable profile-photo preview, real shared photos, files, and web links, complete-history message search with direct navigation and a three-second highlight on the matching chat message, safe removal confirmation, and direct-message navigation.
 - Incoming friend requests show a notification dot beside Contacts, appear below the Contacts search field, and can be expanded, accepted, or declined without leaving the workspace. The dot clears when no incoming requests remain, and accepting a request immediately adds the shared direct conversation to both users' Chats lists.
 - Direct channels load cursor-paginated history, receive realtime messages, automatically recover sequence gaps on opening, reconnecting, detecting an out-of-order event, or through a two-second active-channel fallback check, show persisted unread counts, mark viewed messages as read, update conversation-card previews in realtime with the same reconnect and two-second recovery safeguards, and can send or retry text, image, and file messages without creating duplicates.

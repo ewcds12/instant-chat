@@ -36,7 +36,13 @@ abstract final class RetroMetrics {
   static const composerHorizontalInset = 20.0;
   static const composerTopInset = 4.0;
   static const composerBottomInset = 12.0;
-  static const maxAuthPanelWidth = 420.0;
+  static const authWindowWidth = 420.0;
+  static const authWindowHeight = 500.0;
+  static const authFormMaxWidth = 316.0;
+  static const authLogoExtent = 44.0;
+  static const authFieldHeight = 42.0;
+  static const authButtonHeight = 40.0;
+  static const authContentTopInset = 46.0;
   static const maxPanelWidth = 760.0;
   static const maxProfilePanelWidth = 480.0;
   static const maxProfilePhotoCropPanelWidth = 420.0;

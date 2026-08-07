@@ -4,9 +4,41 @@ import XCTest
 @testable import Instant_Chat
 
 class RunnerTests: XCTestCase {
-  func testInitialWindowSizeMatchesDesignReference() {
-    XCTAssertEqual(MainFlutterWindow.initialFrameSize.width, 1180)
-    XCTAssertEqual(MainFlutterWindow.initialFrameSize.height, 660)
+  func testInitialWindowUsesCompactAuthenticationSize() {
+    XCTAssertEqual(MainFlutterWindow.initialFrameSize.width, 420)
+    XCTAssertEqual(MainFlutterWindow.initialFrameSize.height, 500)
+  }
+
+  func testAuthenticationWindowIsFixedAndCompact() {
+    let window = makeWindow()
+
+    MainFlutterWindow.configureWindow(
+      window,
+      for: .authentication,
+      animated: false
+    )
+
+    XCTAssertEqual(window.frame.size, MainFlutterWindow.authenticationFrameSize)
+    XCTAssertEqual(window.minSize, MainFlutterWindow.authenticationFrameSize)
+    XCTAssertEqual(window.maxSize, MainFlutterWindow.authenticationFrameSize)
+    XCTAssertFalse(window.styleMask.contains(.resizable))
+    XCTAssertFalse(window.standardWindowButton(.zoomButton)?.isEnabled ?? true)
+  }
+
+  func testMainWindowExpandsAndBecomesResizable() {
+    let window = makeWindow()
+    MainFlutterWindow.configureWindow(
+      window,
+      for: .authentication,
+      animated: false
+    )
+
+    MainFlutterWindow.configureWindow(window, for: .main, animated: false)
+
+    XCTAssertEqual(window.frame.size, MainFlutterWindow.mainFrameSize)
+    XCTAssertEqual(window.minSize, MainFlutterWindow.mainMinimumFrameSize)
+    XCTAssertTrue(window.styleMask.contains(.resizable))
+    XCTAssertTrue(window.standardWindowButton(.zoomButton)?.isEnabled ?? false)
   }
 
   func testWindowChromeUsesTheFullSizeContentView() {
@@ -65,5 +97,14 @@ class RunnerTests: XCTestCase {
     XCTAssertEqual(MessageTranslationLanguage.korean.rawValue, "ko")
     XCTAssertEqual(MessageTranslationLanguage(rawValue: "de")?.rawValue, "de")
     XCTAssertNil(MessageTranslationLanguage(rawValue: "unsupported"))
+  }
+
+  private func makeWindow() -> NSWindow {
+    NSWindow(
+      contentRect: NSRect(x: 0, y: 0, width: 1150, height: 750),
+      styleMask: [.titled, .closable, .miniaturizable, .resizable],
+      backing: .buffered,
+      defer: false
+    )
   }
 }

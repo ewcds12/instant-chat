@@ -31,18 +31,23 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final auth = ref.watch(authControllerProvider).value;
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      body: LiquidGradientBackground(
-        child: SafeArea(
-          child: Center(
+      backgroundColor: Colors.transparent,
+      body: SizedBox.expand(
+        child: LiquidGradientBackground(
+          child: SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(
-                  maxWidth: RetroMetrics.maxAuthPanelWidth,
-                ),
-                child: GlassPanel(
-                  padding: const EdgeInsets.all(26),
-                  tint: RetroColors.glassStrong,
+              padding: const EdgeInsets.fromLTRB(
+                RetroMetrics.spaceLarge,
+                RetroMetrics.authContentTopInset,
+                RetroMetrics.spaceLarge,
+                RetroMetrics.spaceLarge,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  key: const Key('auth-form'),
+                  constraints: const BoxConstraints(
+                    maxWidth: RetroMetrics.authFormMaxWidth,
+                  ),
                   child: Form(
                     key: _formKey,
                     child: Column(
@@ -50,8 +55,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                       children: [
                         Center(
                           child: Container(
-                            width: 54,
-                            height: 54,
+                            key: const Key('auth-logo'),
+                            width: RetroMetrics.authLogoExtent,
+                            height: RetroMetrics.authLogoExtent,
                             decoration: BoxDecoration(
                               gradient: const LinearGradient(
                                 begin: Alignment.topLeft,
@@ -61,84 +67,97 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                   RetroColors.primary,
                                 ],
                               ),
-                              borderRadius: BorderRadius.circular(18),
+                              borderRadius: BorderRadius.circular(13),
                               boxShadow: [
                                 BoxShadow(
-                                  color: colors.primary.withValues(alpha: 0.25),
-                                  blurRadius: 22,
-                                  offset: const Offset(0, 10),
+                                  color: colors.primary.withValues(alpha: 0.18),
+                                  blurRadius: 14,
+                                  offset: const Offset(0, 6),
                                 ),
                               ],
                             ),
                             child: const Icon(
                               Icons.chat_bubble_rounded,
                               color: Colors.white,
-                              size: 24,
+                              size: 20,
                             ),
                           ),
                         ),
-                        const SizedBox(height: RetroMetrics.spaceMedium),
+                        const SizedBox(height: 14),
                         Text(
                           _isRegistration
                               ? 'Create an account'
                               : 'Welcome back',
                           textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall,
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        const SizedBox(height: RetroMetrics.spaceSmall),
+                        const SizedBox(height: 4),
                         Text(
                           _isRegistration
                               ? 'Join Instant Chat to start a conversation.'
                               : 'Sign in to continue to Instant Chat.',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: colors.onSurfaceVariant),
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colors.onSurfaceVariant),
                         ),
-                        const SizedBox(height: RetroMetrics.spaceLarge),
-                        TextFormField(
+                        const SizedBox(height: 20),
+                        _AuthField(
+                          key: const Key('auth-id'),
                           controller: _usernameController,
-                          decoration: const InputDecoration(labelText: 'ID'),
+                          hintText: 'ID',
+                          icon: Icons.person_outline_rounded,
                           autocorrect: false,
                           textCapitalization: TextCapitalization.none,
                           textInputAction: TextInputAction.next,
                           validator: _validateUsername,
                         ),
-                        const SizedBox(height: RetroMetrics.spaceMedium),
+                        const SizedBox(height: 10),
                         if (_isRegistration) ...[
-                          TextFormField(
+                          _AuthField(
+                            key: const Key('auth-display-name'),
                             controller: _displayNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Display name',
-                            ),
+                            hintText: 'Display name',
+                            icon: Icons.badge_outlined,
                             textInputAction: TextInputAction.next,
                             validator: _validateDisplayName,
                           ),
-                          const SizedBox(height: RetroMetrics.spaceMedium),
+                          const SizedBox(height: 10),
                         ],
-                        TextFormField(
+                        _AuthField(
+                          key: const Key('auth-password'),
                           controller: _passwordController,
-                          decoration: const InputDecoration(
-                            labelText: 'Password',
-                          ),
+                          hintText: 'Password',
+                          icon: Icons.lock_outline_rounded,
                           obscureText: true,
                           onFieldSubmitted: (_) => _submit(auth?.isSubmitting),
                         ),
+                        if (auth?.errorMessage case final message?) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            message,
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(color: colors.error),
+                          ),
+                        ],
                         const SizedBox(height: RetroMetrics.spaceMedium),
-                        if (auth?.errorMessage case final message?)
-                          Text(message, style: TextStyle(color: colors.error)),
-                        const SizedBox(height: RetroMetrics.spaceMedium),
-                        FilledButton(
-                          onPressed: auth?.isSubmitting == true
-                              ? null
-                              : () => _submit(false),
-                          child: Text(
-                            auth?.isSubmitting == true
-                                ? 'Please wait…'
-                                : _isRegistration
-                                ? 'Create account'
-                                : 'Sign in',
+                        SizedBox(
+                          height: RetroMetrics.authButtonHeight,
+                          child: FilledButton(
+                            key: const Key('auth-submit'),
+                            onPressed: auth?.isSubmitting == true
+                                ? null
+                                : () => _submit(false),
+                            child: Text(
+                              auth?.isSubmitting == true
+                                  ? 'Please wait…'
+                                  : _isRegistration
+                                  ? 'Create account'
+                                  : 'Sign in',
+                            ),
                           ),
                         ),
-                        const SizedBox(height: RetroMetrics.spaceSmall),
+                        const SizedBox(height: 2),
                         TextButton(
                           onPressed: auth?.isSubmitting == true
                               ? null
@@ -147,6 +166,11 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                             _isRegistration
                                 ? 'Already have an account? Sign in'
                                 : 'New to Instant Chat? Create an account',
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: colors.primary,
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ),
                       ],
@@ -200,5 +224,57 @@ class _AuthPageState extends ConsumerState<AuthPage> {
       return 'Use 3 to 32 lowercase letters, numbers, or underscores.';
     }
     return null;
+  }
+}
+
+class _AuthField extends StatelessWidget {
+  const _AuthField({
+    required this.controller,
+    required this.hintText,
+    required this.icon,
+    this.autocorrect = true,
+    this.textCapitalization = TextCapitalization.sentences,
+    this.textInputAction,
+    this.validator,
+    this.obscureText = false,
+    this.onFieldSubmitted,
+    super.key,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final IconData icon;
+  final bool autocorrect;
+  final TextCapitalization textCapitalization;
+  final TextInputAction? textInputAction;
+  final FormFieldValidator<String>? validator;
+  final bool obscureText;
+  final ValueChanged<String>? onFieldSubmitted;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      autocorrect: autocorrect,
+      textCapitalization: textCapitalization,
+      textInputAction: textInputAction,
+      validator: validator,
+      obscureText: obscureText,
+      onFieldSubmitted: onFieldSubmitted,
+      style: Theme.of(context).textTheme.bodyMedium,
+      decoration: InputDecoration(
+        hintText: hintText,
+        isDense: true,
+        constraints: const BoxConstraints(
+          minHeight: RetroMetrics.authFieldHeight,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 10,
+        ),
+        prefixIcon: Icon(icon, size: 17),
+        prefixIconConstraints: const BoxConstraints(minWidth: 38),
+      ),
+    );
   }
 }

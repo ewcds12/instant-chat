@@ -67,6 +67,8 @@ The development MinIO image builds the pinned `RELEASE.2025-10-15T17-29-55Z` sou
 
 Passwords are hashed with Argon2id using one centralized configuration. Account registration and login use the username as the credential identifier and do not require email addresses. Login failures do not reveal whether an account exists, and registration and login are limited to 10 attempts per IP address per minute in each API process.
 
+The macOS runner starts in a compact, fixed-size authentication window. Flutter requests the expanded, resizable chat-window mode only after an authenticated session is available and returns to the compact mode after sign-out. A single native window owns both modes, so authentication never exposes the chat workspace and session transitions do not create competing window lifecycles.
+
 Access tokens are cryptographically random opaque values valid for 15 minutes. Refresh tokens are cryptographically random opaque values valid for 30 days and are rotated in a database transaction. MySQL stores only SHA-256 token digests, never the bearer values returned to the client. The authenticated account API owns Name, Gender, Region, ID, and one validated profile photo; public peer data includes only Name, ID, and an authenticated avatar URL.
 
 The authentication tables and changes are owned by `db/migrations`. Source queries are owned by `db/queries`, and `db/sqlc.yaml` generates the server store package.

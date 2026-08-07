@@ -1,24 +1,29 @@
 import Cocoa
 import FlutterMacOS
 
+enum AppWindowMode: String {
+  case authentication
+  case main
+}
+
 class MainFlutterWindow: NSWindow {
-  static let initialFrameSize = NSSize(width: 1150, height: 750)
+  static let authenticationFrameSize = NSSize(width: 420, height: 500)
+  static let mainFrameSize = NSSize(width: 1150, height: 750)
+  static let mainMinimumFrameSize = NSSize(width: 960, height: 620)
+  static let initialFrameSize = authenticationFrameSize
   private static let trafficLightOffset = NSPoint(x: 12, y: -8)
   private static let standardTrafficLightOrigin = NSPoint(x: 7, y: 6)
   private static let trafficLightSpacing = CGFloat(20)
   private var clipboardImageChannel: ClipboardImageChannel?
   private var messageTranslationChannel: MessageTranslationChannel?
+  private var windowModeChannel: AppWindowModeChannel?
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
-    self.setFrame(
-      NSRect(origin: self.frame.origin, size: Self.initialFrameSize),
-      display: true
-    )
-    self.center()
     self.title = "Instant Chat"
     Self.configureWindowChrome(self)
+    Self.configureWindow(self, for: .authentication, animated: false)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     clipboardImageChannel = ClipboardImageChannel(
@@ -26,6 +31,10 @@ class MainFlutterWindow: NSWindow {
     )
     messageTranslationChannel = MessageTranslationChannel(
       controller: flutterViewController
+    )
+    windowModeChannel = AppWindowModeChannel(
+      controller: flutterViewController,
+      window: self
     )
     configurePasteMenuItem()
 
@@ -77,6 +86,58 @@ class MainFlutterWindow: NSWindow {
     window.isMovableByWindowBackground = true
   }
 
+  static func configureWindow(
+    _ window: NSWindow,
+    for mode: AppWindowMode,
+    animated: Bool
+  ) {
+    window.minSize = NSSize(width: 1, height: 1)
+    window.maxSize = NSSize(width: 10_000, height: 10_000)
+
+    let targetSize: NSSize
+    switch mode {
+    case .authentication:
+      targetSize = authenticationFrameSize
+      window.styleMask.remove(.resizable)
+      window.standardWindowButton(.zoomButton)?.isEnabled = false
+    case .main:
+      targetSize = mainFrameSize
+      window.styleMask.insert(.resizable)
+      window.standardWindowButton(.zoomButton)?.isEnabled = true
+    }
+
+    window.setFrame(
+      centeredFrame(for: targetSize, window: window),
+      display: true,
+      animate: animated
+    )
+
+    switch mode {
+    case .authentication:
+      window.minSize = authenticationFrameSize
+      window.maxSize = authenticationFrameSize
+    case .main:
+      window.minSize = mainMinimumFrameSize
+      window.maxSize = NSSize(width: 10_000, height: 10_000)
+    }
+    repositionWindowControls(in: window)
+  }
+
+  private static func centeredFrame(
+    for size: NSSize,
+    window: NSWindow
+  ) -> NSRect {
+    guard let visibleFrame = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame else {
+      return NSRect(origin: window.frame.origin, size: size)
+    }
+    return NSRect(
+      x: visibleFrame.midX - (size.width / 2),
+      y: visibleFrame.midY - (size.height / 2),
+      width: size.width,
+      height: size.height
+    )
+  }
+
   static func repositionWindowControls(in window: NSWindow) {
     let buttons = [
       window.standardWindowButton(.closeButton),
@@ -104,6 +165,41 @@ class MainFlutterWindow: NSWindow {
         return
       }
       Self.repositionWindowControls(in: self)
+    }
+  }
+}
+
+private final class AppWindowModeChannel {
+  private static let channelName = "instant_chat/window"
+  private let channel: FlutterMethodChannel
+  private weak var window: NSWindow?
+
+  init(controller: FlutterViewController, window: NSWindow) {
+    self.window = window
+    channel = FlutterMethodChannel(
+      name: Self.channelName,
+      binaryMessenger: controller.engine.binaryMessenger
+    )
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "setMode" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      guard let rawMode = call.arguments as? String,
+        let mode = AppWindowMode(rawValue: rawMode),
+        let window = self?.window
+      else {
+        result(
+          FlutterError(
+            code: "invalid_window_mode",
+            message: "The requested window mode is invalid.",
+            details: nil
+          )
+        )
+        return
+      }
+      MainFlutterWindow.configureWindow(window, for: mode, animated: true)
+      result(nil)
     }
   }
 }

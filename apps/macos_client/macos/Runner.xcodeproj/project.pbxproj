@@ -402,7 +402,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ewcds12.instantChat.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/instant_chat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/instant_chat";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Instant Chat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Instant Chat";
 			};
 			name = Debug;
 		};
@@ -416,7 +416,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ewcds12.instantChat.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/instant_chat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/instant_chat";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Instant Chat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Instant Chat";
 			};
 			name = Release;
 		};
@@ -430,7 +430,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.ewcds12.instantChat.RunnerTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_VERSION = 5.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/instant_chat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/instant_chat";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Instant Chat.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Instant Chat";
 			};
 			name = Profile;
 		};

@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/widgets.dart';
 import 'package:instant_chat/app/instant_chat_app.dart';
+import 'package:instant_chat/core/platform/macos_window_controller.dart';
+import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
@@ -19,9 +21,11 @@ import 'support/widget_network_stubs.dart';
 
 void main() {
   testWidgets('shows online when API and database are healthy', (tester) async {
+    final windowController = _RecordingWindowController();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appWindowControllerProvider.overrideWithValue(windowController),
           authControllerProvider.overrideWith(
             () => _StubAuthController(AuthState(session: _session)),
           ),
@@ -47,6 +51,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    expect(windowController.modes, [
+      AppWindowMode.authentication,
+      AppWindowMode.main,
+    ]);
 
     await tester.tap(find.byTooltip('System'));
     await tester.pumpAndSettle();
@@ -93,9 +102,18 @@ void main() {
   });
 
   testWidgets('shows the en-US sign-in and registration forms', (tester) async {
+    tester.view.physicalSize = const Size(
+      RetroMetrics.authWindowWidth,
+      RetroMetrics.authWindowHeight,
+    );
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final windowController = _RecordingWindowController();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          appWindowControllerProvider.overrideWithValue(windowController),
           authControllerProvider.overrideWith(
             () => _StubAuthController(
               const AuthState(
@@ -109,10 +127,23 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(windowController.modes, [AppWindowMode.authentication]);
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('ID'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
     expect(find.text('Username or password is incorrect.'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('auth-form'))).width,
+      RetroMetrics.authFormMaxWidth,
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('auth-logo'))),
+      const Size.square(RetroMetrics.authLogoExtent),
+    );
+    expect(
+      tester.getSize(find.byKey(const Key('auth-submit'))).height,
+      RetroMetrics.authButtonHeight,
+    );
 
     await tester.tap(find.text('New to Instant Chat? Create an account'));
     await tester.pumpAndSettle();
@@ -262,6 +293,13 @@ class _StubAuthController extends AuthController {
 
   @override
   Future<AuthState> build() async => authState;
+}
+
+class _RecordingWindowController implements AppWindowController {
+  final modes = <AppWindowMode>[];
+
+  @override
+  Future<void> setMode(AppWindowMode mode) async => modes.add(mode);
 }
 
 const _emptyContacts = ContactsState(contacts: [], incoming: [], outgoing: []);

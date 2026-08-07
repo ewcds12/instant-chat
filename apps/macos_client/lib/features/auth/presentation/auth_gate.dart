@@ -1,34 +1,60 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/app/authenticated_shell.dart';
+import 'package:instant_chat/core/platform/macos_window_controller.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/auth/presentation/auth_page.dart';
 
-class AuthGate extends ConsumerWidget {
+class AuthGate extends ConsumerStatefulWidget {
   const AuthGate({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ref
-        .watch(authControllerProvider)
-        .when(
-          loading: () => const _BootPage(),
-          error: (_, _) => _SessionErrorPage(
-            onRetry: () => ref.invalidate(authControllerProvider),
-          ),
-          data: (auth) {
-            final session = auth.session;
-            if (session == null) {
-              return const AuthPage();
-            }
-            return AuthenticatedShell(
-              session: session,
-              onSignOut: () =>
-                  ref.read(authControllerProvider.notifier).signOut(),
-            );
-          },
+  ConsumerState<AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends ConsumerState<AuthGate> {
+  AppWindowMode? _requestedWindowMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = ref.watch(authControllerProvider);
+    final mode = auth.asData?.value.session == null
+        ? AppWindowMode.authentication
+        : AppWindowMode.main;
+    _requestWindowMode(mode);
+
+    return auth.when(
+      loading: () => const _BootPage(),
+      error: (_, _) => _SessionErrorPage(
+        onRetry: () => ref.invalidate(authControllerProvider),
+      ),
+      data: (auth) {
+        final session = auth.session;
+        if (session == null) {
+          return const AuthPage();
+        }
+        return AuthenticatedShell(
+          session: session,
+          onSignOut: () => ref.read(authControllerProvider.notifier).signOut(),
         );
+      },
+    );
+  }
+
+  void _requestWindowMode(AppWindowMode mode) {
+    if (_requestedWindowMode == mode) {
+      return;
+    }
+    _requestedWindowMode = mode;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _requestedWindowMode != mode) {
+        return;
+      }
+      unawaited(ref.read(appWindowControllerProvider).setMode(mode));
+    });
   }
 }
 
