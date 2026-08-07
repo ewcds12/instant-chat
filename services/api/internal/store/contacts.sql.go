@@ -220,6 +220,9 @@ SELECT
   other_user.display_name,
   other_user.avatar_content_type,
   other_user.created_at,
+  relationship.lower_user_id,
+  relationship.lower_user_remark,
+  relationship.higher_user_remark,
   relationship.updated_at AS connected_at
 FROM contact_relationships AS relationship
 JOIN users AS other_user
@@ -247,6 +250,9 @@ type ListAcceptedContactsRow struct {
 	DisplayName       string         `db:"display_name"`
 	AvatarContentType sql.NullString `db:"avatar_content_type"`
 	CreatedAt         time.Time      `db:"created_at"`
+	LowerUserID       uint64         `db:"lower_user_id"`
+	LowerUserRemark   string         `db:"lower_user_remark"`
+	HigherUserRemark  string         `db:"higher_user_remark"`
 	ConnectedAt       time.Time      `db:"connected_at"`
 }
 
@@ -266,6 +272,9 @@ func (q *Queries) ListAcceptedContacts(ctx context.Context, arg ListAcceptedCont
 			&i.DisplayName,
 			&i.AvatarContentType,
 			&i.CreatedAt,
+			&i.LowerUserID,
+			&i.LowerUserRemark,
+			&i.HigherUserRemark,
 			&i.ConnectedAt,
 		); err != nil {
 			return nil, err
@@ -422,4 +431,41 @@ type RemoveAcceptedContactParams struct {
 
 func (q *Queries) RemoveAcceptedContact(ctx context.Context, arg RemoveAcceptedContactParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, removeAcceptedContact, arg.LowerUserID, arg.HigherUserID)
+}
+
+const setContactRemark = `-- name: SetContactRemark :execresult
+UPDATE contact_relationships
+SET
+  lower_user_remark = CASE
+    WHEN lower_user_id = ? THEN ?
+    ELSE lower_user_remark
+  END,
+  higher_user_remark = CASE
+    WHEN higher_user_id = ? THEN ?
+    ELSE higher_user_remark
+  END
+WHERE status = 'accepted'
+  AND (
+    (lower_user_id = ? AND higher_user_id = ?)
+    OR (higher_user_id = ? AND lower_user_id = ?)
+  )
+`
+
+type SetContactRemarkParams struct {
+	CurrentUserID uint64 `db:"current_user_id"`
+	Remark        string `db:"remark"`
+	ContactUserID uint64 `db:"contact_user_id"`
+}
+
+func (q *Queries) SetContactRemark(ctx context.Context, arg SetContactRemarkParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, setContactRemark,
+		arg.CurrentUserID,
+		arg.Remark,
+		arg.CurrentUserID,
+		arg.Remark,
+		arg.CurrentUserID,
+		arg.ContactUserID,
+		arg.CurrentUserID,
+		arg.ContactUserID,
+	)
 }

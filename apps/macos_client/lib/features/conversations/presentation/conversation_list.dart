@@ -15,6 +15,7 @@ class ConversationList extends StatelessWidget {
     required this.onQueryChanged,
     required this.onCompose,
     required this.onSelect,
+    this.contactRemarks = const {},
     super.key,
   });
 
@@ -27,6 +28,7 @@ class ConversationList extends StatelessWidget {
   final ValueChanged<String> onQueryChanged;
   final VoidCallback onCompose;
   final ValueChanged<Conversation> onSelect;
+  final Map<String, String> contactRemarks;
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +38,9 @@ class ConversationList extends StatelessWidget {
       if (normalizedQuery.isEmpty) {
         return true;
       }
-      return conversation.peer.displayName.toLowerCase().contains(
+      final remark = contactRemarks[conversation.peer.id] ?? '';
+      return remark.toLowerCase().contains(normalizedQuery) ||
+          conversation.peer.displayName.toLowerCase().contains(
             normalizedQuery,
           ) ||
           conversation.peer.username.toLowerCase().contains(normalizedQuery);
@@ -138,6 +142,7 @@ class ConversationList extends StatelessWidget {
                       final conversation = filtered[index];
                       return ConversationListRow(
                         conversation: conversation,
+                        remark: contactRemarks[conversation.peer.id] ?? '',
                         accessToken: accessToken,
                         selected: conversation.id == selectedId,
                         onOpen: () => onSelect(conversation),

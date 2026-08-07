@@ -141,13 +141,47 @@ func (r *MySQLRepository) ListContacts(ctx context.Context, userID uint64) ([]Co
 	}
 	contacts := make([]Contact, 0, len(rows))
 	for _, row := range rows {
+		remark := row.HigherUserRemark
+		if row.LowerUserID == userID {
+			remark = row.LowerUserRemark
+		}
 		contacts = append(contacts, Contact{
 			RelationshipID: row.RelationshipID,
 			User:           PublicUser{ID: row.UserID, Username: row.Username, DisplayName: row.DisplayName, HasAvatar: row.AvatarContentType.Valid, CreatedAt: row.CreatedAt},
+			Remark:         remark,
 			ConnectedAt:    row.ConnectedAt,
 		})
 	}
 	return contacts, nil
+}
+
+// SetContactRemark stores the current user's private label for a contact.
+func (r *MySQLRepository) SetContactRemark(
+	ctx context.Context,
+	userID, contactUserID uint64,
+	remark string,
+) error {
+	result, err := r.queries.SetContactRemark(ctx, store.SetContactRemarkParams{
+		CurrentUserID: userID, ContactUserID: contactUserID, Remark: remark,
+	})
+	if err != nil {
+		return fmt.Errorf("set contact remark: %w", err)
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("read contact remark row count: %w", err)
+	}
+	if affected == 1 {
+		return nil
+	}
+	accepted, err := r.AreContacts(ctx, userID, contactUserID)
+	if err != nil {
+		return err
+	}
+	if !accepted {
+		return ErrContactNotFound
+	}
+	return nil
 }
 
 // RemoveContact deletes an accepted relationship and suspends its direct conversation.

@@ -405,6 +405,31 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
+  /contacts/{user_id}/remark:
+    put:
+      operationId: setContactRemark
+      summary: Set the current user's private remark for a contact
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetContactRemarkRequest"
+      responses:
+        "204":
+          description: Contact remark updated
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /conversations:
     get:
       operationId: listConversations
@@ -1062,15 +1087,29 @@ components:
       required:
         - relationship_id
         - user
+        - remark
         - connected_at
       properties:
         relationship_id:
           $ref: "#/components/schemas/ResourceID"
         user:
           $ref: "#/components/schemas/PublicUser"
+        remark:
+          type: string
+          maxLength: 64
+          description: Private contact label visible only to the current user.
         connected_at:
           type: string
           format: date-time
+    SetContactRemarkRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - remark
+      properties:
+        remark:
+          type: string
+          maxLength: 64
     ContactList:
       type: object
       additionalProperties: false

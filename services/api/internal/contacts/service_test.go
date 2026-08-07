@@ -3,6 +3,7 @@ package contacts
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 )
@@ -18,6 +19,9 @@ type fakeRepository struct {
 	acceptedRequestID uint64
 	removedUserID     uint64
 	removedContactID  uint64
+	remarkUserID      uint64
+	remarkContactID   uint64
+	remark            string
 	requests          []Request
 }
 
@@ -53,6 +57,13 @@ func (f *fakeRepository) CancelRequest(_ context.Context, userID, requestID uint
 }
 
 func (f *fakeRepository) ListContacts(context.Context, uint64) ([]Contact, error) { return nil, nil }
+
+func (f *fakeRepository) SetContactRemark(_ context.Context, userID, contactUserID uint64, remark string) error {
+	f.remarkUserID = userID
+	f.remarkContactID = contactUserID
+	f.remark = remark
+	return nil
+}
 
 func (f *fakeRepository) RemoveContact(_ context.Context, userID, contactUserID uint64) error {
 	f.removedUserID = userID
@@ -109,6 +120,27 @@ func TestServiceCancelRequestUsesCurrentRequester(t *testing.T) {
 
 	if err != nil || repository.canceledUserID != 7 || repository.canceledRequestID != 9 {
 		t.Fatalf("error = %v, user ID = %d, request ID = %d", err, repository.canceledUserID, repository.canceledRequestID)
+	}
+}
+
+func TestServiceSetContactRemarkNormalizesWhitespace(t *testing.T) {
+	repository := &fakeRepository{}
+
+	err := NewService(repository).SetContactRemark(context.Background(), 7, 8, "  Coach  ")
+
+	if err != nil || repository.remarkUserID != 7 || repository.remarkContactID != 8 || repository.remark != "Coach" {
+		t.Fatalf("error = %v, user ID = %d, contact ID = %d, remark = %q", err, repository.remarkUserID, repository.remarkContactID, repository.remark)
+	}
+}
+
+func TestServiceSetContactRemarkRejectsMultilineAndLongValues(t *testing.T) {
+	service := NewService(&fakeRepository{})
+	for _, remark := range []string{"First\nSecond", strings.Repeat("名", 65)} {
+		err := service.SetContactRemark(context.Background(), 7, 8, remark)
+		var inputError *InputError
+		if !errors.As(err, &inputError) {
+			t.Fatalf("SetContactRemark(%q) error = %v, want InputError", remark, err)
+		}
 	}
 }
 

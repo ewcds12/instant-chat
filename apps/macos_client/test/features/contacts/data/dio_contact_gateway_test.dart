@@ -15,6 +15,7 @@ void main() {
           {
             'relationship_id': '9',
             'user': _publicUser,
+            'remark': '',
             'connected_at': '2026-07-16T13:00:00Z',
           },
         ],
@@ -28,6 +29,7 @@ void main() {
     expect(adapter.authorization, 'Bearer access-token');
     expect(contacts.single.user.username, 'other_user');
     expect(contacts.single.relationshipId, '9');
+    expect(contacts.single.remark, isEmpty);
   });
 
   test('searchUser maps a stable API error', () async {
@@ -67,6 +69,21 @@ void main() {
     expect(adapter.path, '/api/v1/contact-requests/9/cancel');
     expect(adapter.authorization, 'Bearer access-token');
   });
+
+  test('setRemark puts the private label to the contact endpoint', () async {
+    final adapter = _StubAdapter(statusCode: 204, body: '');
+    final gateway = DioContactGateway(_createDio(adapter));
+
+    await gateway.setRemark(
+      accessToken: 'access-token',
+      userId: '8',
+      remark: 'Coach',
+    );
+
+    expect(adapter.method, 'PUT');
+    expect(adapter.path, '/api/v1/contacts/8/remark');
+    expect(adapter.data, {'remark': 'Coach'});
+  });
 }
 
 final _publicUser = {
@@ -93,6 +110,8 @@ class _StubAdapter implements HttpClientAdapter {
   final int statusCode;
   final Object body;
   String? path;
+  String? method;
+  Object? data;
   String? authorization;
 
   @override
@@ -102,6 +121,8 @@ class _StubAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) async {
     path = options.uri.path;
+    method = options.method;
+    data = options.data;
     authorization = options.headers['Authorization'] as String?;
     return ResponseBody.fromString(
       jsonEncode(body),

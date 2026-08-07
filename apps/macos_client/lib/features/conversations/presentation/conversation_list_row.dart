@@ -9,6 +9,7 @@ class ConversationListRow extends StatelessWidget {
     required this.selected,
     required this.accessToken,
     required this.onOpen,
+    this.remark = '',
     super.key,
   });
 
@@ -16,6 +17,10 @@ class ConversationListRow extends StatelessWidget {
   final bool selected;
   final String accessToken;
   final VoidCallback onOpen;
+  final String remark;
+
+  String get _displayName =>
+      remark.isEmpty ? conversation.peer.displayName : remark;
 
   @override
   Widget build(BuildContext context) {
@@ -73,10 +78,10 @@ class ConversationListRow extends StatelessWidget {
               ? colors.surfaceContainerHighest
               : colors.surfaceContainerHigh,
           foregroundColor: colors.onSurfaceVariant,
-          child: Text(_initials(conversation.peer.displayName)),
+          child: Text(_initials(_displayName)),
         )
       : ProfileAvatar(
-          name: conversation.peer.displayName,
+          name: _displayName,
           accessToken: accessToken,
           avatarUrl: conversation.peer.avatarUrl,
           radius: 20,
@@ -87,7 +92,7 @@ class ConversationListRow extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          conversation.peer.displayName,
+          _displayName,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(

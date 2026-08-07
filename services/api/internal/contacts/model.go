@@ -59,6 +59,7 @@ type RequestLists struct {
 type Contact struct {
 	RelationshipID uint64
 	User           PublicUser
+	Remark         string
 	ConnectedAt    time.Time
 }
 
@@ -71,6 +72,7 @@ type Repository interface {
 	RejectRequest(ctx context.Context, userID, requestID uint64) error
 	CancelRequest(ctx context.Context, userID, requestID uint64) error
 	ListContacts(ctx context.Context, userID uint64) ([]Contact, error)
+	SetContactRemark(ctx context.Context, userID, contactUserID uint64, remark string) error
 	RemoveContact(ctx context.Context, userID, contactUserID uint64) error
 	AreContacts(ctx context.Context, firstUserID, secondUserID uint64) (bool, error)
 }

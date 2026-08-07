@@ -116,6 +116,22 @@ class DioContactGateway implements ContactGateway {
   }
 
   @override
+  Future<void> setRemark({
+    required String accessToken,
+    required String userId,
+    required String remark,
+  }) async {
+    final response = await apiRequest(
+      () => _dio.put<Object?>(
+        '/api/v1/contacts/$userId/remark',
+        data: {'remark': remark},
+        options: _options(accessToken),
+      ),
+    );
+    expectStatus(response, {204});
+  }
+
+  @override
   Future<void> removeContact({
     required String accessToken,
     required String userId,

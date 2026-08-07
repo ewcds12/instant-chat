@@ -20,20 +20,24 @@ import 'package:instant_chat/features/users/domain/public_user.dart';
 class ContactDetailPanel extends StatelessWidget {
   const ContactDetailPanel({
     required this.user,
+    this.remark = '',
     required this.accessToken,
     required this.disabled,
     required this.onMessage,
     required this.onRemove,
+    this.onSetRemark,
     this.conversationId,
     this.onBack,
     super.key,
   });
 
   final PublicUser? user;
+  final String remark;
   final String accessToken;
   final bool disabled;
   final VoidCallback? onMessage;
   final VoidCallback? onRemove;
+  final VoidCallback? onSetRemark;
   final String? conversationId;
   final VoidCallback? onBack;
 
@@ -44,10 +48,12 @@ class ContactDetailPanel extends StatelessWidget {
           ? const ContactDetailEmptyState()
           : _ContactDetail(
               user: user!,
+              remark: remark,
               accessToken: accessToken,
               disabled: disabled,
               onMessage: onMessage!,
               onRemove: onRemove!,
+              onSetRemark: onSetRemark ?? () {},
               conversationId: conversationId,
               onBack: onBack,
             ),
@@ -58,19 +64,23 @@ class ContactDetailPanel extends StatelessWidget {
 class _ContactDetail extends ConsumerStatefulWidget {
   const _ContactDetail({
     required this.user,
+    required this.remark,
     required this.accessToken,
     required this.disabled,
     required this.onMessage,
     required this.onRemove,
+    required this.onSetRemark,
     required this.conversationId,
     required this.onBack,
   });
 
   final PublicUser user;
+  final String remark;
   final String accessToken;
   final bool disabled;
   final VoidCallback onMessage;
   final VoidCallback onRemove;
+  final VoidCallback onSetRemark;
   final String? conversationId;
   final VoidCallback? onBack;
 
@@ -91,12 +101,14 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
         ContactDetailHeader(
           disabled: widget.disabled,
           onSearch: _openHistorySearch,
+          onSetRemark: widget.onSetRemark,
           onRemove: widget.onRemove,
           onBack: widget.onBack,
         ),
         Expanded(
           child: ContactDetailContent(
             user: widget.user,
+            remark: widget.remark,
             accessToken: widget.accessToken,
             disabled: widget.disabled,
             sharedContent: shared,

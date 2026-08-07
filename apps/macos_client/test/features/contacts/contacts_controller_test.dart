@@ -109,6 +109,39 @@ void main() {
     expect(gateway.listContactsCalls, 2);
   });
 
+  test(
+    'setRemark reports success and refreshes the contact snapshot',
+    () async {
+      final gateway = _FakeContactGateway();
+      final container = ProviderContainer(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          contactGatewayProvider.overrideWithValue(gateway),
+        ],
+      );
+      addTearDown(container.dispose);
+      await container.read(authControllerProvider.future);
+      final subscription = container.listen(
+        contactsControllerProvider,
+        (_, _) {},
+        fireImmediately: true,
+      );
+      addTearDown(subscription.close);
+      await container.read(contactsControllerProvider.future);
+
+      final updated = await container
+          .read(contactsControllerProvider.notifier)
+          .setRemark(_otherUser.id, 'Coach');
+
+      expect(updated, isTrue);
+      expect(gateway.remarkedUserId, _otherUser.id);
+      expect(gateway.remark, 'Coach');
+      expect(gateway.listContactsCalls, 2);
+    },
+  );
+
   test('fallback refresh discovers an incoming request', () async {
     final gateway = _FakeContactGateway();
     final container = ProviderContainer(
@@ -184,6 +217,8 @@ class _FakeContactGateway implements ContactGateway {
   String? acceptedRequestId;
   String? canceledRequestId;
   String? removedUserId;
+  String? remarkedUserId;
+  String? remark;
   int listContactsCalls = 0;
   List<ContactRequest> incoming = [];
 
@@ -256,6 +291,16 @@ class _FakeContactGateway implements ContactGateway {
     required String userId,
   }) async {
     removedUserId = userId;
+  }
+
+  @override
+  Future<void> setRemark({
+    required String accessToken,
+    required String userId,
+    required String remark,
+  }) async {
+    remarkedUserId = userId;
+    this.remark = remark;
   }
 }
 

@@ -206,6 +206,25 @@ class ContactsController extends AsyncNotifier<ContactsState> {
     return false;
   }
 
+  Future<bool> setRemark(String userId, String remark) async {
+    final current = state.requireValue;
+    state = AsyncData(current.copyWith(isSubmitting: true, clearError: true));
+    try {
+      await _gateway.setRemark(
+        accessToken: _accessToken,
+        userId: userId,
+        remark: remark,
+      );
+      state = AsyncData(await _load());
+      return true;
+    } on ApiFailure catch (failure) {
+      _setFailure(current, failure.message);
+    } on FormatException {
+      _setFailure(current, 'The server returned an invalid response.');
+    }
+    return false;
+  }
+
   Future<ContactsState> _load() async {
     final contacts = await _gateway.listContacts(_accessToken);
     final requests = await _gateway.listRequests(_accessToken);
@@ -263,6 +282,7 @@ class ContactsController extends AsyncNotifier<ContactsState> {
                   ? Contact(
                       relationshipId: contact.relationshipId,
                       user: profile,
+                      remark: contact.remark,
                       connectedAt: contact.connectedAt,
                     )
                   : contact,

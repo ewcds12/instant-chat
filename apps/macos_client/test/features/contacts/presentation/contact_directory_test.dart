@@ -27,6 +27,14 @@ void main() {
     expect(groupContacts([_contact('amy', 'Amy')], 'missing'), isEmpty);
   });
 
+  test('matches remarks, original names, and usernames', () {
+    final contact = _contact('amy', 'Amy Adams', remark: 'Coach');
+
+    expect(groupContacts([contact], 'coach').single.label, 'C');
+    expect(groupContacts([contact], 'amy'), isNotEmpty);
+    expect(groupContacts([contact], 'amy_adams'), isEmpty);
+  });
+
   testWidgets(
     'selects a contact, opens a direct message, and confirms deletion',
     (tester) async {
@@ -118,6 +126,21 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Zoe Day'), findsAtLeastNWidgets(2));
       expect(find.text('@zoe'), findsAtLeastNWidgets(1));
+
+      await tester.tap(find.byTooltip('Contact options'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Set Remark…'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('contact-remark-field')),
+        'Captain',
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      expect(contactsController.remarkedUserId, 'user-zoe');
+      expect(contactsController.remark, 'Captain');
+      expect(find.text('Captain'), findsAtLeastNWidgets(1));
+      expect(find.textContaining('Zoe Day · @zoe'), findsAtLeastNWidgets(1));
 
       await tester.tap(find.byKey(const Key('contact-detail-message')));
       await tester.pump();
@@ -261,7 +284,7 @@ final _session = AuthSession(
   refreshExpiresAt: DateTime.utc(2026, 8, 21),
 );
 
-Contact _contact(String username, String displayName) {
+Contact _contact(String username, String displayName, {String remark = ''}) {
   return Contact(
     relationshipId: 'relationship-$username',
     user: PublicUser(
@@ -270,6 +293,7 @@ Contact _contact(String username, String displayName) {
       displayName: displayName,
       createdAt: DateTime.utc(2026, 7, 21),
     ),
+    remark: remark,
     connectedAt: DateTime.utc(2026, 7, 21),
   );
 }
@@ -304,6 +328,8 @@ class _StubContactsController extends ContactsController {
   String? acceptedRequestId;
   String? rejectedRequestId;
   String? removedUserId;
+  String? remarkedUserId;
+  String? remark;
 
   @override
   Future<ContactsState> build() async => contactsState;
@@ -322,6 +348,7 @@ class _StubContactsController extends ContactsController {
           Contact(
             relationshipId: 'relationship-${request.user.username}',
             user: request.user,
+            remark: '',
             connectedAt: DateTime.utc(2026, 7, 21),
           ),
         ],
@@ -354,6 +381,30 @@ class _StubContactsController extends ContactsController {
       current.copyWith(
         contacts: current.contacts
             .where((contact) => contact.user.id != userId)
+            .toList(growable: false),
+      ),
+    );
+    return true;
+  }
+
+  @override
+  Future<bool> setRemark(String userId, String remark) async {
+    remarkedUserId = userId;
+    this.remark = remark;
+    final current = state.requireValue;
+    state = AsyncData(
+      current.copyWith(
+        contacts: current.contacts
+            .map(
+              (contact) => contact.user.id == userId
+                  ? Contact(
+                      relationshipId: contact.relationshipId,
+                      user: contact.user,
+                      remark: remark,
+                      connectedAt: contact.connectedAt,
+                    )
+                  : contact,
+            )
             .toList(growable: false),
       ),
     );

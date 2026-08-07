@@ -17,6 +17,9 @@ type stubContactService struct {
 	requesterID       uint64
 	canceledUserID    uint64
 	canceledRequestID uint64
+	remarkUserID      uint64
+	remarkContactID   uint64
+	remark            string
 }
 
 func (s *stubContactService) SearchUser(context.Context, string) (PublicUser, error) {
@@ -49,6 +52,13 @@ func (s *stubContactService) CancelRequest(_ context.Context, userID, requestID 
 
 func (s *stubContactService) ListContacts(context.Context, uint64) ([]Contact, error) {
 	return []Contact{}, nil
+}
+
+func (s *stubContactService) SetContactRemark(_ context.Context, userID, contactUserID uint64, remark string) error {
+	s.remarkUserID = userID
+	s.remarkContactID = contactUserID
+	s.remark = remark
+	return nil
 }
 
 func (s *stubContactService) RemoveContact(context.Context, uint64, uint64) error { return nil }
@@ -115,5 +125,22 @@ func TestHandlerCancelRequestUsesAuthenticatedRequester(t *testing.T) {
 
 	if recorder.Code != http.StatusNoContent || service.canceledUserID != 7 || service.canceledRequestID != 9 {
 		t.Fatalf("status = %d, user ID = %d, request ID = %d", recorder.Code, service.canceledUserID, service.canceledRequestID)
+	}
+}
+
+func TestHandlerSetContactRemarkUsesAuthenticatedUser(t *testing.T) {
+	service := &stubContactService{}
+	contactHandler := NewHandler(service)
+	authHandler := auth.NewHandler(stubAuthService{})
+	handler := httpapi.RequestIDMiddleware(authHandler.RequireUser(http.HandlerFunc(contactHandler.SetContactRemark)))
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/contacts/8/remark", strings.NewReader(`{"remark":"Coach"}`))
+	request.SetPathValue("user_id", "8")
+	request.Header.Set("Authorization", "Bearer access")
+	recorder := httptest.NewRecorder()
+
+	handler.ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNoContent || service.remarkUserID != 7 || service.remarkContactID != 8 || service.remark != "Coach" {
+		t.Fatalf("status = %d, user ID = %d, contact ID = %d, remark = %q", recorder.Code, service.remarkUserID, service.remarkContactID, service.remark)
 	}
 }

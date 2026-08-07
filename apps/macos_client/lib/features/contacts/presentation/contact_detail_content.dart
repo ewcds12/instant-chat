@@ -10,6 +10,7 @@ import 'package:instant_chat/features/users/domain/public_user.dart';
 class ContactDetailContent extends StatelessWidget {
   const ContactDetailContent({
     required this.user,
+    required this.remark,
     required this.accessToken,
     required this.disabled,
     required this.sharedContent,
@@ -23,6 +24,7 @@ class ContactDetailContent extends StatelessWidget {
   });
 
   final PublicUser user;
+  final String remark;
   final String accessToken;
   final bool disabled;
   final AsyncValue<ContactSharedContent> sharedContent;
@@ -53,6 +55,7 @@ class ContactDetailContent extends StatelessWidget {
             children: [
               _IdentityRow(
                 user: user,
+                remark: remark,
                 accessToken: accessToken,
                 disabled: disabled,
                 onMessage: onMessage,
@@ -80,6 +83,7 @@ class ContactDetailContent extends StatelessWidget {
 class _IdentityRow extends StatelessWidget {
   const _IdentityRow({
     required this.user,
+    required this.remark,
     required this.accessToken,
     required this.disabled,
     required this.onMessage,
@@ -87,6 +91,7 @@ class _IdentityRow extends StatelessWidget {
   });
 
   final PublicUser user;
+  final String remark;
   final String accessToken;
   final bool disabled;
   final VoidCallback onMessage;
@@ -113,14 +118,16 @@ class _IdentityRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  user.displayName,
+                  remark.isEmpty ? user.displayName : remark,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '@${user.username}',
+                  remark.isEmpty
+                      ? '@${user.username}'
+                      : '${user.displayName} · @${user.username}',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),

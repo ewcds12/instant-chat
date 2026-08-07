@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/network/api_failure.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_panel.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_directory.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_remark_dialog.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
 import 'package:instant_chat/features/conversations/presentation/conversation_selection.dart';
@@ -39,7 +41,8 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
     final accessToken = session.accessToken;
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (_, _) => _LoadFailure(
+      error: (error, _) => _LoadFailure(
+        message: _contactLoadFailureMessage(error),
         onRetry: () => ref.invalidate(contactsControllerProvider),
       ),
       data: (contacts) {
@@ -82,6 +85,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
             Expanded(
               child: ContactDetailPanel(
                 user: selectedContact?.user,
+                remark: selectedContact?.remark ?? '',
                 accessToken: accessToken,
                 disabled: contacts.isSubmitting,
                 onMessage: selectedContact == null
@@ -90,6 +94,9 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
                 onRemove: selectedContact == null
                     ? null
                     : () => _confirmRemove(selectedContact),
+                onSetRemark: selectedContact == null
+                    ? null
+                    : () => _setRemark(selectedContact),
               ),
             ),
           ],
@@ -174,17 +181,47 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
     }
     ref.read(selectedContactUserIdProvider.notifier).select(null);
   }
+
+  Future<void> _setRemark(Contact contact) async {
+    final remark = await showContactRemarkDialog(
+      context: context,
+      originalName: contact.user.displayName,
+      currentRemark: contact.remark,
+    );
+    if (remark == null || remark == contact.remark || !mounted) {
+      return;
+    }
+    await ref
+        .read(contactsControllerProvider.notifier)
+        .setRemark(contact.user.id, remark);
+  }
 }
 
 class _LoadFailure extends StatelessWidget {
-  const _LoadFailure({required this.onRetry});
+  const _LoadFailure({required this.message, required this.onRetry});
 
+  final String message;
   final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: FilledButton(onPressed: onRetry, child: const Text('Try Again')),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(message, textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          FilledButton(onPressed: onRetry, child: const Text('Try Again')),
+        ],
+      ),
     );
   }
+}
+
+String _contactLoadFailureMessage(Object error) {
+  return switch (error) {
+    ApiFailure failure => failure.message,
+    FormatException _ => 'The server returned an invalid contact response.',
+    _ => 'Contacts could not be loaded.',
+  };
 }

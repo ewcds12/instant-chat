@@ -2,9 +2,13 @@ package contacts
 
 import (
 	"context"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/ewcds12/instant-chat/services/api/internal/users"
 )
+
+const maximumContactRemarkLength = 64
 
 // Service implements contact business rules.
 type Service struct {
@@ -72,6 +76,23 @@ func (s *Service) CancelRequest(ctx context.Context, userID, requestID uint64) e
 // ListContacts returns accepted contacts ordered by display name.
 func (s *Service) ListContacts(ctx context.Context, userID uint64) ([]Contact, error) {
 	return s.repository.ListContacts(ctx, userID)
+}
+
+// SetContactRemark updates the current user's private label for a contact.
+func (s *Service) SetContactRemark(
+	ctx context.Context,
+	userID, contactUserID uint64,
+	remark string,
+) error {
+	if userID == contactUserID {
+		return ErrContactNotFound
+	}
+	normalized := strings.TrimSpace(remark)
+	if strings.ContainsAny(normalized, "\r\n") ||
+		utf8.RuneCountInString(normalized) > maximumContactRemarkLength {
+		return &InputError{Message: "Remark must be a single line of 64 characters or fewer."}
+	}
+	return s.repository.SetContactRemark(ctx, userID, contactUserID, normalized)
 }
 
 // RemoveContact removes an accepted relationship and suspends its direct chat.

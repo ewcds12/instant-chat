@@ -20,6 +20,7 @@ type contactService interface {
 	RejectRequest(ctx context.Context, userID, requestID uint64) error
 	CancelRequest(ctx context.Context, userID, requestID uint64) error
 	ListContacts(ctx context.Context, userID uint64) ([]Contact, error)
+	SetContactRemark(ctx context.Context, userID, contactUserID uint64, remark string) error
 	RemoveContact(ctx context.Context, userID, contactUserID uint64) error
 }
 
@@ -35,6 +36,10 @@ func NewHandler(service contactService) *Handler {
 
 type sendRequestBody struct {
 	Username string `json:"username"`
+}
+
+type setRemarkBody struct {
+	Remark string `json:"remark"`
 }
 
 type publicUserResponse struct {
@@ -55,7 +60,28 @@ type requestResponse struct {
 type contactResponse struct {
 	RelationshipID string             `json:"relationship_id"`
 	User           publicUserResponse `json:"user"`
+	Remark         string             `json:"remark"`
 	ConnectedAt    time.Time          `json:"connected_at"`
+}
+
+// SetContactRemark updates the current user's private label for a contact.
+func (h *Handler) SetContactRemark(w http.ResponseWriter, r *http.Request) {
+	contactUserID, ok := pathID(w, r, "user_id")
+	if !ok {
+		return
+	}
+	var body setRemarkBody
+	if err := httpapi.DecodeJSON(w, r, &body); err != nil {
+		writeInvalidArgument(w, r, "Request body must be a valid JSON object.")
+		return
+	}
+	if err := h.service.SetContactRemark(
+		r.Context(), currentUserID(r), contactUserID, body.Remark,
+	); err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // SearchUser returns one exact username match.
@@ -239,6 +265,8 @@ func responsesFromRequests(requests []Request) []requestResponse {
 func responseFromContact(contact Contact) contactResponse {
 	return contactResponse{
 		RelationshipID: strconv.FormatUint(contact.RelationshipID, 10),
-		User:           responseFromUser(contact.User), ConnectedAt: contact.ConnectedAt.UTC(),
+		User:           responseFromUser(contact.User),
+		Remark:         contact.Remark,
+		ConnectedAt:    contact.ConnectedAt.UTC(),
 	}
 }

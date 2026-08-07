@@ -136,7 +136,7 @@ class _DirectoryContactRow extends StatelessWidget {
     return Semantics(
       selected: selected,
       button: true,
-      label: 'Contact ${contact.user.displayName}',
+      label: 'Contact ${contact.displayName}',
       child: Container(
         key: ValueKey('contact-directory-selection-${contact.user.id}'),
         height: RetroMetrics.contactRowHeight,
@@ -166,13 +166,18 @@ class _DirectoryContactRow extends StatelessWidget {
               child: Row(
                 children: [
                   ProfileAvatar(
-                    name: contact.user.displayName,
+                    name: contact.displayName,
                     accessToken: accessToken,
                     avatarUrl: contact.user.avatarUrl,
                     radius: RetroMetrics.contactDirectoryAvatarRadius,
                   ),
                   const SizedBox(width: 10),
-                  Expanded(child: ContactIdentity(user: contact.user)),
+                  Expanded(
+                    child: ContactIdentity(
+                      user: contact.user,
+                      remark: contact.remark,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -184,9 +189,10 @@ class _DirectoryContactRow extends StatelessWidget {
 }
 
 class ContactIdentity extends StatelessWidget {
-  const ContactIdentity({required this.user, super.key});
+  const ContactIdentity({required this.user, this.remark = '', super.key});
 
   final PublicUser user;
+  final String remark;
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +201,7 @@ class ContactIdentity extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          user.displayName,
+          remark.isEmpty ? user.displayName : remark,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(
@@ -204,7 +210,9 @@ class ContactIdentity extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          '@${user.username}',
+          remark.isEmpty
+              ? '@${user.username}'
+              : '${user.displayName} · @${user.username}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -270,18 +278,17 @@ List<ContactGroup> groupContacts(List<Contact> contacts, String query) {
         if (normalizedQuery.isEmpty) {
           return true;
         }
-        return contact.user.displayName.toLowerCase().contains(
-              normalizedQuery,
-            ) ||
+        return contact.remark.toLowerCase().contains(normalizedQuery) ||
+            contact.user.displayName.toLowerCase().contains(normalizedQuery) ||
             contact.user.username.toLowerCase().contains(normalizedQuery);
       }).toList()..sort(
-        (left, right) => left.user.displayName.toLowerCase().compareTo(
-          right.user.displayName.toLowerCase(),
+        (left, right) => left.displayName.toLowerCase().compareTo(
+          right.displayName.toLowerCase(),
         ),
       );
   final grouped = <String, List<Contact>>{};
   for (final contact in filtered) {
-    final label = contactGroupLabel(contact.user.displayName);
+    final label = contactGroupLabel(contact.displayName);
     grouped.putIfAbsent(label, () => []).add(contact);
   }
   return grouped.entries

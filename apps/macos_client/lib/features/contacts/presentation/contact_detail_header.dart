@@ -6,6 +6,7 @@ class ContactDetailHeader extends StatelessWidget {
   const ContactDetailHeader({
     required this.disabled,
     required this.onSearch,
+    required this.onSetRemark,
     required this.onRemove,
     this.onBack,
     super.key,
@@ -13,6 +14,7 @@ class ContactDetailHeader extends StatelessWidget {
 
   final bool disabled;
   final VoidCallback onSearch;
+  final VoidCallback onSetRemark;
   final VoidCallback onRemove;
   final VoidCallback? onBack;
 
@@ -58,11 +60,18 @@ class ContactDetailHeader extends StatelessWidget {
               tooltip: 'Contact options',
               enabled: !disabled,
               onSelected: (action) {
-                if (action == _ContactMenuAction.delete) {
-                  onRemove();
+                switch (action) {
+                  case _ContactMenuAction.setRemark:
+                    onSetRemark();
+                  case _ContactMenuAction.delete:
+                    onRemove();
                 }
               },
               itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: _ContactMenuAction.setRemark,
+                  child: Text('Set Remark…'),
+                ),
                 PopupMenuItem(
                   value: _ContactMenuAction.delete,
                   child: Text(
@@ -114,4 +123,4 @@ class ContactDetailEmptyState extends StatelessWidget {
   }
 }
 
-enum _ContactMenuAction { delete }
+enum _ContactMenuAction { setRemark, delete }

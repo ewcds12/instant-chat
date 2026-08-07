@@ -11,7 +11,7 @@ extension _MessagesPageComposer on _MessagesPageState {
         controller: _composer,
         focusNode: _composerFocus,
         disabled: value.isSending,
-        recipientName: widget.conversation.peer.displayName,
+        recipientName: widget.participantName,
         onSend: () => _send(provider),
         onPickImage: () => _pickAndSendImage(provider),
         onPickFile: () => _pickAndSendFile(provider),

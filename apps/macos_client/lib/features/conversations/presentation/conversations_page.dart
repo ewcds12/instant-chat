@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
+import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversation_list.dart';
 import 'package:instant_chat/features/conversations/presentation/conversation_selection.dart';
@@ -24,6 +25,15 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(conversationsControllerProvider);
+    final contactRemarks = ref
+        .watch(contactsControllerProvider)
+        .maybeWhen(
+          data: (state) => {
+            for (final contact in state.contacts)
+              contact.user.id: contact.remark,
+          },
+          orElse: () => const <String, String>{},
+        );
     final accessToken = ref
         .read(authControllerProvider)
         .requireValue
@@ -62,6 +72,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
                 onSelect: (conversation) => ref
                     .read(selectedConversationIdProvider.notifier)
                     .select(conversation.id),
+                contactRemarks: contactRemarks,
               ),
             ),
             VerticalDivider(
@@ -70,7 +81,10 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
             Expanded(
               child: selected == null
                   ? const _NoConversationSelected()
-                  : MessagesPage(conversation: selected),
+                  : MessagesPage(
+                      conversation: selected,
+                      contactRemark: contactRemarks[selected.peer.id] ?? '',
+                    ),
             ),
           ],
         );

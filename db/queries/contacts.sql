@@ -76,6 +76,9 @@ SELECT
   other_user.display_name,
   other_user.avatar_content_type,
   other_user.created_at,
+  relationship.lower_user_id,
+  relationship.lower_user_remark,
+  relationship.higher_user_remark,
   relationship.updated_at AS connected_at
 FROM contact_relationships AS relationship
 JOIN users AS other_user
@@ -90,6 +93,23 @@ WHERE relationship.status = 'accepted'
   )
 ORDER BY other_user.display_name, other_user.username, other_user.id
 LIMIT 500;
+
+-- name: SetContactRemark :execresult
+UPDATE contact_relationships
+SET
+  lower_user_remark = CASE
+    WHEN lower_user_id = sqlc.arg(current_user_id) THEN sqlc.arg(remark)
+    ELSE lower_user_remark
+  END,
+  higher_user_remark = CASE
+    WHEN higher_user_id = sqlc.arg(current_user_id) THEN sqlc.arg(remark)
+    ELSE higher_user_remark
+  END
+WHERE status = 'accepted'
+  AND (
+    (lower_user_id = sqlc.arg(current_user_id) AND higher_user_id = sqlc.arg(contact_user_id))
+    OR (higher_user_id = sqlc.arg(current_user_id) AND lower_user_id = sqlc.arg(contact_user_id))
+  );
 
 -- name: AcceptContactRelationship :execresult
 UPDATE contact_relationships

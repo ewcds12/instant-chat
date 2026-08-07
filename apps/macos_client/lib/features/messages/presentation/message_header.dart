@@ -6,12 +6,14 @@ import 'package:instant_chat/features/conversations/domain/conversation.dart';
 class MessageHeader extends StatelessWidget {
   const MessageHeader({
     required this.conversation,
+    required this.displayName,
     required this.onSearch,
     required this.onContactInfo,
     super.key,
   });
 
   final Conversation conversation;
+  final String displayName;
   final VoidCallback onSearch;
   final VoidCallback onContactInfo;
 
@@ -38,7 +40,7 @@ class MessageHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    conversation.peer.displayName,
+                    displayName,
                     style: Theme.of(
                       context,
                     ).textTheme.titleMedium?.copyWith(fontSize: 14),

@@ -34,7 +34,7 @@ extension _MessagesPageNavigation on _MessagesPageState {
   }) async {
     final message = await showMessageHistorySearch(
       context: context,
-      participantName: widget.conversation.peer.displayName,
+      participantName: widget.participantName,
       currentUserId: currentUserId,
       conversationId: widget.conversation.id,
       accessToken: accessToken,

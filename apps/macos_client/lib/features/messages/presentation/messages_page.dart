@@ -12,6 +12,7 @@ import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_panel.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_message_search.dart';
+import 'package:instant_chat/features/contacts/presentation/contact_remark_dialog.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
@@ -39,9 +40,17 @@ part 'messages_page_navigation.dart';
 part 'messages_page_translation.dart';
 
 class MessagesPage extends ConsumerStatefulWidget {
-  const MessagesPage({required this.conversation, super.key});
+  const MessagesPage({
+    required this.conversation,
+    this.contactRemark = '',
+    super.key,
+  });
 
   final Conversation conversation;
+  final String contactRemark;
+
+  String get participantName =>
+      contactRemark.isEmpty ? conversation.peer.displayName : contactRemark;
 
   @override
   ConsumerState<MessagesPage> createState() => _MessagesPageState();
@@ -123,6 +132,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       children: [
         MessageHeader(
           conversation: widget.conversation,
+          displayName: widget.participantName,
           onSearch: () => _openMessageHistorySearch(
             currentUserId: session.user.id,
             accessToken: session.accessToken,

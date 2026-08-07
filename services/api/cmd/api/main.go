@@ -110,6 +110,7 @@ func run() error {
 	mux.Handle("POST /api/v1/contact-requests/{request_id}/reject", protected(contactHandler.RejectRequest))
 	mux.Handle("POST /api/v1/contact-requests/{request_id}/cancel", protected(contactHandler.CancelRequest))
 	mux.Handle("GET /api/v1/contacts", protected(contactHandler.ListContacts))
+	mux.Handle("PUT /api/v1/contacts/{user_id}/remark", protected(contactHandler.SetContactRemark))
 	mux.Handle("DELETE /api/v1/contacts/{user_id}", protected(contactHandler.RemoveContact))
 	mux.Handle("POST /api/v1/conversations", protected(conversationHandler.CreateDirect))
 	mux.Handle("GET /api/v1/conversations", protected(conversationHandler.List))

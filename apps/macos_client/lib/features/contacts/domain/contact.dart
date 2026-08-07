@@ -5,21 +5,30 @@ class Contact {
   const Contact({
     required this.relationshipId,
     required this.user,
+    this.remark = '',
     required this.connectedAt,
   });
 
   final String relationshipId;
   final PublicUser user;
+  final String remark;
   final DateTime connectedAt;
+
+  String get displayName => remark.isEmpty ? user.displayName : remark;
 
   factory Contact.fromJson(Map<String, Object?> json) {
     final userValue = json['user'];
     if (userValue is! Map<Object?, Object?>) {
       throw const FormatException('user must be a JSON object');
     }
+    final remarkValue = json['remark'];
+    if (remarkValue is! String) {
+      throw const FormatException('remark must be a string');
+    }
     return Contact(
       relationshipId: requiredString(json, 'relationship_id'),
       user: PublicUser.fromJson(_stringKeyed(userValue)),
+      remark: remarkValue,
       connectedAt: requiredDateTime(json, 'connected_at'),
     );
   }

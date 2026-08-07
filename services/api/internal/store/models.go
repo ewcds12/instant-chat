@@ -26,6 +26,8 @@ type ContactRelationship struct {
 	Status            string    `db:"status"`
 	CreatedAt         time.Time `db:"created_at"`
 	UpdatedAt         time.Time `db:"updated_at"`
+	LowerUserRemark   string    `db:"lower_user_remark"`
+	HigherUserRemark  string    `db:"higher_user_remark"`
 }
 
 type Conversation struct {

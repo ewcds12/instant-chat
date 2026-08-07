@@ -32,6 +32,12 @@ abstract interface class ContactGateway {
 
   Future<List<Contact>> listContacts(String accessToken);
 
+  Future<void> setRemark({
+    required String accessToken,
+    required String userId,
+    required String remark,
+  });
+
   Future<void> removeContact({
     required String accessToken,
     required String userId,
