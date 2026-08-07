@@ -147,6 +147,46 @@ void main() {
     expect(urlLauncher.opened, Uri.parse('https://example.com/shared'));
   });
 
+  testWidgets('keeps sparse contact details pinned below the header', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(920, 820));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          contactSharedContentProvider.overrideWith(
+            (ref, request) async => const ContactSharedContent.empty(),
+          ),
+        ],
+        child: MaterialApp(
+          theme: RetroTheme.data,
+          home: Scaffold(
+            body: ContactDetailPanel(
+              user: _contact.user,
+              accessToken: 'access-token',
+              disabled: false,
+              onMessage: () {},
+              onRemove: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final headerBottom = tester
+        .getBottomLeft(find.byKey(const Key('contact-detail-header')))
+        .dy;
+    final identityTop = tester
+        .getTopLeft(find.byKey(const Key('contact-detail-identity')))
+        .dy;
+    expect(
+      identityTop - headerBottom,
+      RetroMetrics.contactDetailContentVerticalInset,
+    );
+  });
+
   testWidgets('keeps shared content visible while it reloads', (tester) async {
     final first = Completer<ContactSharedContent>()..complete(_sharedContent);
     final second = Completer<ContactSharedContent>();
