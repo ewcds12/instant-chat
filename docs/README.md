@@ -77,6 +77,8 @@ make dev
 
 This command starts MySQL and MinIO, waits for both health checks, applies pending migrations, builds and starts the Go API, and opens the Flutter macOS client. Close the client or press `Ctrl+C` to stop the API. The Docker services stay available for faster restarts.
 
+The local Debug client uses ad-hoc signing and the system Keychain, so `make dev` does not require an Apple Development certificate, team, or provisioning profile. Release builds keep the configured macOS signing and data-protection Keychain behavior.
+
 The first MinIO startup builds its pinned server source and can take several minutes. Docker reuses the completed image for subsequent starts.
 
 Stop MySQL, MinIO, and the Docker development network when they are no longer needed:

@@ -40,6 +40,8 @@ Widgets do not access Dio or Keychain directly. Presentation observes Riverpod p
 
 The client keeps the complete session in macOS Keychain. On startup it validates an unexpired access token, rotates an expired access token with the refresh token, or returns to sign-in when the refresh token is rejected. While signed in, the auth controller refreshes the access token shortly before expiry, writes the rotated session back to Keychain, and falls back to sign-in when the refresh token is rejected. A network failure preserves a locally valid session so sign-out remains available offline.
 
+Local Debug builds use ad-hoc signing and the standard macOS Keychain so contributors can run the client without a development certificate or provisioning profile. Release builds retain the data-protection Keychain and their configured signing identity and entitlements.
+
 The authenticated shell exposes conversations, contacts, requests, and system status as keyboard-focusable Material navigation destinations. Contact and conversation providers are automatically disposed when the authenticated shell is removed so one account's in-memory directory state cannot appear in another account's session.
 
 ## Go API
