@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:flutter/widgets.dart';
 import 'package:instant_chat/app/instant_chat_app.dart';
 import 'package:instant_chat/core/platform/macos_window_controller.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
@@ -128,7 +128,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(windowController.modes, [AppWindowMode.authentication]);
-    expect(find.text('Welcome back'), findsOneWidget);
+    expect(find.text('Welcome back'), findsNothing);
+    expect(find.text('Sign in to continue to Instant Chat.'), findsNothing);
     expect(find.text('ID'), findsOneWidget);
     expect(find.text('Password'), findsOneWidget);
     expect(find.text('Username or password is incorrect.'), findsOneWidget);
@@ -136,19 +137,23 @@ void main() {
       tester.getSize(find.byKey(const Key('auth-form'))).width,
       RetroMetrics.authFormMaxWidth,
     );
-    expect(
-      tester.getSize(find.byKey(const Key('auth-logo'))),
-      const Size.square(RetroMetrics.authLogoExtent),
-    );
+    expect(find.byKey(const Key('auth-logo')), findsNothing);
     expect(
       tester.getSize(find.byKey(const Key('auth-submit'))).height,
       RetroMetrics.authButtonHeight,
     );
+    final modeButton = tester.widget<TextButton>(
+      find.widgetWithText(TextButton, 'Create an account'),
+    );
+    expect(
+      modeButton.style?.overlayColor?.resolve({WidgetState.hovered}),
+      Colors.transparent,
+    );
 
-    await tester.tap(find.text('New to Instant Chat? Create an account'));
+    await tester.tap(find.text('Create an account'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Create an account'), findsOneWidget);
+    expect(find.text('Create an account'), findsNothing);
     expect(find.text('ID'), findsOneWidget);
     expect(find.text('Display name'), findsOneWidget);
     expect(find.text('Create account'), findsOneWidget);

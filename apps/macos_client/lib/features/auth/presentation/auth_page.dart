@@ -53,54 +53,6 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Center(
-                          child: Container(
-                            key: const Key('auth-logo'),
-                            width: RetroMetrics.authLogoExtent,
-                            height: RetroMetrics.authLogoExtent,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF4F8CFF),
-                                  RetroColors.primary,
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(13),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: colors.primary.withValues(alpha: 0.18),
-                                  blurRadius: 14,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.chat_bubble_rounded,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Text(
-                          _isRegistration
-                              ? 'Create an account'
-                              : 'Welcome back',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          _isRegistration
-                              ? 'Join Instant Chat to start a conversation.'
-                              : 'Sign in to continue to Instant Chat.',
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colors.onSurfaceVariant),
-                        ),
-                        const SizedBox(height: 20),
                         _AuthField(
                           key: const Key('auth-id'),
                           controller: _usernameController,
@@ -111,7 +63,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           textInputAction: TextInputAction.next,
                           validator: _validateUsername,
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         if (_isRegistration) ...[
                           _AuthField(
                             key: const Key('auth-display-name'),
@@ -121,7 +73,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                             textInputAction: TextInputAction.next,
                             validator: _validateDisplayName,
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                         ],
                         _AuthField(
                           key: const Key('auth-password'),
@@ -132,7 +84,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           onFieldSubmitted: (_) => _submit(auth?.isSubmitting),
                         ),
                         if (auth?.errorMessage case final message?) ...[
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
                           Text(
                             message,
                             textAlign: TextAlign.center,
@@ -140,7 +92,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                 ?.copyWith(color: colors.error),
                           ),
                         ],
-                        const SizedBox(height: RetroMetrics.spaceMedium),
+                        const SizedBox(height: 12),
                         SizedBox(
                           height: RetroMetrics.authButtonHeight,
                           child: FilledButton(
@@ -157,20 +109,30 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 2),
-                        TextButton(
-                          onPressed: auth?.isSubmitting == true
-                              ? null
-                              : _toggleMode,
-                          child: Text(
-                            _isRegistration
-                                ? 'Already have an account? Sign in'
-                                : 'New to Instant Chat? Create an account',
-                            style: Theme.of(context).textTheme.bodySmall
-                                ?.copyWith(
-                                  color: colors.primary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                        SizedBox(
+                          height: 32,
+                          child: TextButton(
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              overlayColor: Colors.transparent,
+                            ),
+                            onPressed: auth?.isSubmitting == true
+                                ? null
+                                : _toggleMode,
+                            child: Text(
+                              _isRegistration
+                                  ? 'Back to sign in'
+                                  : 'Create an account',
+                              style: Theme.of(context).textTheme.bodySmall
+                                  ?.copyWith(
+                                    color: colors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
                           ),
                         ),
                       ],
@@ -268,12 +230,9 @@ class _AuthField extends StatelessWidget {
         constraints: const BoxConstraints(
           minHeight: RetroMetrics.authFieldHeight,
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
-        ),
-        prefixIcon: Icon(icon, size: 17),
-        prefixIconConstraints: const BoxConstraints(minWidth: 38),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        prefixIcon: Icon(icon, size: 16),
+        prefixIconConstraints: const BoxConstraints(minWidth: 36),
       ),
     );
   }

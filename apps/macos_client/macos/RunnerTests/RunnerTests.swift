@@ -5,8 +5,8 @@ import XCTest
 
 class RunnerTests: XCTestCase {
   func testInitialWindowUsesCompactAuthenticationSize() {
-    XCTAssertEqual(MainFlutterWindow.initialFrameSize.width, 420)
-    XCTAssertEqual(MainFlutterWindow.initialFrameSize.height, 500)
+    XCTAssertEqual(MainFlutterWindow.initialFrameSize.width, 280)
+    XCTAssertEqual(MainFlutterWindow.initialFrameSize.height, 360)
   }
 
   func testAuthenticationWindowIsFixedAndCompact() {
