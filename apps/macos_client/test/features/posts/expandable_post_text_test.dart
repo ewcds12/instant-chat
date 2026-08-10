@@ -9,33 +9,53 @@ void main() {
 
     expect(find.text('Show more'), findsOneWidget);
     expect(find.text('Show less'), findsNothing);
+    expect(_postText(tester).maxLines, RetroMetrics.explorePostCollapsedLines);
     expect(
-      tester.widget<SelectableText>(find.byType(SelectableText)).maxLines,
-      RetroMetrics.explorePostCollapsedLines,
+      find.descendant(
+        of: find.byType(ExpandablePostText),
+        matching: find.byType(Scrollable),
+      ),
+      findsNothing,
     );
 
     await tester.tap(find.text('Show more'));
     await tester.pump();
     expect(find.text('Show less'), findsOneWidget);
+    expect(_postText(tester).maxLines, isNull);
     expect(
-      tester.widget<SelectableText>(find.byType(SelectableText)).maxLines,
-      isNull,
+      find.descendant(
+        of: find.byType(ExpandablePostText),
+        matching: find.byType(Scrollable),
+      ),
+      findsNothing,
     );
 
     await tester.tap(find.text('Show less'));
     await tester.pump();
     expect(find.text('Show more'), findsOneWidget);
-    expect(
-      tester.widget<SelectableText>(find.byType(SelectableText)).maxLines,
-      RetroMetrics.explorePostCollapsedLines,
-    );
+    expect(_postText(tester).maxLines, RetroMetrics.explorePostCollapsedLines);
   });
 
   testWidgets('short post text does not show a toggle', (tester) async {
     await _pumpText(tester, 'A short post.');
 
     expect(find.byKey(const Key('post-text-toggle')), findsNothing);
+    expect(
+      tester.getSize(find.byType(ExpandablePostText)).height,
+      lessThan(30),
+    );
+    expect(
+      find.descendant(
+        of: find.byType(ExpandablePostText),
+        matching: find.byType(Scrollable),
+      ),
+      findsNothing,
+    );
   });
+}
+
+Text _postText(WidgetTester tester) {
+  return tester.widget<Text>(find.byKey(const Key('post-text-content')));
 }
 
 Future<void> _pumpText(WidgetTester tester, String text) {
@@ -43,7 +63,10 @@ Future<void> _pumpText(WidgetTester tester, String text) {
     MaterialApp(
       theme: RetroTheme.data,
       home: Scaffold(
-        body: SizedBox(width: 240, child: ExpandablePostText(text: text)),
+        body: Align(
+          alignment: Alignment.topLeft,
+          child: SizedBox(width: 240, child: ExpandablePostText(text: text)),
+        ),
       ),
     ),
   );

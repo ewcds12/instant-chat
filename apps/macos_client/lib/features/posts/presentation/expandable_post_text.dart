@@ -34,14 +34,19 @@ class _ExpandablePostTextState extends State<ExpandablePostText> {
           constraints.maxWidth,
         );
         return Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SelectableText(
-              widget.text,
-              maxLines: _expanded
-                  ? null
-                  : RetroMetrics.explorePostCollapsedLines,
-              style: style,
+            SelectionArea(
+              child: Text(
+                widget.text,
+                key: const Key('post-text-content'),
+                maxLines: _expanded
+                    ? null
+                    : RetroMetrics.explorePostCollapsedLines,
+                overflow: _expanded ? null : TextOverflow.clip,
+                style: style,
+              ),
             ),
             if (canExpand)
               TextButton(

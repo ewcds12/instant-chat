@@ -24,14 +24,18 @@ void main() {
     final frame = tester.widget<ConstrainedBox>(
       find.byKey(const Key('post-single-image-frame')),
     );
-    expect(frame.constraints.maxWidth, RetroMetrics.exploreSingleImageMaxWidth);
+    expect(
+      frame.constraints.maxWidth,
+      600 * RetroMetrics.exploreSingleImageWidthFactor,
+    );
+    expect(frame.constraints.minWidth, frame.constraints.maxWidth);
     expect(
       frame.constraints.maxHeight,
       RetroMetrics.exploreSingleImageMaxHeight,
     );
     final image = tester.widget<Image>(find.byType(Image));
     expect(image.fit, BoxFit.contain);
-    expect(image.width, isNull);
+    expect(image.width, double.infinity);
   });
 
   testWidgets('two post images render side by side', (tester) async {

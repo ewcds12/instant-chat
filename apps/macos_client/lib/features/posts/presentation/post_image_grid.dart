@@ -20,23 +20,33 @@ class PostImageGrid extends StatelessWidget {
       return const SizedBox.shrink();
     }
     if (images.length == 1) {
-      return Align(
-        alignment: Alignment.centerLeft,
-        child: ConstrainedBox(
-          key: const Key('post-single-image-frame'),
-          constraints: const BoxConstraints(
-            maxWidth: RetroMetrics.exploreSingleImageMaxWidth,
-            maxHeight: RetroMetrics.exploreSingleImageMaxHeight,
-          ),
-          child: _PostPhoto(
-            key: const Key('post-image-0'),
-            image: images.first,
-            accessToken: accessToken,
-            allImages: images,
-            fit: BoxFit.contain,
-            expandWidth: false,
-          ),
-        ),
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final proportionalWidth =
+              constraints.maxWidth * RetroMetrics.exploreSingleImageWidthFactor;
+          final width =
+              proportionalWidth > RetroMetrics.exploreSingleImageMaxWidth
+              ? RetroMetrics.exploreSingleImageMaxWidth
+              : proportionalWidth;
+          return Align(
+            alignment: Alignment.centerLeft,
+            child: ConstrainedBox(
+              key: const Key('post-single-image-frame'),
+              constraints: BoxConstraints(
+                minWidth: width,
+                maxWidth: width,
+                maxHeight: RetroMetrics.exploreSingleImageMaxHeight,
+              ),
+              child: _PostPhoto(
+                key: const Key('post-image-0'),
+                image: images.first,
+                accessToken: accessToken,
+                allImages: images,
+                fit: BoxFit.contain,
+              ),
+            ),
+          );
+        },
       );
     }
     final visible = images.take(4).toList(growable: false);
@@ -143,7 +153,6 @@ class _PostPhoto extends StatelessWidget {
     required this.accessToken,
     required this.allImages,
     this.fit = BoxFit.cover,
-    this.expandWidth = true,
     this.rounded = true,
     super.key,
   });
@@ -152,7 +161,6 @@ class _PostPhoto extends StatelessWidget {
   final String accessToken;
   final List<PublicPostImage> allImages;
   final BoxFit fit;
-  final bool expandWidth;
   final bool rounded;
 
   @override
@@ -176,7 +184,7 @@ class _PostPhoto extends StatelessWidget {
         ),
         child: Image.network(
           url,
-          width: expandWidth ? double.infinity : null,
+          width: double.infinity,
           fit: fit,
           headers: bearerAuthorization(accessToken),
           errorBuilder: (_, _, _) =>

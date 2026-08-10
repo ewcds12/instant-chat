@@ -52,6 +52,36 @@ void main() {
     await tester.pumpAndSettle();
     expect(selected, PostAction.delete);
   });
+
+  testWidgets('keeps short text close to a single image', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: RetroTheme.data,
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: 660,
+              child: PostCard(
+                post: _postWithImage,
+                accessToken: 'token',
+                isOwnPost: true,
+                onAction: (_) {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final textBottom = tester
+        .getRect(find.byKey(const Key('post-text-content')))
+        .bottom;
+    final imageTop = tester
+        .getRect(find.byKey(const Key('post-single-image-frame')))
+        .top;
+    expect(imageTop - textBottom, moreOrLessEquals(10, epsilon: 0.1));
+  });
 }
 
 final _post = PublicPost(
@@ -65,4 +95,20 @@ final _post = PublicPost(
   body: 'Hello everyone',
   images: const [],
   createdAt: DateTime.utc(2026, 8, 9, 9),
+);
+
+final _postWithImage = PublicPost(
+  id: '42',
+  author: _post.author,
+  body: 'A short post.',
+  images: const [
+    PublicPostImage(
+      id: 'image-1',
+      position: 0,
+      contentType: 'image/jpeg',
+      byteSize: 1024,
+      url: '/api/v1/uploads/image-1',
+    ),
+  ],
+  createdAt: DateTime.utc(2026, 8, 9, 10),
 );
