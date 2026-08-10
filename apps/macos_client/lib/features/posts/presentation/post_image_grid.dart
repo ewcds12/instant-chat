@@ -20,13 +20,11 @@ class PostImageGrid extends StatelessWidget {
       return const SizedBox.shrink();
     }
     if (images.length == 1) {
-      return AspectRatio(
-        aspectRatio: 2.65,
-        child: _PostPhoto(
-          image: images.first,
-          accessToken: accessToken,
-          allImages: images,
-        ),
+      return _PostPhoto(
+        image: images.first,
+        accessToken: accessToken,
+        allImages: images,
+        fit: BoxFit.fitWidth,
       );
     }
     final visible = images.take(4).toList(growable: false);
@@ -56,11 +54,13 @@ class _PostPhoto extends StatelessWidget {
     required this.image,
     required this.accessToken,
     required this.allImages,
+    this.fit = BoxFit.cover,
   });
 
   final PublicPostImage image;
   final String accessToken;
   final List<PublicPostImage> allImages;
+  final BoxFit fit;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +80,8 @@ class _PostPhoto extends StatelessWidget {
         ),
         child: Image.network(
           url,
-          fit: BoxFit.cover,
+          width: double.infinity,
+          fit: fit,
           headers: bearerAuthorization(accessToken),
           errorBuilder: (_, _, _) =>
               const Center(child: Icon(Icons.broken_image_outlined, size: 24)),
