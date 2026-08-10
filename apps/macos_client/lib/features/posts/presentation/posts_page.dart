@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
@@ -11,6 +12,7 @@ import 'package:instant_chat/features/posts/presentation/post_action_dialogs.dar
 import 'package:instant_chat/features/posts/presentation/post_card.dart';
 import 'package:instant_chat/features/posts/presentation/post_composer_bar.dart';
 import 'package:instant_chat/features/posts/presentation/post_composer_dialog.dart';
+import 'package:instant_chat/features/posts/presentation/post_image_grid.dart';
 import 'package:instant_chat/features/posts/presentation/posts_controller.dart';
 
 class PostsPage extends ConsumerStatefulWidget {
@@ -170,6 +172,7 @@ class _PostsPageState extends ConsumerState<PostsPage> {
               accessToken: accessToken,
               isOwnPost: post.author.id == currentUserId,
               onAction: (action) => _handleAction(action, post),
+              onDownloadImage: _downloadImage,
             );
           },
         ),
@@ -217,6 +220,22 @@ class _PostsPageState extends ConsumerState<PostsPage> {
         if (await confirmBlockUser(context, post) && mounted) {
           await controller.block(post.author.id);
         }
+    }
+  }
+
+  Future<void> _downloadImage(PublicPostImage image) async {
+    final actions = ref.read(localFileActionsProvider);
+    try {
+      final path = await actions.chooseDownloadPath(
+        postImageDownloadFilename(image),
+      );
+      if (!mounted || path == null) return;
+      final bytes = await ref
+          .read(postsControllerProvider.notifier)
+          .downloadImage(image);
+      await actions.writeDownloadFile(path, bytes);
+    } catch (_) {
+      if (mounted) _notice('Image could not be saved.');
     }
   }
 

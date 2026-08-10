@@ -147,6 +147,10 @@ class PostsController extends AsyncNotifier<PostsState> {
     );
   }
 
+  Future<List<int>> downloadImage(PublicPostImage image) {
+    return _gateway.downloadImage(accessToken: _accessToken, image: image);
+  }
+
   Future<bool> report(String postId, String reason) {
     return _mutate(
       () => _gateway.report(

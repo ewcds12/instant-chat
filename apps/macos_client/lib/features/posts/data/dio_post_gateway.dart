@@ -68,6 +68,29 @@ class DioPostGateway implements PostGateway {
       );
 
   @override
+  Future<List<int>> downloadImage({
+    required String accessToken,
+    required PublicPostImage image,
+  }) async {
+    final response = await apiRequest(
+      () => _dio.get<List<int>>(
+        image.url,
+        options: Options(
+          headers: bearerAuthorization(accessToken),
+          responseType: ResponseType.bytes,
+          receiveTimeout: const Duration(seconds: 30),
+        ),
+      ),
+    );
+    expectStatus(response, {200});
+    final bytes = response.data;
+    if (bytes is! List<int>) {
+      throw const FormatException('Post image response must contain bytes.');
+    }
+    return bytes;
+  }
+
+  @override
   Future<void> report({
     required String accessToken,
     required String postId,

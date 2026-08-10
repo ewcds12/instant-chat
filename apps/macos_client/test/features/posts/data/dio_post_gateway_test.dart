@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/features/posts/data/dio_post_gateway.dart';
+import 'package:instant_chat/features/posts/domain/public_post.dart';
 
 void main() {
   test('list parses posts, images, and the pagination cursor', () async {
@@ -38,6 +39,26 @@ void main() {
     expect(adapter.method, 'POST');
     expect(adapter.path, '/api/v1/posts/41/reports');
     expect(adapter.data, {'reason': 'Spam'});
+  });
+
+  test('downloadImage fetches authenticated image bytes', () async {
+    final adapter = _StubAdapter(statusCode: 200, body: <int>[4, 5, 6]);
+    final gateway = DioPostGateway(_createDio(adapter));
+
+    final bytes = await gateway.downloadImage(
+      accessToken: 'access-token',
+      image: const PublicPostImage(
+        id: '3',
+        position: 0,
+        contentType: 'image/png',
+        byteSize: 3,
+        url: '/api/v1/post-images/3',
+      ),
+    );
+
+    expect(adapter.path, '/api/v1/post-images/3');
+    expect(adapter.authorization, 'Bearer access-token');
+    expect(bytes, [4, 5, 6]);
   });
 }
 
@@ -94,6 +115,9 @@ class _StubAdapter implements HttpClientAdapter {
     method = options.method;
     authorization = options.headers['Authorization'] as String?;
     data = options.data;
+    if (body is List<int>) {
+      return ResponseBody.fromBytes(body as List<int>, statusCode);
+    }
     return ResponseBody.fromString(
       jsonEncode(body),
       statusCode,

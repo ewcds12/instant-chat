@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/config/app_config.dart';
 import 'package:instant_chat/core/network/api_response.dart';
+import 'package:instant_chat/features/messages/domain/message.dart';
+import 'package:instant_chat/features/messages/presentation/message_image_preview.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
 
@@ -10,11 +12,13 @@ class PostImageGrid extends StatelessWidget {
   const PostImageGrid({
     required this.images,
     required this.accessToken,
+    this.onDownloadImage,
     super.key,
   });
 
   final List<PublicPostImage> images;
   final String accessToken;
+  final Future<void> Function(PublicPostImage image)? onDownloadImage;
 
   @override
   Widget build(BuildContext context) {
@@ -44,6 +48,7 @@ class PostImageGrid extends StatelessWidget {
                 image: images.first,
                 accessToken: accessToken,
                 allImages: images,
+                onDownloadImage: onDownloadImage,
                 fit: BoxFit.contain,
               ),
             ),
@@ -67,16 +72,25 @@ class PostImageGrid extends StatelessWidget {
         border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         borderRadius: BorderRadius.circular(RetroMetrics.corner),
       ),
-      child: _MultiImageLayout(images: visible, accessToken: accessToken),
+      child: _MultiImageLayout(
+        images: visible,
+        accessToken: accessToken,
+        onDownloadImage: onDownloadImage,
+      ),
     );
   }
 }
 
 class _MultiImageLayout extends StatelessWidget {
-  const _MultiImageLayout({required this.images, required this.accessToken});
+  const _MultiImageLayout({
+    required this.images,
+    required this.accessToken,
+    required this.onDownloadImage,
+  });
 
   final List<PublicPostImage> images;
   final String accessToken;
+  final Future<void> Function(PublicPostImage image)? onDownloadImage;
 
   @override
   Widget build(BuildContext context) {
@@ -144,6 +158,7 @@ class _MultiImageLayout extends StatelessWidget {
       image: images[index],
       accessToken: accessToken,
       allImages: images,
+      onDownloadImage: onDownloadImage,
       rounded: false,
     );
   }
@@ -154,6 +169,7 @@ class _PostPhoto extends StatelessWidget {
     required this.image,
     required this.accessToken,
     required this.allImages,
+    required this.onDownloadImage,
     this.fit = BoxFit.cover,
     this.rounded = true,
     super.key,
@@ -162,6 +178,7 @@ class _PostPhoto extends StatelessWidget {
   final PublicPostImage image;
   final String accessToken;
   final List<PublicPostImage> allImages;
+  final Future<void> Function(PublicPostImage image)? onDownloadImage;
   final BoxFit fit;
   final bool rounded;
 
@@ -176,13 +193,12 @@ class _PostPhoto extends StatelessWidget {
       borderRadius: borderRadius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => showDialog<void>(
+        onTap: () => _showPostPhotoViewer(
           context: context,
-          builder: (_) => _PhotoViewer(
-            initialIndex: allImages.indexOf(image),
-            images: allImages,
-            accessToken: accessToken,
-          ),
+          initialImage: image,
+          images: allImages,
+          accessToken: accessToken,
+          onDownloadImage: onDownloadImage,
         ),
         child: Image.network(
           url,
@@ -199,4 +215,17 @@ class _PostPhoto extends StatelessWidget {
 
 String _absoluteUrl(String path) {
   return Uri.parse(AppConfig.apiBaseUrl).resolve(path).toString();
+}
+
+String postImageDownloadFilename(PublicPostImage image) {
+  final extension = switch (image.contentType) {
+    'image/gif' => '.gif',
+    'image/heic' => '.heic',
+    'image/jpeg' => '.jpg',
+    'image/png' => '.png',
+    'image/tiff' => '.tiff',
+    'image/webp' => '.webp',
+    _ => '.img',
+  };
+  return 'image-${image.id}$extension';
 }

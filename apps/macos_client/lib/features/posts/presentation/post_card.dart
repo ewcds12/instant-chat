@@ -13,6 +13,7 @@ class PostCard extends StatelessWidget {
     required this.accessToken,
     required this.isOwnPost,
     required this.onAction,
+    required this.onDownloadImage,
     super.key,
   });
 
@@ -20,6 +21,7 @@ class PostCard extends StatelessWidget {
   final String accessToken;
   final bool isOwnPost;
   final ValueChanged<PostAction> onAction;
+  final Future<void> Function(PublicPostImage image) onDownloadImage;
 
   @override
   Widget build(BuildContext context) {
@@ -55,7 +57,11 @@ class PostCard extends StatelessWidget {
                 ],
                 if (post.images.isNotEmpty) ...[
                   const SizedBox(height: 10),
-                  PostImageGrid(images: post.images, accessToken: accessToken),
+                  PostImageGrid(
+                    images: post.images,
+                    accessToken: accessToken,
+                    onDownloadImage: onDownloadImage,
+                  ),
                 ],
                 const SizedBox(height: 8),
                 const _PostActivityRow(),

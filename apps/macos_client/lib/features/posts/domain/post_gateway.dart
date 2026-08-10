@@ -16,6 +16,11 @@ abstract interface class PostGateway {
 
   Future<void> delete({required String accessToken, required String postId});
 
+  Future<List<int>> downloadImage({
+    required String accessToken,
+    required PublicPostImage image,
+  });
+
   Future<void> report({
     required String accessToken,
     required String postId,

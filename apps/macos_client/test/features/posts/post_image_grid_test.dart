@@ -81,33 +81,43 @@ void main() {
   });
 
   testWidgets('photo viewer navigates between post images', (tester) async {
-    await _pumpImages(tester, 3);
+    String? downloadedImageId;
+    await _pumpImages(
+      tester,
+      3,
+      onDownloadImage: (image) async => downloadedImageId = image.id,
+    );
 
     await tester.tap(find.byKey(const Key('post-image-0')));
     await tester.pumpAndSettle();
     expect(find.text('1 of 3'), findsOneWidget);
-    expect(find.byTooltip('Previous photo'), findsNothing);
-    expect(find.byTooltip('Next photo'), findsOneWidget);
+    expect(find.byKey(const Key('message-image-preview')), findsOneWidget);
+    expect(find.byKey(const Key('message-image-preview-prev')), findsOneWidget);
+    expect(find.byKey(const Key('message-image-preview-next')), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Next photo'));
+    await tester.tap(find.byKey(const Key('message-image-preview-next')));
     await tester.pumpAndSettle();
     expect(find.text('2 of 3'), findsOneWidget);
-    expect(find.byTooltip('Previous photo'), findsOneWidget);
-    expect(find.byTooltip('Next photo'), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Next photo'));
+    await tester.tap(find.byKey(const Key('message-image-preview-download')));
+    await tester.pump();
+    expect(downloadedImageId, 'image-1');
+
+    await tester.tap(find.byKey(const Key('message-image-preview-next')));
     await tester.pumpAndSettle();
     expect(find.text('3 of 3'), findsOneWidget);
-    expect(find.byTooltip('Previous photo'), findsOneWidget);
-    expect(find.byTooltip('Next photo'), findsNothing);
 
-    await tester.tap(find.byTooltip('Previous photo'));
+    await tester.tap(find.byKey(const Key('message-image-preview-prev')));
     await tester.pumpAndSettle();
     expect(find.text('2 of 3'), findsOneWidget);
   });
 }
 
-Future<void> _pumpImages(WidgetTester tester, int count) {
+Future<void> _pumpImages(
+  WidgetTester tester,
+  int count, {
+  Future<void> Function(PublicPostImage image)? onDownloadImage,
+}) {
   return tester.pumpWidget(
     MaterialApp(
       theme: RetroTheme.data,
@@ -117,6 +127,7 @@ Future<void> _pumpImages(WidgetTester tester, int count) {
           child: PostImageGrid(
             images: _images.take(count).toList(growable: false),
             accessToken: 'token',
+            onDownloadImage: onDownloadImage,
           ),
         ),
       ),

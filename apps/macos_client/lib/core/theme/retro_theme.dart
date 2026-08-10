@@ -123,9 +123,6 @@ abstract final class RetroMetrics {
   static const exploreDoubleImageHeight = 300.0;
   static const exploreMosaicImageHeight = 370.0;
   static const exploreImageGap = 2.0;
-  static const explorePhotoNavigationSize = 38.0;
-  static const explorePhotoNavigationInset = 14.0;
-  static const explorePhotoNavigationDuration = Duration(milliseconds: 180);
   static const exploreActionHeight = 30.0;
   static const exploreSearchHeight = 36.0;
 }
