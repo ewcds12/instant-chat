@@ -223,7 +223,7 @@ A separate crop was not required because the normalized `1150 × 750` comparison
 
 ## Interaction Verification
 
-- For you and Following tabs respond and update the feed filter.
+- For you and Contacts tabs respond and update the feed filter.
 - Search filters by post text, display name, and username.
 - Composer surface and Post button open the existing post composer.
 - Author discovery rows apply an author search to the feed.
@@ -233,6 +233,38 @@ A separate crop was not required because the normalized `1150 × 750` comparison
 ## Follow-Up Polish
 
 - P3: Add real engagement counts and poll rendering only after the server contract supports them.
+
+## Final Result
+
+final result: passed
+
+---
+
+# Explore Multi-Image Layout Design QA
+
+## Evidence
+
+- Two-image source: `/var/folders/s_/6kx28ks54k1d3d09hs7xsngm0000gn/T/codex-clipboard-fc0bb9a0-14fa-43fb-9021-9ccbe21dfe46.png`
+- Three-image source: `/var/folders/s_/6kx28ks54k1d3d09hs7xsngm0000gn/T/codex-clipboard-8d10f576-867d-4565-999b-ea69ce4c9c3b.png`
+- Four-image source: `/var/folders/s_/6kx28ks54k1d3d09hs7xsngm0000gn/T/codex-clipboard-1b33e395-d82c-4460-b259-5f0881996c17.png`
+- Native two-image capture: `/tmp/explore-two-layout.jpeg`
+- Native three-image capture: `/tmp/explore-three-layout.jpeg`
+- Native four-image capture: `/tmp/explore-four-layout.jpeg`
+- Verification viewport: macOS main window at `1150 × 750` logical pixels.
+
+## Visual Comparison
+
+- Two images use equal-width side-by-side tiles inside one rounded frame.
+- Three images use one full-height left tile with two equal stacked tiles on the right.
+- Four images use an even `2 × 2` mosaic.
+- Every mosaic uses one shared outer corner radius, a subtle outline, and two-point internal separators.
+- Multi-image tiles intentionally use cover cropping like the references; selecting any tile still opens the existing full-image viewer.
+
+## Verification
+
+- Native captures confirmed the two-, three-, and four-image layouts with real Explore post data.
+- Geometry tests verify tile alignment, row and column spans, gaps, and the two distinct multi-image heights.
+- No actionable P0, P1, or P2 visual or interaction findings remain.
 
 ## Final Result
 

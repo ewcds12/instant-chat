@@ -29,6 +29,15 @@ void main() {
 
     expect(find.text('Hello everyone'), findsOneWidget);
     expect(find.text('Retro User'), findsOneWidget);
+    final postRight = tester.getRect(find.byType(PostCard)).right;
+    final menuRight = tester.getRect(find.byTooltip('Post actions')).right;
+    expect(
+      menuRight,
+      moreOrLessEquals(
+        postRight - RetroMetrics.explorePostHorizontalInset,
+        epsilon: 0.1,
+      ),
+    );
     await tester.tap(find.byTooltip('Like'));
     await tester.pump();
     expect(find.byTooltip('Unlike'), findsOneWidget);
