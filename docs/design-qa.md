@@ -184,3 +184,56 @@ Final result: passed
 - No actionable P0, P1, or P2 visual, interaction, or accessibility findings remain after native comparison.
 
 Final result: passed
+
+---
+
+# Explore Design QA
+
+## Evidence
+
+- Source visual truth: `/Users/ewcds/.codex/generated_images/019fb7bb-097b-7e61-a06b-1f260f8cc2ca/exec-655d77e1-67f0-4786-b0ba-f0c585a89af3.png`
+- Implementation screenshot: `/tmp/instant_chat_explore_qa/implementation.png`
+- Combined comparison: `/tmp/instant_chat_explore_qa/comparison.png`
+- Source pixels: `1553 × 1013`
+- Implementation pixels: `1150 × 750`
+- Comparison viewport: macOS main window at `1150 × 750` logical pixels and `1×` capture density
+- Normalization: the source was resized to `1150 × 750` before the side-by-side comparison because both artifacts use the same aspect ratio.
+- State: authenticated Explore page, For you selected, populated feed, default window size.
+
+## Full-View Comparison
+
+The implementation matches the source hierarchy: existing app sidebar, Explore title and centered feed tabs, compact inline composer, continuous divided post feed, fixed right discovery rail, search, popular content, and people suggestions. The main-feed and discovery-rail proportions remain balanced at the app's default window size.
+
+## Focused Comparison
+
+A separate crop was not required because the normalized `1150 × 750` comparison keeps the header, composer, feed rows, search field, rail cards, type hierarchy, borders, and spacing readable in one view. The header/tab alignment and both right-rail cards were inspected at original implementation resolution.
+
+## Findings
+
+- No actionable P0, P1, or P2 differences remain.
+- Accepted dynamic-content difference: production posts supply the author avatars, text, and imagery, so the preview content does not reproduce the generated mock's fictional assets.
+- Accepted product-model difference: engagement totals and polls are not rendered because the current post contract does not expose those fields. The action rhythm is preserved without inventing server data.
+- Accepted existing-product behavior: Refresh and Explore settings remain in the header beside the compose action.
+
+## Comparison History
+
+1. Initial default-window capture hid the discovery rail because the responsive breakpoint exceeded the available content width.
+2. The breakpoint was reduced from `980` to `900` logical pixels.
+3. The post-fix capture shows the search, Popular today, and People you may know sections at the default `1150 × 750` window size without compressing or clipping the feed.
+
+## Interaction Verification
+
+- For you and Following tabs respond and update the feed filter.
+- Search filters by post text, display name, and username.
+- Composer surface and Post button open the existing post composer.
+- Author discovery rows apply an author search to the feed.
+- Like and bookmark controls expose selected and unselected states.
+- Existing refresh, blocked-user settings, report, block, and delete actions remain available.
+
+## Follow-Up Polish
+
+- P3: Add real engagement counts and poll rendering only after the server contract supports them.
+
+## Final Result
+
+final result: passed

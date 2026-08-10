@@ -11,12 +11,13 @@ The authentication, contacts, direct conversations, and persisted message founda
 - The Flutter macOS client opens registration and sign-in in a compact, fixed-size authentication window, then expands the same native window into the resizable chat workspace after authentication succeeds.
 - Registration uses a unique lowercase username and password, with no email address required.
 - The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
-- The authenticated client provides modern chats, contacts, and system-status workspaces.
+- The authenticated client provides modern Chats, Contacts, Explore, and system-status workspaces.
 - The account card opens an in-app Profile sheet where users can set a profile photo, Name, Gender, Region, and ID. Changes persist to MySQL, are restored with the session, and update connected peers through the authenticated realtime channel.
 - The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, automatic older-history loading while scrolling, a focused complete-history search with direct result navigation, an inline Contact Info view with back navigation, and a persistent desktop master-detail layout.
 - Message rows omit sender avatars so incoming and outgoing content align cleanly with the chat area edges.
 - The authentication window opens at 420 by 500 points. The authenticated chat window expands to 1,150 by 750 points and remains resizable down to 960 by 620 points.
 - The Contacts workspace provides an alphabetical directory with private contact remarks searchable alongside original names and IDs, exact ID lookup for new people, an inline friend-request drawer, a selected-contact detail panel with an enlarged and downloadable profile-photo preview, real shared photos, files, and web links, complete-history message search with direct navigation and a three-second highlight on the matching chat message, safe removal confirmation, and direct-message navigation.
+- Explore provides one authenticated global feed visible to every Instant Chat account. Users can publish up to 1,000 characters and four photos, scroll through cursor-paginated posts, delete their own posts, report another user's post, and block or unblock authors without changing contact or chat relationships.
 - Incoming friend requests show a notification dot beside Contacts, appear below the Contacts search field, and can be expanded, accepted, or declined without leaving the workspace. The dot clears when no incoming requests remain, and accepting a request immediately adds the shared direct conversation to both users' Chats lists.
 - Direct channels load cursor-paginated history, receive realtime messages, automatically recover sequence gaps on opening, reconnecting, detecting an out-of-order event, or through a two-second active-channel fallback check, show persisted unread counts, mark viewed messages as read, update conversation-card previews in realtime with the same reconnect and two-second recovery safeguards, and can send or retry text, image, and file messages without creating duplicates.
 - Text messages underline `http` and `https` links and open them in the default macOS browser when clicked.
@@ -29,7 +30,7 @@ The authentication, contacts, direct conversations, and persisted message founda
 - The Go API provides health, registration, sign-in, refresh, sign-out, current-user, profile update, and authenticated avatar endpoints.
 - The Go API enforces unique bilateral contact relationships and unique direct conversations.
 - The health check verifies the MySQL connection with `PingContext`.
-- MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, members, and ordered messages.
+- MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, members, ordered messages, public posts, reports, and per-user feed blocks.
 - Docker Compose provides pinned MySQL 8.4 and source-built MinIO development services.
 - OpenAPI defines the implemented HTTP and WebSocket event contracts.
 
@@ -152,6 +153,14 @@ GET  /api/v1/conversations/{conversation_id}/messages?before={sequence}&limit={c
 GET  /api/v1/conversations/{conversation_id}/messages?after={sequence}&limit={count}
 GET  /api/v1/message-images/{image_id}
 GET  /api/v1/message-files/{file_id}
+GET  /api/v1/posts?before={post_id}&limit={count}
+POST /api/v1/posts
+DELETE /api/v1/posts/{post_id}
+POST /api/v1/posts/{post_id}/reports
+GET  /api/v1/post-images/{image_id}
+GET  /api/v1/user-blocks
+POST /api/v1/user-blocks/{user_id}
+DELETE /api/v1/user-blocks/{user_id}
 GET  /api/v1/realtime  (WebSocket upgrade)
 ```
 

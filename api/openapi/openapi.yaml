@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.9.0
+  version: 0.10.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -773,6 +773,201 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
+  /posts:
+    get:
+      operationId: listPublicPosts
+      summary: List the authenticated user's global public post feed
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: before
+          in: query
+          schema:
+            $ref: "#/components/schemas/ResourceID"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 20
+      responses:
+        "200":
+          description: One descending page of globally visible posts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPostPage"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createPublicPost
+      summary: Publish one text and photo post to the global feed
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/components/schemas/CreatePublicPostRequest"
+      responses:
+        "201":
+          description: Post published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPost"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /posts/{post_id}:
+    delete:
+      operationId: deletePublicPost
+      summary: Delete one post owned by the current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+      responses:
+        "204":
+          description: Post deleted
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /posts/{post_id}/reports:
+    post:
+      operationId: reportPublicPost
+      summary: Report one post owned by another user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReportPublicPostRequest"
+      responses:
+        "204":
+          description: Report recorded
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /post-images/{image_id}:
+    get:
+      operationId: getPublicPostImage
+      summary: Return one authenticated and visible public post image
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: image_id
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ResourceID"
+      responses:
+        "200":
+          description: Image bytes
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+            image/jpeg:
+              schema:
+                type: string
+                format: binary
+            image/gif:
+              schema:
+                type: string
+                format: binary
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /user-blocks:
+    get:
+      operationId: listBlockedUsers
+      summary: List users hidden from the current user's public feed
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Blocked users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BlockedUserPage"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /user-blocks/{user_id}:
+    post:
+      operationId: blockUser
+      summary: Hide one user's posts from the current user's public feed
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      responses:
+        "204":
+          description: User blocked
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    delete:
+      operationId: unblockUser
+      summary: Restore one user's posts to the current user's public feed
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/UserID"
+      responses:
+        "204":
+          description: User unblocked
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /realtime:
     get:
       operationId: connectRealtime
@@ -818,6 +1013,12 @@ components:
         $ref: "#/components/schemas/ResourceID"
     MessageID:
       name: message_id
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/ResourceID"
+    PostID:
+      name: post_id
       in: path
       required: true
       schema:
@@ -1245,6 +1446,111 @@ components:
           type: string
           format: binary
           description: File up to 2 GB.
+    CreatePublicPostRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        body:
+          type: string
+          maxLength: 1000
+        images:
+          type: array
+          maxItems: 4
+          items:
+            type: string
+            format: binary
+      description: At least one non-blank body or image is required.
+    ReportPublicPostRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    PublicPostImage:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - position
+        - content_type
+        - byte_size
+        - url
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        position:
+          type: integer
+          minimum: 0
+          maximum: 3
+        content_type:
+          type: string
+          enum:
+            - image/png
+            - image/jpeg
+            - image/gif
+            - image/webp
+        byte_size:
+          type: integer
+          minimum: 1
+          maximum: 15728640
+        url:
+          type: string
+    PublicPost:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - author
+        - body
+        - images
+        - created_at
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        author:
+          $ref: "#/components/schemas/PublicUser"
+        body:
+          type: string
+          maxLength: 1000
+        images:
+          type: array
+          maxItems: 4
+          items:
+            $ref: "#/components/schemas/PublicPostImage"
+        created_at:
+          type: string
+          format: date-time
+    PublicPostPage:
+      type: object
+      additionalProperties: false
+      required:
+        - posts
+        - next_cursor
+      properties:
+        posts:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PublicPost"
+        next_cursor:
+          oneOf:
+            - $ref: "#/components/schemas/ResourceID"
+            - type: "null"
+    BlockedUserPage:
+      type: object
+      additionalProperties: false
+      required:
+        - users
+      properties:
+        users:
+          type: array
+          maxItems: 500
+          items:
+            $ref: "#/components/schemas/PublicUser"
     MessageImage:
       type: object
       additionalProperties: false

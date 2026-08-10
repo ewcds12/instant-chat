@@ -108,6 +108,16 @@ abstract final class RetroMetrics {
   static const messageMenuSettingsDiameter = 22.0;
   static const messageMenuSettingsIconSize = 13.0;
   static const statusIconSize = 20.0;
+  static const exploreHeaderHeight = 60.0;
+  static const exploreComposerHeight = 82.0;
+  static const exploreRailWidth = 310.0;
+  static const exploreRailBreakpoint = 900.0;
+  static const exploreContentMaxWidth = 760.0;
+  static const exploreAvatarRadius = 20.0;
+  static const explorePostHorizontalInset = 24.0;
+  static const explorePostVerticalInset = 18.0;
+  static const exploreActionHeight = 30.0;
+  static const exploreSearchHeight = 36.0;
 }
 
 abstract final class RetroColors {

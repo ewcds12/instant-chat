@@ -90,6 +90,30 @@ type MessageImage struct {
 	CreatedAt   time.Time `db:"created_at"`
 }
 
+type Post struct {
+	ID        uint64    `db:"id"`
+	AuthorID  uint64    `db:"author_id"`
+	Body      string    `db:"body"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
+type PostImage struct {
+	ID          uint64    `db:"id"`
+	PostID      uint64    `db:"post_id"`
+	Position    uint8     `db:"position"`
+	ContentType string    `db:"content_type"`
+	ByteSize    uint32    `db:"byte_size"`
+	ObjectKey   string    `db:"object_key"`
+	CreatedAt   time.Time `db:"created_at"`
+}
+
+type PostReport struct {
+	PostID     uint64    `db:"post_id"`
+	ReporterID uint64    `db:"reporter_id"`
+	Reason     string    `db:"reason"`
+	CreatedAt  time.Time `db:"created_at"`
+}
+
 type RefreshToken struct {
 	ID        uint64       `db:"id"`
 	UserID    uint64       `db:"user_id"`
@@ -111,4 +135,10 @@ type User struct {
 	Region            sql.NullString `db:"region"`
 	AvatarContentType sql.NullString `db:"avatar_content_type"`
 	AvatarData        sql.NullString `db:"avatar_data"`
+}
+
+type UserBlock struct {
+	BlockerID     uint64    `db:"blocker_id"`
+	BlockedUserID uint64    `db:"blocked_user_id"`
+	CreatedAt     time.Time `db:"created_at"`
 }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/conversations/presentation/conversations_controller.dart';
+import 'package:instant_chat/features/posts/presentation/posts_controller.dart';
 
 void refreshShellPage(WidgetRef ref, int index) {
   switch (index) {
@@ -15,6 +16,9 @@ void refreshShellPage(WidgetRef ref, int index) {
       unawaited(
         ref.read(contactsControllerProvider.notifier).refreshSilently(),
       );
+      return;
+    case 2:
+      unawaited(ref.read(postsControllerProvider.notifier).refresh());
       return;
     default:
       return;

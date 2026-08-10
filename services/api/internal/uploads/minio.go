@@ -1,4 +1,4 @@
-// Package uploads provides private object storage for message attachments.
+// Package uploads provides private object storage for uploaded content.
 package uploads
 
 import (

@@ -32,6 +32,7 @@ The client is located in `apps/macos_client` and currently contains:
 - `features/contacts`: exact username search, contact-request workflows, accepted contacts, and Riverpod state.
 - `features/conversations`: direct-conversation creation, persisted unread-count state, realtime list updates, and channel selection.
 - `features/messages`: message history, text, image, and file REST sending, realtime reconciliation, idempotent retry state, and channel presentation.
+- `features/posts`: global feed pagination, compact text-and-photo composition, authenticated image presentation, reporting, and per-user blocking.
 - `features/profile`: an in-app profile sheet opened from the account card, with native-style editors backed by authenticated profile and avatar APIs.
 - `features/realtime`: authenticated WebSocket lifecycle, heartbeat, reconnect backoff, and parsing for message and profile updates.
 - `features/system_status`: health domain model, Dio data access, Riverpod state, and presentation.
@@ -42,7 +43,7 @@ The client keeps the complete session in macOS Keychain. On startup it validates
 
 Local Debug builds use ad-hoc signing and the standard macOS Keychain so contributors can run the client without a development certificate or provisioning profile. Release builds retain the data-protection Keychain and their configured signing identity and entitlements.
 
-The authenticated shell exposes conversations, contacts, requests, and system status as keyboard-focusable Material navigation destinations. Contact and conversation providers are automatically disposed when the authenticated shell is removed so one account's in-memory directory state cannot appear in another account's session.
+The authenticated shell exposes Chats, Contacts, Explore, and system status as keyboard-focusable Material navigation destinations. Contact, conversation, and post providers are automatically disposed when the authenticated shell is removed so one account's in-memory state cannot appear in another account's session.
 
 ## Go API
 
@@ -54,7 +55,8 @@ The server is located in `services/api` and currently contains:
 - `internal/contacts`: exact account search, pending and accepted relationship rules, HTTP handlers, and MySQL persistence.
 - `internal/conversations`: authorized direct-conversation creation, membership transactions, list handlers, and MySQL persistence.
 - `internal/messages`: text, image, and file validation, idempotent REST sending, cursor history, membership authorization, and attachment persistence coordination.
-- `internal/uploads`: private S3-compatible object storage for file-message bytes.
+- `internal/posts`: authenticated global-feed validation, cursor pagination, reporting, per-viewer blocking, HTTP handlers, and MySQL and object-storage coordination.
+- `internal/uploads`: private S3-compatible object storage for uploaded post and message bytes.
 - `internal/realtime`: authenticated WebSocket connections, member-targeted delivery, heartbeat, and graceful shutdown.
 - `internal/config`: environment variable loading and validation.
 - `internal/health`: API and database health checks.
@@ -102,6 +104,12 @@ Messages have a `kind` of `text`, `image`, or `file`. Text messages store a vali
 After a new message commits, the realtime hub looks up the conversation members and sends a versioned `message.created` event to every connected window for those users. A profile update sends a versioned `profile.updated` event to connected users who share a conversation with the changed account. Failed realtime lookup or disconnected clients do not change the successful REST result because persisted REST data remains the source of truth.
 
 The macOS client opens one authenticated WebSocket per signed-in session, sends heartbeat pings, reconnects with bounded exponential backoff, replaces the connection after session rotation, and closes the connection on sign-out. Active channels merge REST responses and realtime events by sender and client message ID, sort by server sequence, and request every sequence after the latest local message when a channel opens, the connection is restored, an incoming event exposes a sequence gap, or the two-second active-channel fallback check runs. Synchronization requests never overlap, and all recovery paths use the same idempotent reconciliation.
+
+## Public Posts
+
+Explore is global to authenticated Instant Chat accounts. Posts are ordered by descending database ID and loaded with an exclusive `before` cursor. Each post contains a trimmed body of at most 1,000 characters, zero to four ordered PNG, JPEG, GIF, or WebP images of at most 15 MB each, and public author metadata. At least one body or image is required. Image objects are stored privately in MinIO and returned only through bearer-authenticated API endpoints; clients never receive object-store credentials.
+
+Authors can permanently delete their own posts. Other users can submit one updatable report per post with a bounded reason. A block is private to the blocker and removes the blocked author's posts from that user's feed and image access without changing contact relationships, direct-conversation membership, or the blocked user's view. The client exposes the blocked-user list so each block can be reversed. Public-post creation and reporting use per-IP rate limits.
 
 ## Health States
 

@@ -12,6 +12,7 @@ import 'package:instant_chat/features/conversations/presentation/conversations_c
 import 'package:instant_chat/features/conversations/presentation/conversations_page.dart';
 import 'package:instant_chat/features/profile/presentation/profile_sheet.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
+import 'package:instant_chat/features/posts/presentation/posts_page.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_page.dart';
 
@@ -31,6 +32,7 @@ class AuthenticatedShell extends ConsumerStatefulWidget {
 
 class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
   var _selectedIndex = 0;
+  var _exploreWasOpened = false;
 
   @override
   Widget build(BuildContext context) {
@@ -43,13 +45,7 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
             _AppSidebar(
               session: widget.session,
               selectedIndex: _selectedIndex,
-              onSelect: (index) {
-                if (index == _selectedIndex) {
-                  refreshShellPage(ref, index);
-                  return;
-                }
-                setState(() => _selectedIndex = index);
-              },
+              onSelect: _selectPage,
               onOpenProfile: () =>
                   showProfileSheet(context: context, session: widget.session),
             ),
@@ -62,6 +58,9 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
                     onCompose: () => setState(() => _selectedIndex = 1),
                   ),
                   ContactsPage(onOpenConversation: _openConversation),
+                  _exploreWasOpened
+                      ? const PostsPage()
+                      : const SizedBox.shrink(),
                   SystemStatusPage(onSignOut: widget.onSignOut),
                 ],
               ),
@@ -82,6 +81,17 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
     }
     ref.read(selectedConversationIdProvider.notifier).select(conversationId);
     setState(() => _selectedIndex = 0);
+  }
+
+  void _selectPage(int index) {
+    if (index == _selectedIndex) {
+      refreshShellPage(ref, index);
+      return;
+    }
+    setState(() {
+      _selectedIndex = index;
+      if (index == 2) _exploreWasOpened = true;
+    });
   }
 }
 
@@ -130,10 +140,16 @@ class _AppSidebar extends ConsumerWidget {
                   ),
                 ),
               ),
-              const Spacer(),
-              _SystemButton(
+              _SidebarItem(
+                label: 'Explore',
+                icon: Icons.public_rounded,
                 selected: selectedIndex == 2,
                 onTap: () => onSelect(2),
+              ),
+              const Spacer(),
+              _SystemButton(
+                selected: selectedIndex == 3,
+                onTap: () => onSelect(3),
               ),
               const SizedBox(height: 10),
               _AccountTile(session: session, onTap: onOpenProfile),

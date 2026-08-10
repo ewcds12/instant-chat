@@ -21,6 +21,7 @@ import (
 	"github.com/ewcds12/instant-chat/services/api/internal/health"
 	"github.com/ewcds12/instant-chat/services/api/internal/httpapi"
 	"github.com/ewcds12/instant-chat/services/api/internal/messages"
+	"github.com/ewcds12/instant-chat/services/api/internal/posts"
 	"github.com/ewcds12/instant-chat/services/api/internal/realtime"
 )
 
@@ -35,6 +36,8 @@ const (
 	authRateLimit     = 10
 	messageRateWindow = time.Minute
 	messageRateLimit  = 60
+	postRateWindow    = time.Minute
+	postRateLimit     = 20
 )
 
 func main() {
@@ -98,8 +101,12 @@ func run() error {
 		messages.NewMySQLRepository(database, fileStorage),
 		realtimeHub,
 	))
+	postHandler := posts.NewHandler(posts.NewService(
+		posts.NewMySQLRepository(database, fileStorage),
+	))
 	realtimeHandler := realtime.NewHandler(realtimeHub)
 	messageLimiter := httpapi.NewIPRateLimiter(messageRateLimit, messageRateWindow)
+	postLimiter := httpapi.NewIPRateLimiter(postRateLimit, postRateWindow)
 	protected := func(handler http.HandlerFunc) http.Handler {
 		return authHandler.RequireUser(handler)
 	}
@@ -141,6 +148,20 @@ func run() error {
 	)
 	mux.Handle("GET /api/v1/message-images/{image_id}", protected(messageHandler.Image))
 	mux.Handle("GET /api/v1/message-files/{file_id}", protected(messageHandler.File))
+	mux.Handle("GET /api/v1/posts", protected(postHandler.List))
+	mux.Handle(
+		"POST /api/v1/posts",
+		authHandler.RequireUser(postLimiter.Handler(http.HandlerFunc(postHandler.Create))),
+	)
+	mux.Handle("DELETE /api/v1/posts/{post_id}", protected(postHandler.Delete))
+	mux.Handle(
+		"POST /api/v1/posts/{post_id}/reports",
+		authHandler.RequireUser(postLimiter.Handler(http.HandlerFunc(postHandler.Report))),
+	)
+	mux.Handle("GET /api/v1/post-images/{image_id}", protected(postHandler.Image))
+	mux.Handle("GET /api/v1/user-blocks", protected(postHandler.ListBlocked))
+	mux.Handle("POST /api/v1/user-blocks/{user_id}", protected(postHandler.Block))
+	mux.Handle("DELETE /api/v1/user-blocks/{user_id}", protected(postHandler.Unblock))
 	mux.Handle("GET /api/v1/realtime", protected(realtimeHandler.Connect))
 
 	server := &http.Server{
