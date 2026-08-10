@@ -79,6 +79,32 @@ void main() {
     _expectClose(second.left, fourth.left);
     expect(first.bottom, lessThan(third.top));
   });
+
+  testWidgets('photo viewer navigates between post images', (tester) async {
+    await _pumpImages(tester, 3);
+
+    await tester.tap(find.byKey(const Key('post-image-0')));
+    await tester.pumpAndSettle();
+    expect(find.text('1 of 3'), findsOneWidget);
+    expect(find.byTooltip('Previous photo'), findsNothing);
+    expect(find.byTooltip('Next photo'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Next photo'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 of 3'), findsOneWidget);
+    expect(find.byTooltip('Previous photo'), findsOneWidget);
+    expect(find.byTooltip('Next photo'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('Next photo'));
+    await tester.pumpAndSettle();
+    expect(find.text('3 of 3'), findsOneWidget);
+    expect(find.byTooltip('Previous photo'), findsOneWidget);
+    expect(find.byTooltip('Next photo'), findsNothing);
+
+    await tester.tap(find.byTooltip('Previous photo'));
+    await tester.pumpAndSettle();
+    expect(find.text('2 of 3'), findsOneWidget);
+  });
 }
 
 Future<void> _pumpImages(WidgetTester tester, int count) {
