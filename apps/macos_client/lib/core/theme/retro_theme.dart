@@ -116,6 +116,7 @@ abstract final class RetroMetrics {
   static const exploreAvatarRadius = 20.0;
   static const explorePostHorizontalInset = 24.0;
   static const explorePostVerticalInset = 18.0;
+  static const explorePostCollapsedLines = 6;
   static const exploreSingleImageMaxWidth = 720.0;
   static const exploreSingleImageMaxHeight = 600.0;
   static const exploreDoubleImageHeight = 300.0;

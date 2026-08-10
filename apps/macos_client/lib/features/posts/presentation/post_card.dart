@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
+import 'package:instant_chat/features/posts/presentation/expandable_post_text.dart';
 import 'package:instant_chat/features/posts/presentation/post_image_grid.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
@@ -50,12 +51,7 @@ class PostCard extends StatelessWidget {
                 ),
                 if (post.body.isNotEmpty) ...[
                   const SizedBox(height: 4),
-                  SelectableText(
-                    post.body,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(height: 1.35),
-                  ),
+                  ExpandablePostText(text: post.body),
                 ],
                 if (post.images.isNotEmpty) ...[
                   const SizedBox(height: 10),
