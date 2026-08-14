@@ -77,7 +77,7 @@ func (r *MySQLRepository) Create(
 		r.cleanupObjects(stored)
 		return Post{}, fmt.Errorf("commit post transaction: %w", err)
 	}
-	return r.get(ctx, authorID, uint64(postID))
+	return r.get(ctx, uint64(postID))
 }
 
 type storedImage struct {
@@ -126,17 +126,14 @@ func (r *MySQLRepository) cleanupObjects(images []storedImage) {
 	}
 }
 
-// List returns one descending post page visible to the current user.
+// List returns one descending global post page.
 func (r *MySQLRepository) List(
 	ctx context.Context,
-	viewerID uint64,
 	before *uint64,
 	limit int,
 ) ([]Post, error) {
 	if before == nil {
-		rows, err := r.queries.ListLatestPosts(ctx, store.ListLatestPostsParams{
-			ViewerID: viewerID, Limit: int32(limit),
-		})
+		rows, err := r.queries.ListLatestPosts(ctx, int32(limit))
 		if err != nil {
 			return nil, fmt.Errorf("list latest posts: %w", err)
 		}
@@ -147,7 +144,7 @@ func (r *MySQLRepository) List(
 		return posts, nil
 	}
 	rows, err := r.queries.ListPostsBefore(ctx, store.ListPostsBeforeParams{
-		BeforePostID: *before, ViewerID: viewerID, Limit: int32(limit),
+		BeforePostID: *before, Limit: int32(limit),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list posts before cursor: %w", err)
@@ -159,10 +156,8 @@ func (r *MySQLRepository) List(
 	return posts, nil
 }
 
-func (r *MySQLRepository) get(ctx context.Context, viewerID, postID uint64) (Post, error) {
-	rows, err := r.queries.GetPostForViewer(ctx, store.GetPostForViewerParams{
-		PostID: postID, ViewerID: viewerID,
-	})
+func (r *MySQLRepository) get(ctx context.Context, postID uint64) (Post, error) {
+	rows, err := r.queries.GetPost(ctx, postID)
 	if err != nil {
 		return Post{}, fmt.Errorf("read post: %w", err)
 	}
@@ -176,11 +171,9 @@ func (r *MySQLRepository) get(ctx context.Context, viewerID, postID uint64) (Pos
 	return posts[0], nil
 }
 
-// Image opens one private post image visible to the current user.
-func (r *MySQLRepository) Image(ctx context.Context, viewerID, imageID uint64) (ImageFile, error) {
-	row, err := r.queries.GetPostImageForViewer(ctx, store.GetPostImageForViewerParams{
-		ImageID: imageID, ViewerID: viewerID,
-	})
+// Image opens one private post image for an authenticated request.
+func (r *MySQLRepository) Image(ctx context.Context, imageID uint64) (ImageFile, error) {
+	row, err := r.queries.GetPostImage(ctx, imageID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return ImageFile{}, ErrPostImageNotFound
 	}
@@ -241,47 +234,4 @@ func (r *MySQLRepository) Report(ctx context.Context, reporterID, postID uint64,
 		return fmt.Errorf("report post: %w", err)
 	}
 	return nil
-}
-
-// Block hides one user's posts from the current user's feed.
-func (r *MySQLRepository) Block(ctx context.Context, blockerID, blockedUserID uint64) error {
-	exists, err := r.queries.UserExists(ctx, blockedUserID)
-	if err != nil {
-		return fmt.Errorf("check blocked user: %w", err)
-	}
-	if !exists {
-		return ErrUserNotFound
-	}
-	if err := r.queries.BlockUser(ctx, store.BlockUserParams{
-		BlockerID: blockerID, BlockedUserID: blockedUserID,
-	}); err != nil {
-		return fmt.Errorf("block user: %w", err)
-	}
-	return nil
-}
-
-// Unblock restores one user's posts to the current user's feed.
-func (r *MySQLRepository) Unblock(ctx context.Context, blockerID, blockedUserID uint64) error {
-	if err := r.queries.UnblockUser(ctx, store.UnblockUserParams{
-		BlockerID: blockerID, BlockedUserID: blockedUserID,
-	}); err != nil {
-		return fmt.Errorf("unblock user: %w", err)
-	}
-	return nil
-}
-
-// ListBlocked returns users hidden from the current user's feed.
-func (r *MySQLRepository) ListBlocked(ctx context.Context, blockerID uint64) ([]BlockedUser, error) {
-	rows, err := r.queries.ListBlockedUsers(ctx, blockerID)
-	if err != nil {
-		return nil, fmt.Errorf("list blocked users: %w", err)
-	}
-	users := make([]BlockedUser, 0, len(rows))
-	for _, row := range rows {
-		users = append(users, BlockedUser{Author: Author{
-			ID: row.ID, Username: row.Username, DisplayName: row.DisplayName,
-			HasAvatar: row.AvatarContentType.Valid, CreatedAt: row.CreatedAt,
-		}})
-	}
-	return users, nil
 }

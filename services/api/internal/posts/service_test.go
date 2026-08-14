@@ -12,7 +12,6 @@ type fakeRepository struct {
 	listedLimit   int
 	posts         []Post
 	reported      string
-	blockedUserID uint64
 	err           error
 }
 
@@ -29,7 +28,6 @@ func (f *fakeRepository) Create(
 
 func (f *fakeRepository) List(
 	_ context.Context,
-	_ uint64,
 	_ *uint64,
 	limit int,
 ) ([]Post, error) {
@@ -37,7 +35,7 @@ func (f *fakeRepository) List(
 	return f.posts, f.err
 }
 
-func (f *fakeRepository) Image(context.Context, uint64, uint64) (ImageFile, error) {
+func (f *fakeRepository) Image(context.Context, uint64) (ImageFile, error) {
 	return ImageFile{}, f.err
 }
 
@@ -46,17 +44,6 @@ func (f *fakeRepository) Delete(context.Context, uint64, uint64) error { return 
 func (f *fakeRepository) Report(_ context.Context, _, _ uint64, reason string) error {
 	f.reported = reason
 	return f.err
-}
-
-func (f *fakeRepository) Block(_ context.Context, _, userID uint64) error {
-	f.blockedUserID = userID
-	return f.err
-}
-
-func (f *fakeRepository) Unblock(context.Context, uint64, uint64) error { return f.err }
-
-func (f *fakeRepository) ListBlocked(context.Context, uint64) ([]BlockedUser, error) {
-	return nil, f.err
 }
 
 func TestServiceCreateTrimsTextAndAcceptsPhoto(t *testing.T) {
@@ -111,7 +98,7 @@ func TestServiceListUsesDefaultLimitAndReturnsCursor(t *testing.T) {
 	repository := &fakeRepository{posts: posts}
 	service := NewService(repository)
 
-	page, err := service.List(context.Background(), 7, nil, 0)
+	page, err := service.List(context.Background(), nil, 0)
 
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
@@ -132,17 +119,5 @@ func TestServiceReportTrimsReason(t *testing.T) {
 
 	if err != nil || repository.reported != "Spam" {
 		t.Fatalf("Report() error = %v, reason = %q", err, repository.reported)
-	}
-}
-
-func TestServiceBlockRejectsCurrentUser(t *testing.T) {
-	repository := &fakeRepository{}
-	service := NewService(repository)
-
-	err := service.Block(context.Background(), 7, 7)
-
-	var inputError *InputError
-	if !errors.As(err, &inputError) || repository.blockedUserID != 0 {
-		t.Fatalf("Block() error = %v, blocked ID = %d", err, repository.blockedUserID)
 	}
 }

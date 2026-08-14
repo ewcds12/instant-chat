@@ -63,7 +63,6 @@ func (s *Service) Create(
 // List returns one descending global feed page.
 func (s *Service) List(
 	ctx context.Context,
-	viewerID uint64,
 	before *uint64,
 	limit int,
 ) (Page, error) {
@@ -73,7 +72,7 @@ func (s *Service) List(
 	if limit < 1 || limit > maximumPageSize {
 		return Page{}, &InputError{Message: "Limit must be between 1 and 50."}
 	}
-	posts, err := s.repository.List(ctx, viewerID, before, limit)
+	posts, err := s.repository.List(ctx, before, limit)
 	if err != nil {
 		return Page{}, err
 	}
@@ -86,8 +85,8 @@ func (s *Service) List(
 }
 
 // Image opens one post image visible to the current user.
-func (s *Service) Image(ctx context.Context, viewerID, imageID uint64) (ImageFile, error) {
-	return s.repository.Image(ctx, viewerID, imageID)
+func (s *Service) Image(ctx context.Context, imageID uint64) (ImageFile, error) {
+	return s.repository.Image(ctx, imageID)
 }
 
 // Delete permanently removes one post owned by the current user.
@@ -106,22 +105,4 @@ func (s *Service) Report(
 		return &InputError{Message: "Report reason must contain 1 to 500 characters."}
 	}
 	return s.repository.Report(ctx, reporterID, postID, reason)
-}
-
-// Block hides one user's posts from the current user's feed.
-func (s *Service) Block(ctx context.Context, blockerID, blockedUserID uint64) error {
-	if blockerID == blockedUserID {
-		return &InputError{Message: "You cannot block yourself."}
-	}
-	return s.repository.Block(ctx, blockerID, blockedUserID)
-}
-
-// Unblock restores one user's posts to the current user's feed.
-func (s *Service) Unblock(ctx context.Context, blockerID, blockedUserID uint64) error {
-	return s.repository.Unblock(ctx, blockerID, blockedUserID)
-}
-
-// ListBlocked returns users hidden from the current user's feed.
-func (s *Service) ListBlocked(ctx context.Context, blockerID uint64) ([]BlockedUser, error) {
-	return s.repository.ListBlocked(ctx, blockerID)
 }

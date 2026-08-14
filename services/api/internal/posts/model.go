@@ -13,8 +13,6 @@ var (
 	ErrPostNotFound = errors.New("post not found")
 	// ErrPostImageNotFound hides whether a post image exists from unauthorized callers.
 	ErrPostImageNotFound = errors.New("post image not found")
-	// ErrUserNotFound indicates that a block target does not exist.
-	ErrUserNotFound = errors.New("user not found")
 )
 
 // InputError describes one invalid post request field.
@@ -69,11 +67,6 @@ type Page struct {
 	NextCursor *uint64
 }
 
-// BlockedUser is one user hidden from the current user's feed.
-type BlockedUser struct {
-	Author
-}
-
 // ObjectStore persists private post image bytes.
 type ObjectStore interface {
 	Put(context.Context, string, io.Reader, int64, string) error
@@ -84,11 +77,8 @@ type ObjectStore interface {
 // Repository defines persistence required by post use cases.
 type Repository interface {
 	Create(context.Context, uint64, string, []ImageUpload) (Post, error)
-	List(context.Context, uint64, *uint64, int) ([]Post, error)
-	Image(context.Context, uint64, uint64) (ImageFile, error)
+	List(context.Context, *uint64, int) ([]Post, error)
+	Image(context.Context, uint64) (ImageFile, error)
 	Delete(context.Context, uint64, uint64) error
 	Report(context.Context, uint64, uint64, string) error
-	Block(context.Context, uint64, uint64) error
-	Unblock(context.Context, uint64, uint64) error
-	ListBlocked(context.Context, uint64) ([]BlockedUser, error)
 }

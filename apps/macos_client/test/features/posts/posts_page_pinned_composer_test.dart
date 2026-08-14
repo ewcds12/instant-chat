@@ -130,15 +130,4 @@ class _StubPostGateway implements PostGateway {
     required String postId,
     required String reason,
   }) => throw UnimplementedError();
-
-  @override
-  Future<void> block({required String accessToken, required String userId}) =>
-      throw UnimplementedError();
-
-  @override
-  Future<void> unblock({required String accessToken, required String userId}) =>
-      throw UnimplementedError();
-
-  @override
-  Future<List<PublicUser>> listBlocked(String accessToken) async => const [];
 }

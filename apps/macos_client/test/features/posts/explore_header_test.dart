@@ -16,7 +16,6 @@ void main() {
             onTabSelected: (value) => selected = value,
             onCreate: () => createCount += 1,
             onRefresh: () {},
-            onBlockedUsers: () {},
           ),
         ),
       ),

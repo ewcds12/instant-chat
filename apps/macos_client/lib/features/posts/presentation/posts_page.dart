@@ -101,11 +101,6 @@ class _PostsPageState extends ConsumerState<PostsPage> {
           onTabSelected: (tab) => setState(() => _selectedTab = tab),
           onRefresh: () => ref.read(postsControllerProvider.notifier).refresh(),
           onCreate: () => showPostComposer(context),
-          onBlockedUsers: () => showBlockedUsersDialog(
-            context: context,
-            ref: ref,
-            accessToken: session.accessToken,
-          ),
         ),
         Expanded(child: _withError(state, feed)),
       ],
@@ -226,10 +221,6 @@ class _PostsPageState extends ConsumerState<PostsPage> {
         if (reason != null && mounted) {
           final reported = await controller.report(post.id, reason);
           if (reported && mounted) _notice('Report submitted.');
-        }
-      case PostAction.block:
-        if (await confirmBlockUser(context, post) && mounted) {
-          await controller.block(post.author.id);
         }
     }
   }

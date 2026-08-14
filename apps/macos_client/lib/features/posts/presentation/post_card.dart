@@ -5,7 +5,7 @@ import 'package:instant_chat/features/posts/presentation/expandable_post_text.da
 import 'package:instant_chat/features/posts/presentation/post_image_grid.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
-enum PostAction { delete, report, block }
+enum PostAction { delete, report }
 
 class PostCard extends StatelessWidget {
   const PostCard({
@@ -228,14 +228,6 @@ class _PostMenu extends StatelessWidget {
                 value: PostAction.report,
                 height: 34,
                 child: _MenuLabel(icon: Icons.flag_outlined, label: 'Report'),
-              ),
-              PopupMenuItem(
-                value: PostAction.block,
-                height: 34,
-                child: _MenuLabel(
-                  icon: Icons.block_rounded,
-                  label: 'Block User',
-                ),
               ),
             ],
     );

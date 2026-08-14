@@ -162,9 +162,6 @@ func run() error {
 		authHandler.RequireUser(postLimiter.Handler(http.HandlerFunc(postHandler.Report))),
 	)
 	mux.Handle("GET /api/v1/post-images/{image_id}", protected(postHandler.Image))
-	mux.Handle("GET /api/v1/user-blocks", protected(postHandler.ListBlocked))
-	mux.Handle("POST /api/v1/user-blocks/{user_id}", protected(postHandler.Block))
-	mux.Handle("DELETE /api/v1/user-blocks/{user_id}", protected(postHandler.Unblock))
 	mux.Handle("GET /api/v1/realtime", protected(realtimeHandler.Connect))
 
 	server := &http.Server{

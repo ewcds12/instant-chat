@@ -22,7 +22,7 @@ type postRecord struct {
 	imageByteSize     sql.NullInt32
 }
 
-func recordFromGet(row store.GetPostForViewerRow) postRecord {
+func recordFromGet(row store.GetPostRow) postRecord {
 	return postRecord{
 		id: row.ID, body: row.Body, createdAt: row.CreatedAt,
 		authorID: row.AuthorID, authorUsername: row.AuthorUsername,

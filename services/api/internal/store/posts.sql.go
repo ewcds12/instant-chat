@@ -11,21 +11,6 @@ import (
 	"time"
 )
 
-const blockUser = `-- name: BlockUser :exec
-INSERT IGNORE INTO user_blocks (blocker_id, blocked_user_id)
-VALUES (?, ?)
-`
-
-type BlockUserParams struct {
-	BlockerID     uint64 `db:"blocker_id"`
-	BlockedUserID uint64 `db:"blocked_user_id"`
-}
-
-func (q *Queries) BlockUser(ctx context.Context, arg BlockUserParams) error {
-	_, err := q.db.ExecContext(ctx, blockUser, arg.BlockerID, arg.BlockedUserID)
-	return err
-}
-
 const createPost = `-- name: CreatePost :execresult
 INSERT INTO posts (author_id, body)
 VALUES (?, ?)
@@ -84,7 +69,7 @@ func (q *Queries) DeletePostForAuthor(ctx context.Context, arg DeletePostForAuth
 	return q.db.ExecContext(ctx, deletePostForAuthor, arg.PostID, arg.AuthorID)
 }
 
-const getPostForViewer = `-- name: GetPostForViewer :many
+const getPost = `-- name: GetPost :many
 SELECT
   post.id,
   post.body,
@@ -102,21 +87,10 @@ FROM posts AS post
 JOIN users AS author ON author.id = post.author_id
 LEFT JOIN post_images AS image ON image.post_id = post.id
 WHERE post.id = ?
-  AND NOT EXISTS (
-    SELECT 1
-    FROM user_blocks AS block
-    WHERE block.blocker_id = ?
-      AND block.blocked_user_id = post.author_id
-  )
 ORDER BY image.position ASC
 `
 
-type GetPostForViewerParams struct {
-	PostID   uint64 `db:"post_id"`
-	ViewerID uint64 `db:"viewer_id"`
-}
-
-type GetPostForViewerRow struct {
+type GetPostRow struct {
 	ID                      uint64         `db:"id"`
 	Body                    string         `db:"body"`
 	CreatedAt               time.Time      `db:"created_at"`
@@ -131,15 +105,15 @@ type GetPostForViewerRow struct {
 	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
 }
 
-func (q *Queries) GetPostForViewer(ctx context.Context, arg GetPostForViewerParams) ([]GetPostForViewerRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPostForViewer, arg.PostID, arg.ViewerID)
+func (q *Queries) GetPost(ctx context.Context, postID uint64) ([]GetPostRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPost, postID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetPostForViewerRow{}
+	items := []GetPostRow{}
 	for rows.Next() {
-		var i GetPostForViewerRow
+		var i GetPostRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Body,
@@ -167,87 +141,25 @@ func (q *Queries) GetPostForViewer(ctx context.Context, arg GetPostForViewerPara
 	return items, nil
 }
 
-const getPostImageForViewer = `-- name: GetPostImageForViewer :one
+const getPostImage = `-- name: GetPostImage :one
 SELECT image.content_type, image.byte_size, image.object_key
 FROM post_images AS image
 JOIN posts AS post ON post.id = image.post_id
 WHERE image.id = ?
-  AND NOT EXISTS (
-    SELECT 1
-    FROM user_blocks AS block
-    WHERE block.blocker_id = ?
-      AND block.blocked_user_id = post.author_id
-  )
 LIMIT 1
 `
 
-type GetPostImageForViewerParams struct {
-	ImageID  uint64 `db:"image_id"`
-	ViewerID uint64 `db:"viewer_id"`
-}
-
-type GetPostImageForViewerRow struct {
+type GetPostImageRow struct {
 	ContentType string `db:"content_type"`
 	ByteSize    uint32 `db:"byte_size"`
 	ObjectKey   string `db:"object_key"`
 }
 
-func (q *Queries) GetPostImageForViewer(ctx context.Context, arg GetPostImageForViewerParams) (GetPostImageForViewerRow, error) {
-	row := q.db.QueryRowContext(ctx, getPostImageForViewer, arg.ImageID, arg.ViewerID)
-	var i GetPostImageForViewerRow
+func (q *Queries) GetPostImage(ctx context.Context, imageID uint64) (GetPostImageRow, error) {
+	row := q.db.QueryRowContext(ctx, getPostImage, imageID)
+	var i GetPostImageRow
 	err := row.Scan(&i.ContentType, &i.ByteSize, &i.ObjectKey)
 	return i, err
-}
-
-const listBlockedUsers = `-- name: ListBlockedUsers :many
-SELECT
-  blocked.id,
-  blocked.username,
-  blocked.display_name,
-  blocked.avatar_content_type,
-  blocked.created_at
-FROM user_blocks AS block
-JOIN users AS blocked ON blocked.id = block.blocked_user_id
-WHERE block.blocker_id = ?
-ORDER BY block.created_at DESC, blocked.id DESC
-LIMIT 500
-`
-
-type ListBlockedUsersRow struct {
-	ID                uint64         `db:"id"`
-	Username          string         `db:"username"`
-	DisplayName       string         `db:"display_name"`
-	AvatarContentType sql.NullString `db:"avatar_content_type"`
-	CreatedAt         time.Time      `db:"created_at"`
-}
-
-func (q *Queries) ListBlockedUsers(ctx context.Context, blockerID uint64) ([]ListBlockedUsersRow, error) {
-	rows, err := q.db.QueryContext(ctx, listBlockedUsers, blockerID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ListBlockedUsersRow{}
-	for rows.Next() {
-		var i ListBlockedUsersRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.Username,
-			&i.DisplayName,
-			&i.AvatarContentType,
-			&i.CreatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const listLatestPosts = `-- name: ListLatestPosts :many
@@ -267,12 +179,6 @@ SELECT
 FROM (
   SELECT post.id, post.author_id, post.body, post.created_at
   FROM posts AS post
-  WHERE NOT EXISTS (
-    SELECT 1
-    FROM user_blocks AS block
-    WHERE block.blocker_id = ?
-      AND block.blocked_user_id = post.author_id
-  )
   ORDER BY post.id DESC
   LIMIT ?
 ) AS page
@@ -280,11 +186,6 @@ JOIN users AS author ON author.id = page.author_id
 LEFT JOIN post_images AS image ON image.post_id = page.id
 ORDER BY page.id DESC, image.position ASC
 `
-
-type ListLatestPostsParams struct {
-	ViewerID uint64 `db:"viewer_id"`
-	Limit    int32  `db:"limit"`
-}
 
 type ListLatestPostsRow struct {
 	ID                      uint64         `db:"id"`
@@ -301,8 +202,8 @@ type ListLatestPostsRow struct {
 	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
 }
 
-func (q *Queries) ListLatestPosts(ctx context.Context, arg ListLatestPostsParams) ([]ListLatestPostsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listLatestPosts, arg.ViewerID, arg.Limit)
+func (q *Queries) ListLatestPosts(ctx context.Context, limit int32) ([]ListLatestPostsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLatestPosts, limit)
 	if err != nil {
 		return nil, err
 	}
@@ -392,12 +293,6 @@ FROM (
   SELECT post.id, post.author_id, post.body, post.created_at
   FROM posts AS post
   WHERE post.id < ?
-    AND NOT EXISTS (
-      SELECT 1
-      FROM user_blocks AS block
-      WHERE block.blocker_id = ?
-        AND block.blocked_user_id = post.author_id
-    )
   ORDER BY post.id DESC
   LIMIT ?
 ) AS page
@@ -408,7 +303,6 @@ ORDER BY page.id DESC, image.position ASC
 
 type ListPostsBeforeParams struct {
 	BeforePostID uint64 `db:"before_post_id"`
-	ViewerID     uint64 `db:"viewer_id"`
 	Limit        int32  `db:"limit"`
 }
 
@@ -428,7 +322,7 @@ type ListPostsBeforeRow struct {
 }
 
 func (q *Queries) ListPostsBefore(ctx context.Context, arg ListPostsBeforeParams) ([]ListPostsBeforeRow, error) {
-	rows, err := q.db.QueryContext(ctx, listPostsBefore, arg.BeforePostID, arg.ViewerID, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, listPostsBefore, arg.BeforePostID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -508,33 +402,4 @@ func (q *Queries) ReportablePostExists(ctx context.Context, arg ReportablePostEx
 	var reportable_post_exists bool
 	err := row.Scan(&reportable_post_exists)
 	return reportable_post_exists, err
-}
-
-const unblockUser = `-- name: UnblockUser :exec
-DELETE FROM user_blocks
-WHERE blocker_id = ?
-  AND blocked_user_id = ?
-`
-
-type UnblockUserParams struct {
-	BlockerID     uint64 `db:"blocker_id"`
-	BlockedUserID uint64 `db:"blocked_user_id"`
-}
-
-func (q *Queries) UnblockUser(ctx context.Context, arg UnblockUserParams) error {
-	_, err := q.db.ExecContext(ctx, unblockUser, arg.BlockerID, arg.BlockedUserID)
-	return err
-}
-
-const userExists = `-- name: UserExists :one
-SELECT EXISTS (
-  SELECT 1 FROM users WHERE id = ?
-) AS user_exists
-`
-
-func (q *Queries) UserExists(ctx context.Context, userID uint64) (bool, error) {
-	row := q.db.QueryRowContext(ctx, userExists, userID)
-	var user_exists bool
-	err := row.Scan(&user_exists)
-	return user_exists, err
 }

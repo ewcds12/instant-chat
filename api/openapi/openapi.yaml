@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.11.0
+  version: 0.12.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -937,58 +937,6 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
-  /user-blocks:
-    get:
-      operationId: listBlockedUsers
-      summary: List users hidden from the current user's public feed
-      security:
-        - bearerAuth: []
-      responses:
-        "200":
-          description: Blocked users
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/BlockedUserPage"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
-  /user-blocks/{user_id}:
-    post:
-      operationId: blockUser
-      summary: Hide one user's posts from the current user's public feed
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/UserID"
-      responses:
-        "204":
-          description: User blocked
-        "400":
-          $ref: "#/components/responses/InvalidArgument"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "500":
-          $ref: "#/components/responses/InternalError"
-    delete:
-      operationId: unblockUser
-      summary: Restore one user's posts to the current user's public feed
-      security:
-        - bearerAuth: []
-      parameters:
-        - $ref: "#/components/parameters/UserID"
-      responses:
-        "204":
-          description: User unblocked
-        "400":
-          $ref: "#/components/responses/InvalidArgument"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "500":
-          $ref: "#/components/responses/InternalError"
   /realtime:
     get:
       operationId: connectRealtime
@@ -1602,17 +1550,6 @@ components:
           oneOf:
             - $ref: "#/components/schemas/ResourceID"
             - type: "null"
-    BlockedUserPage:
-      type: object
-      additionalProperties: false
-      required:
-        - users
-      properties:
-        users:
-          type: array
-          maxItems: 500
-          items:
-            $ref: "#/components/schemas/PublicUser"
     MessageImage:
       type: object
       additionalProperties: false

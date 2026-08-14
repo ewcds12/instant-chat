@@ -14,13 +14,10 @@ import (
 
 type postService interface {
 	Create(context.Context, uint64, string, []ImageUpload) (Post, error)
-	List(context.Context, uint64, *uint64, int) (Page, error)
-	Image(context.Context, uint64, uint64) (ImageFile, error)
+	List(context.Context, *uint64, int) (Page, error)
+	Image(context.Context, uint64) (ImageFile, error)
 	Delete(context.Context, uint64, uint64) error
 	Report(context.Context, uint64, uint64, string) error
-	Block(context.Context, uint64, uint64) error
-	Unblock(context.Context, uint64, uint64) error
-	ListBlocked(context.Context, uint64) ([]BlockedUser, error)
 }
 
 // Handler maps public post HTTP requests to the service.
@@ -56,7 +53,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	page, err := h.service.List(r.Context(), currentUserID(r), before, limit)
+	page, err := h.service.List(r.Context(), before, limit)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
@@ -82,7 +79,7 @@ func (h *Handler) Image(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	image, err := h.service.Image(r.Context(), currentUserID(r), imageID)
+	image, err := h.service.Image(r.Context(), imageID)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
@@ -129,48 +126,6 @@ func (h *Handler) Report(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-// Block hides one user's posts from the current user's feed.
-func (h *Handler) Block(w http.ResponseWriter, r *http.Request) {
-	h.mutateBlock(w, r, h.service.Block)
-}
-
-// Unblock restores one user's posts to the current user's feed.
-func (h *Handler) Unblock(w http.ResponseWriter, r *http.Request) {
-	h.mutateBlock(w, r, h.service.Unblock)
-}
-
-func (h *Handler) mutateBlock(
-	w http.ResponseWriter,
-	r *http.Request,
-	action func(context.Context, uint64, uint64) error,
-) {
-	userID, ok := positivePathID(w, r, "user_id", "User ID")
-	if !ok {
-		return
-	}
-	if err := action(r.Context(), currentUserID(r), userID); err != nil {
-		writeServiceError(w, r, err)
-		return
-	}
-	w.WriteHeader(http.StatusNoContent)
-}
-
-// ListBlocked returns users hidden from the current user's feed.
-func (h *Handler) ListBlocked(w http.ResponseWriter, r *http.Request) {
-	users, err := h.service.ListBlocked(r.Context(), currentUserID(r))
-	if err != nil {
-		writeServiceError(w, r, err)
-		return
-	}
-	responses := make([]authorResponse, 0, len(users))
-	for _, user := range users {
-		responses = append(responses, responseFromAuthor(user.Author))
-	}
-	httpapi.WriteJSON(w, http.StatusOK, struct {
-		Users []authorResponse `json:"users"`
-	}{Users: responses})
 }
 
 func currentUserID(r *http.Request) uint64 {
@@ -223,8 +178,6 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 		httpapi.WriteError(w, http.StatusNotFound, "post_not_found", "Post was not found.", requestID)
 	case errors.Is(err, ErrPostImageNotFound):
 		httpapi.WriteError(w, http.StatusNotFound, "post_image_not_found", "Post image was not found.", requestID)
-	case errors.Is(err, ErrUserNotFound):
-		httpapi.WriteError(w, http.StatusNotFound, "user_not_found", "User was not found.", requestID)
 	default:
 		slog.Error("post request failed", "request_id", requestID, "error", err)
 		httpapi.WriteError(

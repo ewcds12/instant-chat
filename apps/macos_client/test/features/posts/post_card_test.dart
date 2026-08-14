@@ -84,6 +84,34 @@ void main() {
         .top;
     expect(imageTop - textBottom, moreOrLessEquals(10, epsilon: 0.1));
   });
+
+  testWidgets('offers report without a block action for another user', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: RetroTheme.data,
+        home: Scaffold(
+          body: SizedBox(
+            width: 660,
+            child: PostCard(
+              post: _post,
+              accessToken: 'token',
+              isOwnPost: false,
+              onAction: (_) {},
+              onDownloadImage: (_) async {},
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('Post actions'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Report'), findsOneWidget);
+    expect(find.text('Block User'), findsNothing);
+  });
 }
 
 final _post = PublicPost(

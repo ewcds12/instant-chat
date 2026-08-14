@@ -9,7 +9,6 @@ class ExploreHeader extends StatelessWidget {
     required this.onTabSelected,
     required this.onCreate,
     required this.onRefresh,
-    required this.onBlockedUsers,
     super.key,
   });
 
@@ -17,7 +16,6 @@ class ExploreHeader extends StatelessWidget {
   final ValueChanged<ExploreFeedTab> onTabSelected;
   final VoidCallback onCreate;
   final VoidCallback onRefresh;
-  final VoidCallback onBlockedUsers;
 
   @override
   Widget build(BuildContext context) {
@@ -64,21 +62,6 @@ class ExploreHeader extends StatelessWidget {
                     visualDensity: VisualDensity.compact,
                     onPressed: onRefresh,
                     icon: const Icon(Icons.refresh_rounded, size: 18),
-                  ),
-                  PopupMenuButton<String>(
-                    tooltip: 'Explore settings',
-                    icon: const Icon(Icons.more_horiz_rounded, size: 18),
-                    onSelected: (_) => onBlockedUsers(),
-                    itemBuilder: (_) => const [
-                      PopupMenuItem(
-                        value: 'blocked',
-                        height: 34,
-                        child: Text(
-                          'Blocked Users',
-                          style: TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ],
                   ),
                   IconButton(
                     key: const Key('explore-compose-button'),

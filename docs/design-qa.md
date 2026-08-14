@@ -232,7 +232,7 @@ A separate crop was not required because the normalized `1150 × 750` comparison
 - Composer surface and Post button open the existing post composer.
 - Author discovery rows apply an author search to the feed.
 - Like and bookmark controls expose selected and unselected states.
-- Existing refresh, blocked-user settings, report, block, and delete actions remain available.
+- Existing refresh, report, and delete actions remain available.
 
 ## Follow-Up Polish
 

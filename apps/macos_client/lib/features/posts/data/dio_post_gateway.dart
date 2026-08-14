@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:instant_chat/core/network/api_response.dart';
 import 'package:instant_chat/features/posts/domain/post_gateway.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
-import 'package:instant_chat/features/users/domain/public_user.dart';
 
 class DioPostGateway implements PostGateway {
   const DioPostGateway(this._dio);
@@ -102,38 +101,6 @@ class DioPostGateway implements PostGateway {
       options: _options(accessToken),
     ),
   );
-
-  @override
-  Future<void> block({required String accessToken, required String userId}) =>
-      _emptyRequest(
-        _dio.post<Object?>(
-          '/api/v1/user-blocks/$userId',
-          options: _options(accessToken),
-        ),
-      );
-
-  @override
-  Future<void> unblock({required String accessToken, required String userId}) =>
-      _emptyRequest(
-        _dio.delete<Object?>(
-          '/api/v1/user-blocks/$userId',
-          options: _options(accessToken),
-        ),
-      );
-
-  @override
-  Future<List<PublicUser>> listBlocked(String accessToken) async {
-    final response = await apiRequest(
-      () => _dio.get<Object?>(
-        '/api/v1/user-blocks',
-        options: _options(accessToken),
-      ),
-    );
-    expectStatus(response, {200});
-    return requiredList(responseObject(response.data), 'users')
-        .map((item) => PublicUser.fromJson(_requiredObject(item)))
-        .toList(growable: false);
-  }
 
   Future<void> _emptyRequest(Future<Response<Object?>> request) async {
     final response = await apiRequest(() => request);

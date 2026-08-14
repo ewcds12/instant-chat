@@ -5,7 +5,6 @@ import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/posts/data/dio_post_gateway.dart';
 import 'package:instant_chat/features/posts/domain/post_gateway.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
-import 'package:instant_chat/features/users/domain/public_user.dart';
 
 final postGatewayProvider = Provider<PostGateway>((ref) {
   return DioPostGateway(ref.watch(dioProvider));
@@ -159,24 +158,6 @@ class PostsController extends AsyncNotifier<PostsState> {
         reason: reason,
       ),
     );
-  }
-
-  Future<bool> block(String userId) {
-    return _mutate(
-      () => _gateway.block(accessToken: _accessToken, userId: userId),
-      (current) => current.posts
-          .where((post) => post.author.id != userId)
-          .toList(growable: false),
-    );
-  }
-
-  Future<void> unblock(String userId) async {
-    await _gateway.unblock(accessToken: _accessToken, userId: userId);
-    await refresh();
-  }
-
-  Future<List<PublicUser>> listBlocked() {
-    return _gateway.listBlocked(_accessToken);
   }
 
   Future<bool> _mutate(

@@ -34,30 +34,20 @@ func (s *stubPostService) Create(
 
 func (s *stubPostService) List(
 	_ context.Context,
-	userID uint64,
 	_ *uint64,
 	_ int,
 ) (Page, error) {
-	s.userID = userID
 	cursor := uint64(40)
 	return Page{Posts: []Post{testPost()}, NextCursor: &cursor}, nil
 }
 
-func (s *stubPostService) Image(context.Context, uint64, uint64) (ImageFile, error) {
+func (s *stubPostService) Image(context.Context, uint64) (ImageFile, error) {
 	return ImageFile{ContentType: "image/png", ByteSize: 3, Content: io.NopCloser(strings.NewReader("PNG"))}, nil
 }
 
 func (s *stubPostService) Delete(context.Context, uint64, uint64) error { return nil }
 
 func (s *stubPostService) Report(context.Context, uint64, uint64, string) error { return nil }
-
-func (s *stubPostService) Block(context.Context, uint64, uint64) error { return nil }
-
-func (s *stubPostService) Unblock(context.Context, uint64, uint64) error { return nil }
-
-func (s *stubPostService) ListBlocked(context.Context, uint64) ([]BlockedUser, error) {
-	return nil, nil
-}
 
 type stubAuthService struct{}
 
