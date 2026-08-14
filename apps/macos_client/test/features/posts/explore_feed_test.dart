@@ -10,26 +10,20 @@ void main() {
       _posts,
       selectedTab: ExploreFeedTab.contacts,
       contactUserIds: const {'2'},
-      query: '',
     );
 
     expect(result.map((post) => post.id), ['b']);
   });
 
-  test('search matches post body, display name, and username', () {
-    expect(_search('mountain').map((post) => post.id), ['a']);
-    expect(_search('BOB').map((post) => post.id), ['b']);
-    expect(_search('alice_w').map((post) => post.id), ['a']);
-  });
-}
+  test('for you feed includes every public post', () {
+    final result = filterExplorePosts(
+      _posts,
+      selectedTab: ExploreFeedTab.forYou,
+      contactUserIds: const {},
+    );
 
-List<PublicPost> _search(String query) {
-  return filterExplorePosts(
-    _posts,
-    selectedTab: ExploreFeedTab.forYou,
-    contactUserIds: const {},
-    query: query,
-  );
+    expect(result.map((post) => post.id), ['a', 'b']);
+  });
 }
 
 final _posts = [

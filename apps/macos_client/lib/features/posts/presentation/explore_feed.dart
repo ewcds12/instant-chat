@@ -6,19 +6,14 @@ List<PublicPost> filterExplorePosts(
   List<PublicPost> posts, {
   required ExploreFeedTab selectedTab,
   required Set<String> contactUserIds,
-  required String query,
 }) {
-  final normalized = query.trim().toLowerCase();
   return posts
       .where((post) {
         if (selectedTab == ExploreFeedTab.contacts &&
             !contactUserIds.contains(post.author.id)) {
           return false;
         }
-        if (normalized.isEmpty) return true;
-        return post.body.toLowerCase().contains(normalized) ||
-            post.author.displayName.toLowerCase().contains(normalized) ||
-            post.author.username.toLowerCase().contains(normalized);
+        return true;
       })
       .toList(growable: false);
 }

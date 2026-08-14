@@ -187,7 +187,11 @@ Final result: passed
 
 ---
 
-# Explore Design QA
+# Explore Design QA (Superseded Right Rail)
+
+Status: historical. The discovery rail, its search field, popular-post cards,
+and people suggestions were intentionally removed from the current Explore
+layout. The evidence below documents the earlier implementation only.
 
 ## Evidence
 

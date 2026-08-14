@@ -5,7 +5,6 @@ import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
-import 'package:instant_chat/features/posts/presentation/explore_discovery_rail.dart';
 import 'package:instant_chat/features/posts/presentation/explore_feed.dart';
 import 'package:instant_chat/features/posts/presentation/explore_header.dart';
 import 'package:instant_chat/features/posts/presentation/post_action_dialogs.dart';
@@ -25,7 +24,6 @@ class PostsPage extends ConsumerStatefulWidget {
 class _PostsPageState extends ConsumerState<PostsPage> {
   final _scrollController = ScrollController();
   var _selectedTab = ExploreFeedTab.forYou;
-  var _query = '';
 
   @override
   void initState() {
@@ -65,70 +63,39 @@ class _PostsPageState extends ConsumerState<PostsPage> {
           state.posts,
           selectedTab: _selectedTab,
           contactUserIds: contactIds ?? const <String>{},
-          query: _query,
         );
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final showRail =
-                constraints.maxWidth >= RetroMetrics.exploreRailBreakpoint;
-            return Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      ExploreHeader(
-                        selectedTab: _selectedTab,
-                        onTabSelected: (tab) =>
-                            setState(() => _selectedTab = tab),
-                        onRefresh: () => ref
-                            .read(postsControllerProvider.notifier)
-                            .refresh(),
-                        onCreate: () => showPostComposer(context),
-                        onBlockedUsers: () => showBlockedUsersDialog(
-                          context: context,
-                          ref: ref,
-                          accessToken: session.accessToken,
-                        ),
-                      ),
-                      PostComposerBar(
-                        user: session.user,
-                        accessToken: session.accessToken,
-                        onCreate: () => showPostComposer(context),
-                      ),
-                      Expanded(
-                        child: _withError(
-                          state,
-                          _feed(
-                            state: state,
-                            posts: visiblePosts,
-                            accessToken: session.accessToken,
-                            currentUserId: session.user.id,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ExploreHeader(
+              selectedTab: _selectedTab,
+              onTabSelected: (tab) => setState(() => _selectedTab = tab),
+              onRefresh: () =>
+                  ref.read(postsControllerProvider.notifier).refresh(),
+              onCreate: () => showPostComposer(context),
+              onBlockedUsers: () => showBlockedUsersDialog(
+                context: context,
+                ref: ref,
+                accessToken: session.accessToken,
+              ),
+            ),
+            PostComposerBar(
+              user: session.user,
+              accessToken: session.accessToken,
+              onCreate: () => showPostComposer(context),
+            ),
+            Expanded(
+              child: _withError(
+                state,
+                _feed(
+                  state: state,
+                  posts: visiblePosts,
+                  accessToken: session.accessToken,
+                  currentUserId: session.user.id,
                 ),
-                if (showRail) ...[
-                  VerticalDivider(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                  SizedBox(
-                    width: RetroMetrics.exploreRailWidth,
-                    child: ExploreDiscoveryRail(
-                      posts: state.posts,
-                      accessToken: session.accessToken,
-                      currentUserId: session.user.id,
-                      query: _query,
-                      onSearchChanged: (value) =>
-                          setState(() => _query = value),
-                    ),
-                  ),
-                ],
-              ],
-            );
-          },
+              ),
+            ),
+          ],
         );
       },
     );
@@ -141,9 +108,7 @@ class _PostsPageState extends ConsumerState<PostsPage> {
     required String currentUserId,
   }) {
     if (posts.isEmpty) {
-      final label = _query.trim().isNotEmpty
-          ? 'No posts match your search.'
-          : _selectedTab == ExploreFeedTab.contacts
+      final label = _selectedTab == ExploreFeedTab.contacts
           ? 'Posts from your contacts will appear here.'
           : 'Be the first to share something.';
       return ExploreEmpty(
