@@ -8,6 +8,7 @@ import 'package:instant_chat/features/users/domain/public_user.dart';
 void main() {
   testWidgets('renders a compact post and owner delete action', (tester) async {
     PostAction? selected;
+    var openedComments = false;
     await tester.pumpWidget(
       MaterialApp(
         theme: RetroTheme.data,
@@ -20,6 +21,7 @@ void main() {
                 accessToken: 'token',
                 isOwnPost: true,
                 onAction: (value) => selected = value,
+                onComment: () => openedComments = true,
                 onDownloadImage: (_) async {},
               ),
             ),
@@ -45,6 +47,9 @@ void main() {
     await tester.tap(find.byTooltip('Bookmark'));
     await tester.pump();
     expect(find.byTooltip('Remove bookmark'), findsOneWidget);
+    expect(find.text('12'), findsOneWidget);
+    await tester.tap(find.byTooltip('Comments'));
+    expect(openedComments, isTrue);
     await tester.tap(find.byTooltip('Post actions'));
     await tester.pumpAndSettle();
     expect(find.text('Delete Post'), findsOneWidget);
@@ -68,6 +73,7 @@ void main() {
                 accessToken: 'token',
                 isOwnPost: true,
                 onAction: (_) {},
+                onComment: () {},
                 onDownloadImage: (_) async {},
               ),
             ),
@@ -99,6 +105,7 @@ void main() {
               accessToken: 'token',
               isOwnPost: false,
               onAction: (_) {},
+              onComment: () {},
               onDownloadImage: (_) async {},
             ),
           ),
@@ -123,6 +130,7 @@ final _post = PublicPost(
     createdAt: DateTime.utc(2026, 8, 9),
   ),
   body: 'Hello everyone',
+  commentCount: 12,
   images: const [],
   createdAt: DateTime.utc(2026, 8, 9, 9),
 );

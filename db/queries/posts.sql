@@ -17,6 +17,7 @@ SELECT
   post.id,
   post.body,
   post.created_at,
+  (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = post.id) AS comment_count,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -37,6 +38,7 @@ SELECT
   page.id,
   page.body,
   page.created_at,
+  (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = page.id) AS comment_count,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -61,6 +63,7 @@ SELECT
   page.id,
   page.body,
   page.created_at,
+  (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = page.id) AS comment_count,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -118,3 +121,69 @@ SELECT EXISTS (
   WHERE id = sqlc.arg(post_id)
     AND author_id <> sqlc.arg(reporter_id)
 ) AS reportable_post_exists;
+
+-- name: PostExists :one
+SELECT EXISTS (
+  SELECT 1 FROM posts WHERE id = sqlc.arg(post_id)
+) AS post_exists;
+
+-- name: CreatePostComment :execresult
+INSERT INTO post_comments (post_id, author_id, body)
+VALUES (?, ?, ?);
+
+-- name: GetPostComment :one
+SELECT
+  comment.id,
+  comment.post_id,
+  comment.body,
+  comment.created_at,
+  author.id AS author_id,
+  author.username AS author_username,
+  author.display_name AS author_display_name,
+  author.avatar_content_type AS author_avatar_content_type,
+  author.created_at AS author_created_at
+FROM post_comments AS comment
+JOIN users AS author ON author.id = comment.author_id
+WHERE comment.id = sqlc.arg(comment_id)
+LIMIT 1;
+
+-- name: ListLatestPostComments :many
+SELECT
+  comment.id,
+  comment.post_id,
+  comment.body,
+  comment.created_at,
+  author.id AS author_id,
+  author.username AS author_username,
+  author.display_name AS author_display_name,
+  author.avatar_content_type AS author_avatar_content_type,
+  author.created_at AS author_created_at
+FROM post_comments AS comment
+JOIN users AS author ON author.id = comment.author_id
+WHERE comment.post_id = sqlc.arg(post_id)
+ORDER BY comment.id DESC
+LIMIT ?;
+
+-- name: ListPostCommentsBefore :many
+SELECT
+  comment.id,
+  comment.post_id,
+  comment.body,
+  comment.created_at,
+  author.id AS author_id,
+  author.username AS author_username,
+  author.display_name AS author_display_name,
+  author.avatar_content_type AS author_avatar_content_type,
+  author.created_at AS author_created_at
+FROM post_comments AS comment
+JOIN users AS author ON author.id = comment.author_id
+WHERE comment.post_id = sqlc.arg(post_id)
+  AND comment.id < sqlc.arg(before_comment_id)
+ORDER BY comment.id DESC
+LIMIT ?;
+
+-- name: DeletePostCommentForAuthor :execresult
+DELETE FROM post_comments
+WHERE id = sqlc.arg(comment_id)
+  AND post_id = sqlc.arg(post_id)
+  AND author_id = sqlc.arg(author_id);

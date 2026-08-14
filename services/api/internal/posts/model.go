@@ -13,6 +13,8 @@ var (
 	ErrPostNotFound = errors.New("post not found")
 	// ErrPostImageNotFound hides whether a post image exists from unauthorized callers.
 	ErrPostImageNotFound = errors.New("post image not found")
+	// ErrCommentNotFound hides whether a comment exists from unauthorized callers.
+	ErrCommentNotFound = errors.New("post comment not found")
 )
 
 // InputError describes one invalid post request field.
@@ -33,11 +35,27 @@ type Author struct {
 
 // Post is one globally visible authenticated post.
 type Post struct {
+	ID           uint64
+	Author       Author
+	Body         string
+	Images       []Image
+	CommentCount uint64
+	CreatedAt    time.Time
+}
+
+// Comment is one authenticated public response to a post.
+type Comment struct {
 	ID        uint64
+	PostID    uint64
 	Author    Author
 	Body      string
-	Images    []Image
 	CreatedAt time.Time
+}
+
+// CommentPage is one descending comment page.
+type CommentPage struct {
+	Comments   []Comment
+	NextCursor *uint64
 }
 
 // Image is public metadata for one post image.
@@ -81,4 +99,7 @@ type Repository interface {
 	Image(context.Context, uint64) (ImageFile, error)
 	Delete(context.Context, uint64, uint64) error
 	Report(context.Context, uint64, uint64, string) error
+	CreateComment(context.Context, uint64, uint64, string) (Comment, error)
+	ListComments(context.Context, uint64, *uint64, int) ([]Comment, error)
+	DeleteComment(context.Context, uint64, uint64, uint64) error
 }

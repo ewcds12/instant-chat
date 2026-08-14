@@ -127,6 +127,12 @@ abstract final class RetroMetrics {
   static const exploreMosaicImageHeight = 370.0;
   static const exploreImageGap = 2.0;
   static const exploreActionHeight = 30.0;
+  static const postDetailHeaderHeight = 44.0;
+  static const postCommentAvatarRadius = 15.0;
+  static const postCommentVerticalInset = 11.0;
+  static const postCommentComposerInset = 12.0;
+  static const postCommentComposerCorner = 17.0;
+  static const postCommentSendDiameter = 28.0;
 }
 
 abstract final class RetroColors {

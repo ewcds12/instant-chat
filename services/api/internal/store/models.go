@@ -97,6 +97,14 @@ type Post struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
+type PostComment struct {
+	ID        uint64    `db:"id"`
+	PostID    uint64    `db:"post_id"`
+	AuthorID  uint64    `db:"author_id"`
+	Body      string    `db:"body"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
 type PostImage struct {
 	ID          uint64    `db:"id"`
 	PostID      uint64    `db:"post_id"`

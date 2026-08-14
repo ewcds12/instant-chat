@@ -7,6 +7,7 @@ import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
 import 'package:instant_chat/features/posts/domain/post_gateway.dart';
+import 'package:instant_chat/features/posts/domain/post_comment.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
 import 'package:instant_chat/features/posts/presentation/posts_controller.dart';
 import 'package:instant_chat/features/posts/presentation/posts_page.dart';
@@ -46,6 +47,45 @@ void main() {
 
     expect(composer, findsNothing);
     expect(feedController.offset, greaterThan(0));
+  });
+
+  testWidgets('opens post comments and submits from the compact composer', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 620));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _StubAuthController(AuthState(session: _session)),
+          ),
+          contactsControllerProvider.overrideWith(_StubContactsController.new),
+          postGatewayProvider.overrideWithValue(_StubPostGateway(_posts)),
+        ],
+        child: MaterialApp(
+          theme: RetroTheme.data,
+          home: const Scaffold(body: PostsPage()),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byTooltip('Comments').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('post-detail-back')), findsOneWidget);
+    expect(find.byKey(const Key('post-comment-field')), findsOneWidget);
+    expect(find.byType(Scrollbar), findsNothing);
+
+    await tester.enterText(
+      find.byKey(const Key('post-comment-field')),
+      'Nice photo',
+    );
+    await tester.tap(find.byKey(const Key('post-comment-send')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nice photo'), findsOneWidget);
   });
 }
 
@@ -129,5 +169,33 @@ class _StubPostGateway implements PostGateway {
     required String accessToken,
     required String postId,
     required String reason,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<PostCommentPage> listComments({
+    required String accessToken,
+    required String postId,
+    String? before,
+    int limit = 30,
+  }) async => const PostCommentPage(comments: [], nextCursor: null);
+
+  @override
+  Future<PostComment> createComment({
+    required String accessToken,
+    required String postId,
+    required String body,
+  }) async => PostComment(
+    id: 'comment-1',
+    postId: postId,
+    author: _author,
+    body: body,
+    createdAt: DateTime.utc(2026, 8, 14, 11),
+  );
+
+  @override
+  Future<void> deleteComment({
+    required String accessToken,
+    required String postId,
+    required String commentId,
   }) => throw UnimplementedError();
 }

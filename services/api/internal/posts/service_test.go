@@ -12,6 +12,9 @@ type fakeRepository struct {
 	listedLimit   int
 	posts         []Post
 	reported      string
+	commentBody   string
+	comments      []Comment
+	commentLimit  int
 	err           error
 }
 
@@ -43,6 +46,29 @@ func (f *fakeRepository) Delete(context.Context, uint64, uint64) error { return 
 
 func (f *fakeRepository) Report(_ context.Context, _, _ uint64, reason string) error {
 	f.reported = reason
+	return f.err
+}
+
+func (f *fakeRepository) CreateComment(
+	_ context.Context,
+	_, _ uint64,
+	body string,
+) (Comment, error) {
+	f.commentBody = body
+	return Comment{ID: 21, Body: body}, f.err
+}
+
+func (f *fakeRepository) ListComments(
+	_ context.Context,
+	_ uint64,
+	_ *uint64,
+	limit int,
+) ([]Comment, error) {
+	f.commentLimit = limit
+	return f.comments, f.err
+}
+
+func (f *fakeRepository) DeleteComment(context.Context, uint64, uint64, uint64) error {
 	return f.err
 }
 
@@ -119,5 +145,48 @@ func TestServiceReportTrimsReason(t *testing.T) {
 
 	if err != nil || repository.reported != "Spam" {
 		t.Fatalf("Report() error = %v, reason = %q", err, repository.reported)
+	}
+}
+
+func TestServiceCreateCommentTrimsBody(t *testing.T) {
+	repository := &fakeRepository{}
+	service := NewService(repository)
+
+	comment, err := service.CreateComment(context.Background(), 7, 41, "  Nice post.  ")
+
+	if err != nil || comment.ID != 21 || repository.commentBody != "Nice post." {
+		t.Fatalf("CreateComment() = %+v, %v; body = %q", comment, err, repository.commentBody)
+	}
+}
+
+func TestServiceCreateCommentRejectsEmptyBody(t *testing.T) {
+	service := NewService(&fakeRepository{})
+
+	_, err := service.CreateComment(context.Background(), 7, 41, "   ")
+
+	var inputError *InputError
+	if !errors.As(err, &inputError) {
+		t.Fatalf("CreateComment() error = %v, want InputError", err)
+	}
+}
+
+func TestServiceListCommentsUsesDefaultLimitAndReturnsCursor(t *testing.T) {
+	comments := make([]Comment, defaultCommentPageSize)
+	for index := range comments {
+		comments[index].ID = uint64(100 - index)
+	}
+	repository := &fakeRepository{comments: comments}
+	service := NewService(repository)
+
+	page, err := service.ListComments(context.Background(), 41, nil, 0)
+
+	if err != nil {
+		t.Fatalf("ListComments() error = %v", err)
+	}
+	if repository.commentLimit != defaultCommentPageSize {
+		t.Fatalf("limit = %d, want %d", repository.commentLimit, defaultCommentPageSize)
+	}
+	if page.NextCursor == nil || *page.NextCursor != comments[len(comments)-1].ID {
+		t.Fatalf("next cursor = %v", page.NextCursor)
 	}
 }

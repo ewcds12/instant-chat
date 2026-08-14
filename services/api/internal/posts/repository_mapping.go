@@ -11,6 +11,7 @@ type postRecord struct {
 	id                uint64
 	body              string
 	createdAt         time.Time
+	commentCount      uint64
 	authorID          uint64
 	authorUsername    string
 	authorDisplayName string
@@ -25,7 +26,8 @@ type postRecord struct {
 func recordFromGet(row store.GetPostRow) postRecord {
 	return postRecord{
 		id: row.ID, body: row.Body, createdAt: row.CreatedAt,
-		authorID: row.AuthorID, authorUsername: row.AuthorUsername,
+		commentCount: uint64(row.CommentCount),
+		authorID:     row.AuthorID, authorUsername: row.AuthorUsername,
 		authorDisplayName: row.AuthorDisplayName,
 		authorHasAvatar:   row.AuthorAvatarContentType.Valid,
 		authorCreatedAt:   row.AuthorCreatedAt, imageID: row.ImageID,
@@ -37,7 +39,8 @@ func recordFromGet(row store.GetPostRow) postRecord {
 func recordFromLatest(row store.ListLatestPostsRow) postRecord {
 	return postRecord{
 		id: row.ID, body: row.Body, createdAt: row.CreatedAt,
-		authorID: row.AuthorID, authorUsername: row.AuthorUsername,
+		commentCount: uint64(row.CommentCount),
+		authorID:     row.AuthorID, authorUsername: row.AuthorUsername,
 		authorDisplayName: row.AuthorDisplayName,
 		authorHasAvatar:   row.AuthorAvatarContentType.Valid,
 		authorCreatedAt:   row.AuthorCreatedAt, imageID: row.ImageID,
@@ -49,7 +52,8 @@ func recordFromLatest(row store.ListLatestPostsRow) postRecord {
 func recordFromBefore(row store.ListPostsBeforeRow) postRecord {
 	return postRecord{
 		id: row.ID, body: row.Body, createdAt: row.CreatedAt,
-		authorID: row.AuthorID, authorUsername: row.AuthorUsername,
+		commentCount: uint64(row.CommentCount),
+		authorID:     row.AuthorID, authorUsername: row.AuthorUsername,
 		authorDisplayName: row.AuthorDisplayName,
 		authorHasAvatar:   row.AuthorAvatarContentType.Valid,
 		authorCreatedAt:   row.AuthorCreatedAt, imageID: row.ImageID,
@@ -67,7 +71,8 @@ func appendPost(posts []Post, record postRecord) []Post {
 				DisplayName: record.authorDisplayName, HasAvatar: record.authorHasAvatar,
 				CreatedAt: record.authorCreatedAt,
 			},
-			Body: record.body, Images: []Image{}, CreatedAt: record.createdAt,
+			Body: record.body, Images: []Image{}, CommentCount: record.commentCount,
+			CreatedAt: record.createdAt,
 		})
 	}
 	if record.imageID.Valid && record.imagePosition.Valid && record.imageContentType.Valid && record.imageByteSize.Valid {

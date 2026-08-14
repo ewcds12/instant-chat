@@ -23,7 +23,62 @@ void main() {
     expect(adapter.authorization, 'Bearer access-token');
     expect(page.nextCursor, '40');
     expect(page.posts.single.body, 'Hello everyone');
+    expect(page.posts.single.commentCount, 3);
     expect(page.posts.single.images.single.position, 0);
+  });
+
+  test('creates and parses a post comment', () async {
+    final adapter = _StubAdapter(statusCode: 201, body: _comment);
+    final gateway = DioPostGateway(_createDio(adapter));
+
+    final comment = await gateway.createComment(
+      accessToken: 'access-token',
+      postId: '41',
+      body: 'Nice photo',
+    );
+
+    expect(adapter.method, 'POST');
+    expect(adapter.path, '/api/v1/posts/41/comments');
+    expect(adapter.data, {'body': 'Nice photo'});
+    expect(comment.body, 'Nice photo');
+    expect(comment.author.displayName, 'Retro User');
+  });
+
+  test('lists a descending comment page', () async {
+    final adapter = _StubAdapter(
+      statusCode: 200,
+      body: {
+        'comments': [_comment],
+        'next_cursor': '5',
+      },
+    );
+    final gateway = DioPostGateway(_createDio(adapter));
+
+    final page = await gateway.listComments(
+      accessToken: 'access-token',
+      postId: '41',
+      before: '8',
+    );
+
+    expect(adapter.method, 'GET');
+    expect(adapter.path, '/api/v1/posts/41/comments');
+    expect(adapter.queryParameters['before'], '8');
+    expect(page.comments.single.id, '5');
+    expect(page.nextCursor, '5');
+  });
+
+  test('deletes a comment through its scoped endpoint', () async {
+    final adapter = _StubAdapter(statusCode: 204, body: '');
+    final gateway = DioPostGateway(_createDio(adapter));
+
+    await gateway.deleteComment(
+      accessToken: 'access-token',
+      postId: '41',
+      commentId: '5',
+    );
+
+    expect(adapter.method, 'DELETE');
+    expect(adapter.path, '/api/v1/posts/41/comments/5');
   });
 
   test('report sends the reason to the post report endpoint', () async {
@@ -72,6 +127,7 @@ final _post = {
     'created_at': '2026-08-09T08:00:00Z',
   },
   'body': 'Hello everyone',
+  'comment_count': 3,
   'images': [
     {
       'id': '3',
@@ -82,6 +138,14 @@ final _post = {
     },
   ],
   'created_at': '2026-08-09T09:00:00Z',
+};
+
+final _comment = {
+  'id': '5',
+  'post_id': '41',
+  'author': _post['author'],
+  'body': 'Nice photo',
+  'created_at': '2026-08-09T09:30:00Z',
 };
 
 Dio _createDio(HttpClientAdapter adapter) {
@@ -104,6 +168,7 @@ class _StubAdapter implements HttpClientAdapter {
   String? method;
   String? authorization;
   Object? data;
+  Map<String, dynamic> queryParameters = const {};
 
   @override
   Future<ResponseBody> fetch(
@@ -115,6 +180,7 @@ class _StubAdapter implements HttpClientAdapter {
     method = options.method;
     authorization = options.headers['Authorization'] as String?;
     data = options.data;
+    queryParameters = options.queryParameters;
     if (body is List<int>) {
       return ResponseBody.fromBytes(body as List<int>, statusCode);
     }

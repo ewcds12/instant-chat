@@ -157,6 +157,15 @@ func run() error {
 		authHandler.RequireUser(postLimiter.Handler(http.HandlerFunc(postHandler.Create))),
 	)
 	mux.Handle("DELETE /api/v1/posts/{post_id}", protected(postHandler.Delete))
+	mux.Handle("GET /api/v1/posts/{post_id}/comments", protected(postHandler.ListComments))
+	mux.Handle(
+		"POST /api/v1/posts/{post_id}/comments",
+		authHandler.RequireUser(postLimiter.Handler(http.HandlerFunc(postHandler.CreateComment))),
+	)
+	mux.Handle(
+		"DELETE /api/v1/posts/{post_id}/comments/{comment_id}",
+		protected(postHandler.DeleteComment),
+	)
 	mux.Handle(
 		"POST /api/v1/posts/{post_id}/reports",
 		authHandler.RequireUser(postLimiter.Handler(http.HandlerFunc(postHandler.Report))),

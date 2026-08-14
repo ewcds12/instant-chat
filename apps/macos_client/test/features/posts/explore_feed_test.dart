@@ -24,6 +24,11 @@ void main() {
 
     expect(result.map((post) => post.id), ['a', 'b']);
   });
+
+  test('finds the selected post without changing feed order', () {
+    expect(findExplorePost(_posts, 'b'), same(_posts[1]));
+    expect(findExplorePost(_posts, 'missing'), isNull);
+  });
 }
 
 final _posts = [

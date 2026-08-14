@@ -13,6 +13,7 @@ class PostCard extends StatelessWidget {
     required this.accessToken,
     required this.isOwnPost,
     required this.onAction,
+    required this.onComment,
     required this.onDownloadImage,
     super.key,
   });
@@ -21,6 +22,7 @@ class PostCard extends StatelessWidget {
   final String accessToken;
   final bool isOwnPost;
   final ValueChanged<PostAction> onAction;
+  final VoidCallback onComment;
   final Future<void> Function(PublicPostImage image) onDownloadImage;
 
   @override
@@ -64,7 +66,10 @@ class PostCard extends StatelessWidget {
                   ),
                 ],
                 const SizedBox(height: 8),
-                const _PostActivityRow(),
+                _PostActivityRow(
+                  commentCount: post.commentCount,
+                  onComment: onComment,
+                ),
               ],
             ),
           ),
@@ -122,7 +127,10 @@ class _PostHeader extends StatelessWidget {
 }
 
 class _PostActivityRow extends StatefulWidget {
-  const _PostActivityRow();
+  const _PostActivityRow({required this.commentCount, required this.onComment});
+
+  final int commentCount;
+  final VoidCallback onComment;
 
   @override
   State<_PostActivityRow> createState() => _PostActivityRowState();
@@ -140,7 +148,13 @@ class _PostActivityRowState extends State<_PostActivityRow> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          _ActivityIcon(icon: Icons.chat_bubble_outline_rounded, color: muted),
+          _ActivityIcon(
+            icon: Icons.chat_bubble_outline_rounded,
+            color: muted,
+            label: widget.commentCount == 0 ? null : '${widget.commentCount}',
+            onPressed: widget.onComment,
+            tooltip: 'Comments',
+          ),
           _ActivityIcon(icon: Icons.repeat_rounded, color: muted),
           _ActivityIcon(
             icon: _liked
@@ -170,12 +184,14 @@ class _ActivityIcon extends StatelessWidget {
     required this.color,
     this.onPressed,
     this.tooltip,
+    this.label,
   });
 
   final IconData icon;
   final Color color;
   final VoidCallback? onPressed;
   final String? tooltip;
+  final String? label;
 
   @override
   Widget build(BuildContext context) {
@@ -185,13 +201,30 @@ class _ActivityIcon extends StatelessWidget {
         child: Icon(icon, size: 17, color: color),
       );
     }
-    return IconButton(
-      tooltip: tooltip,
-      visualDensity: VisualDensity.compact,
-      padding: const EdgeInsets.all(6),
-      constraints: const BoxConstraints(minWidth: 30, minHeight: 30),
-      onPressed: onPressed,
-      icon: Icon(icon, size: 17, color: color),
+    return Tooltip(
+      message: tooltip ?? '',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(RetroMetrics.corner),
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 17, color: color),
+              if (label case final value?) ...[
+                const SizedBox(width: 5),
+                Text(
+                  value,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodySmall?.copyWith(color: color),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

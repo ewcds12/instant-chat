@@ -25,6 +25,21 @@ func (q *Queries) CreatePost(ctx context.Context, arg CreatePostParams) (sql.Res
 	return q.db.ExecContext(ctx, createPost, arg.AuthorID, arg.Body)
 }
 
+const createPostComment = `-- name: CreatePostComment :execresult
+INSERT INTO post_comments (post_id, author_id, body)
+VALUES (?, ?, ?)
+`
+
+type CreatePostCommentParams struct {
+	PostID   uint64 `db:"post_id"`
+	AuthorID uint64 `db:"author_id"`
+	Body     string `db:"body"`
+}
+
+func (q *Queries) CreatePostComment(ctx context.Context, arg CreatePostCommentParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, createPostComment, arg.PostID, arg.AuthorID, arg.Body)
+}
+
 const createPostImage = `-- name: CreatePostImage :execresult
 INSERT INTO post_images (
   post_id,
@@ -54,6 +69,23 @@ func (q *Queries) CreatePostImage(ctx context.Context, arg CreatePostImageParams
 	)
 }
 
+const deletePostCommentForAuthor = `-- name: DeletePostCommentForAuthor :execresult
+DELETE FROM post_comments
+WHERE id = ?
+  AND post_id = ?
+  AND author_id = ?
+`
+
+type DeletePostCommentForAuthorParams struct {
+	CommentID uint64 `db:"comment_id"`
+	PostID    uint64 `db:"post_id"`
+	AuthorID  uint64 `db:"author_id"`
+}
+
+func (q *Queries) DeletePostCommentForAuthor(ctx context.Context, arg DeletePostCommentForAuthorParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deletePostCommentForAuthor, arg.CommentID, arg.PostID, arg.AuthorID)
+}
+
 const deletePostForAuthor = `-- name: DeletePostForAuthor :execresult
 DELETE FROM posts
 WHERE id = ?
@@ -74,6 +106,7 @@ SELECT
   post.id,
   post.body,
   post.created_at,
+  (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = post.id) AS comment_count,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -94,6 +127,7 @@ type GetPostRow struct {
 	ID                      uint64         `db:"id"`
 	Body                    string         `db:"body"`
 	CreatedAt               time.Time      `db:"created_at"`
+	CommentCount            int64          `db:"comment_count"`
 	AuthorID                uint64         `db:"author_id"`
 	AuthorUsername          string         `db:"author_username"`
 	AuthorDisplayName       string         `db:"author_display_name"`
@@ -118,6 +152,7 @@ func (q *Queries) GetPost(ctx context.Context, postID uint64) ([]GetPostRow, err
 			&i.ID,
 			&i.Body,
 			&i.CreatedAt,
+			&i.CommentCount,
 			&i.AuthorID,
 			&i.AuthorUsername,
 			&i.AuthorDisplayName,
@@ -141,6 +176,52 @@ func (q *Queries) GetPost(ctx context.Context, postID uint64) ([]GetPostRow, err
 	return items, nil
 }
 
+const getPostComment = `-- name: GetPostComment :one
+SELECT
+  comment.id,
+  comment.post_id,
+  comment.body,
+  comment.created_at,
+  author.id AS author_id,
+  author.username AS author_username,
+  author.display_name AS author_display_name,
+  author.avatar_content_type AS author_avatar_content_type,
+  author.created_at AS author_created_at
+FROM post_comments AS comment
+JOIN users AS author ON author.id = comment.author_id
+WHERE comment.id = ?
+LIMIT 1
+`
+
+type GetPostCommentRow struct {
+	ID                      uint64         `db:"id"`
+	PostID                  uint64         `db:"post_id"`
+	Body                    string         `db:"body"`
+	CreatedAt               time.Time      `db:"created_at"`
+	AuthorID                uint64         `db:"author_id"`
+	AuthorUsername          string         `db:"author_username"`
+	AuthorDisplayName       string         `db:"author_display_name"`
+	AuthorAvatarContentType sql.NullString `db:"author_avatar_content_type"`
+	AuthorCreatedAt         time.Time      `db:"author_created_at"`
+}
+
+func (q *Queries) GetPostComment(ctx context.Context, commentID uint64) (GetPostCommentRow, error) {
+	row := q.db.QueryRowContext(ctx, getPostComment, commentID)
+	var i GetPostCommentRow
+	err := row.Scan(
+		&i.ID,
+		&i.PostID,
+		&i.Body,
+		&i.CreatedAt,
+		&i.AuthorID,
+		&i.AuthorUsername,
+		&i.AuthorDisplayName,
+		&i.AuthorAvatarContentType,
+		&i.AuthorCreatedAt,
+	)
+	return i, err
+}
+
 const getPostImage = `-- name: GetPostImage :one
 SELECT image.content_type, image.byte_size, image.object_key
 FROM post_images AS image
@@ -162,11 +243,80 @@ func (q *Queries) GetPostImage(ctx context.Context, imageID uint64) (GetPostImag
 	return i, err
 }
 
+const listLatestPostComments = `-- name: ListLatestPostComments :many
+SELECT
+  comment.id,
+  comment.post_id,
+  comment.body,
+  comment.created_at,
+  author.id AS author_id,
+  author.username AS author_username,
+  author.display_name AS author_display_name,
+  author.avatar_content_type AS author_avatar_content_type,
+  author.created_at AS author_created_at
+FROM post_comments AS comment
+JOIN users AS author ON author.id = comment.author_id
+WHERE comment.post_id = ?
+ORDER BY comment.id DESC
+LIMIT ?
+`
+
+type ListLatestPostCommentsParams struct {
+	PostID uint64 `db:"post_id"`
+	Limit  int32  `db:"limit"`
+}
+
+type ListLatestPostCommentsRow struct {
+	ID                      uint64         `db:"id"`
+	PostID                  uint64         `db:"post_id"`
+	Body                    string         `db:"body"`
+	CreatedAt               time.Time      `db:"created_at"`
+	AuthorID                uint64         `db:"author_id"`
+	AuthorUsername          string         `db:"author_username"`
+	AuthorDisplayName       string         `db:"author_display_name"`
+	AuthorAvatarContentType sql.NullString `db:"author_avatar_content_type"`
+	AuthorCreatedAt         time.Time      `db:"author_created_at"`
+}
+
+func (q *Queries) ListLatestPostComments(ctx context.Context, arg ListLatestPostCommentsParams) ([]ListLatestPostCommentsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLatestPostComments, arg.PostID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListLatestPostCommentsRow{}
+	for rows.Next() {
+		var i ListLatestPostCommentsRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.PostID,
+			&i.Body,
+			&i.CreatedAt,
+			&i.AuthorID,
+			&i.AuthorUsername,
+			&i.AuthorDisplayName,
+			&i.AuthorAvatarContentType,
+			&i.AuthorCreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listLatestPosts = `-- name: ListLatestPosts :many
 SELECT
   page.id,
   page.body,
   page.created_at,
+  (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = page.id) AS comment_count,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -191,6 +341,7 @@ type ListLatestPostsRow struct {
 	ID                      uint64         `db:"id"`
 	Body                    string         `db:"body"`
 	CreatedAt               time.Time      `db:"created_at"`
+	CommentCount            int64          `db:"comment_count"`
 	AuthorID                uint64         `db:"author_id"`
 	AuthorUsername          string         `db:"author_username"`
 	AuthorDisplayName       string         `db:"author_display_name"`
@@ -215,6 +366,7 @@ func (q *Queries) ListLatestPosts(ctx context.Context, limit int32) ([]ListLates
 			&i.ID,
 			&i.Body,
 			&i.CreatedAt,
+			&i.CommentCount,
 			&i.AuthorID,
 			&i.AuthorUsername,
 			&i.AuthorDisplayName,
@@ -224,6 +376,76 @@ func (q *Queries) ListLatestPosts(ctx context.Context, limit int32) ([]ListLates
 			&i.ImagePosition,
 			&i.ImageContentType,
 			&i.ImageByteSize,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listPostCommentsBefore = `-- name: ListPostCommentsBefore :many
+SELECT
+  comment.id,
+  comment.post_id,
+  comment.body,
+  comment.created_at,
+  author.id AS author_id,
+  author.username AS author_username,
+  author.display_name AS author_display_name,
+  author.avatar_content_type AS author_avatar_content_type,
+  author.created_at AS author_created_at
+FROM post_comments AS comment
+JOIN users AS author ON author.id = comment.author_id
+WHERE comment.post_id = ?
+  AND comment.id < ?
+ORDER BY comment.id DESC
+LIMIT ?
+`
+
+type ListPostCommentsBeforeParams struct {
+	PostID          uint64 `db:"post_id"`
+	BeforeCommentID uint64 `db:"before_comment_id"`
+	Limit           int32  `db:"limit"`
+}
+
+type ListPostCommentsBeforeRow struct {
+	ID                      uint64         `db:"id"`
+	PostID                  uint64         `db:"post_id"`
+	Body                    string         `db:"body"`
+	CreatedAt               time.Time      `db:"created_at"`
+	AuthorID                uint64         `db:"author_id"`
+	AuthorUsername          string         `db:"author_username"`
+	AuthorDisplayName       string         `db:"author_display_name"`
+	AuthorAvatarContentType sql.NullString `db:"author_avatar_content_type"`
+	AuthorCreatedAt         time.Time      `db:"author_created_at"`
+}
+
+func (q *Queries) ListPostCommentsBefore(ctx context.Context, arg ListPostCommentsBeforeParams) ([]ListPostCommentsBeforeRow, error) {
+	rows, err := q.db.QueryContext(ctx, listPostCommentsBefore, arg.PostID, arg.BeforeCommentID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListPostCommentsBeforeRow{}
+	for rows.Next() {
+		var i ListPostCommentsBeforeRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.PostID,
+			&i.Body,
+			&i.CreatedAt,
+			&i.AuthorID,
+			&i.AuthorUsername,
+			&i.AuthorDisplayName,
+			&i.AuthorAvatarContentType,
+			&i.AuthorCreatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -280,6 +502,7 @@ SELECT
   page.id,
   page.body,
   page.created_at,
+  (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = page.id) AS comment_count,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -310,6 +533,7 @@ type ListPostsBeforeRow struct {
 	ID                      uint64         `db:"id"`
 	Body                    string         `db:"body"`
 	CreatedAt               time.Time      `db:"created_at"`
+	CommentCount            int64          `db:"comment_count"`
 	AuthorID                uint64         `db:"author_id"`
 	AuthorUsername          string         `db:"author_username"`
 	AuthorDisplayName       string         `db:"author_display_name"`
@@ -334,6 +558,7 @@ func (q *Queries) ListPostsBefore(ctx context.Context, arg ListPostsBeforeParams
 			&i.ID,
 			&i.Body,
 			&i.CreatedAt,
+			&i.CommentCount,
 			&i.AuthorID,
 			&i.AuthorUsername,
 			&i.AuthorDisplayName,
@@ -355,6 +580,19 @@ func (q *Queries) ListPostsBefore(ctx context.Context, arg ListPostsBeforeParams
 		return nil, err
 	}
 	return items, nil
+}
+
+const postExists = `-- name: PostExists :one
+SELECT EXISTS (
+  SELECT 1 FROM posts WHERE id = ?
+) AS post_exists
+`
+
+func (q *Queries) PostExists(ctx context.Context, postID uint64) (bool, error) {
+	row := q.db.QueryRowContext(ctx, postExists, postID)
+	var post_exists bool
+	err := row.Scan(&post_exists)
+	return post_exists, err
 }
 
 const reportPost = `-- name: ReportPost :execresult

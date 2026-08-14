@@ -17,7 +17,7 @@ The authentication, contacts, direct conversations, and persisted message founda
 - Message rows omit sender avatars so incoming and outgoing content align cleanly with the chat area edges.
 - The authentication window opens at 420 by 500 points. The authenticated chat window expands to 1,150 by 750 points and remains resizable down to 960 by 620 points.
 - The Contacts workspace provides an alphabetical directory with private contact remarks searchable alongside original names and IDs, exact ID lookup for new people, an inline friend-request drawer, a selected-contact detail panel with an enlarged and downloadable profile-photo preview, real shared photos, files, and web links, complete-history message search with direct navigation and a three-second highlight on the matching chat message, safe removal confirmation, and direct-message navigation.
-- Explore provides a focused global feed visible to every Instant Chat account. Users can publish up to 1,000 characters and four photos, expand or collapse long post text without nested scrolling, navigate and download photos through the same enlarged viewer used by Chats, scroll through cursor-paginated posts, delete their own posts, and report another user's post. Wide windows also show a compact Daily Brief sourced from Wikipedia Current Events; headlines open their source pages in the default browser and the brief disappears on narrow layouts.
+- Explore provides a focused global feed visible to every Instant Chat account. Users can publish up to 1,000 characters and four photos, expand or collapse long post text without nested scrolling, navigate and download photos through the same enlarged viewer used by Chats, scroll through cursor-paginated posts, delete their own posts, and report another user's post. Each post also opens into a compact detail view with cursor-paginated text comments, a single shared scroll area, a fixed one-to-three-line composer, and owner-only comment deletion. Wide windows also show a compact Daily Brief sourced from Wikipedia Current Events; headlines open their source pages in the default browser and the brief disappears on narrow layouts.
 - Incoming friend requests show a notification dot beside Contacts, appear below the Contacts search field, and can be expanded, accepted, or declined without leaving the workspace. The dot clears when no incoming requests remain, and accepting a request immediately adds the shared direct conversation to both users' Chats lists.
 - Direct channels load cursor-paginated history, receive realtime messages, automatically recover sequence gaps on opening, reconnecting, detecting an out-of-order event, or through a two-second active-channel fallback check, show persisted unread counts, mark viewed messages as read, update conversation-card previews in realtime with the same reconnect and two-second recovery safeguards, and can send or retry text, image, and file messages without creating duplicates.
 - Text messages underline `http` and `https` links and open them in the default macOS browser when clicked.
@@ -30,7 +30,7 @@ The authentication, contacts, direct conversations, and persisted message founda
 - The Go API provides health, registration, sign-in, refresh, sign-out, current-user, profile update, and authenticated avatar endpoints.
 - The Go API enforces unique bilateral contact relationships and unique direct conversations.
 - The health check verifies the MySQL connection with `PingContext`.
-- MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, members, ordered messages, public posts, and reports.
+- MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, members, ordered messages, public posts, post comments, and reports.
 - Docker Compose provides pinned MySQL 8.4 and source-built MinIO development services.
 - OpenAPI defines the implemented HTTP and WebSocket event contracts.
 
@@ -157,6 +157,9 @@ GET  /api/v1/posts?before={post_id}&limit={count}
 GET  /api/v1/news/daily
 POST /api/v1/posts
 DELETE /api/v1/posts/{post_id}
+GET  /api/v1/posts/{post_id}/comments?before={comment_id}&limit={count}
+POST /api/v1/posts/{post_id}/comments
+DELETE /api/v1/posts/{post_id}/comments/{comment_id}
 POST /api/v1/posts/{post_id}/reports
 GET  /api/v1/post-images/{image_id}
 GET  /api/v1/realtime  (WebSocket upgrade)

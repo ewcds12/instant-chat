@@ -7,12 +7,14 @@ import (
 )
 
 const (
-	defaultPageSize  = 20
-	maximumPageSize  = 50
-	maximumBodyRunes = 1000
-	maximumImages    = 4
-	maximumImageSize = 15 * 1024 * 1024
-	maximumReason    = 500
+	defaultPageSize        = 20
+	maximumPageSize        = 50
+	maximumBodyRunes       = 1000
+	maximumImages          = 4
+	maximumImageSize       = 15 * 1024 * 1024
+	maximumReason          = 500
+	defaultCommentPageSize = 30
+	maximumCommentRunes    = 500
 )
 
 var allowedImageTypes = map[string]struct{}{
@@ -105,4 +107,47 @@ func (s *Service) Report(
 		return &InputError{Message: "Report reason must contain 1 to 500 characters."}
 	}
 	return s.repository.Report(ctx, reporterID, postID, reason)
+}
+
+// CreateComment validates and persists one text comment.
+func (s *Service) CreateComment(
+	ctx context.Context,
+	authorID, postID uint64,
+	body string,
+) (Comment, error) {
+	body = strings.TrimSpace(body)
+	if body == "" || !utf8.ValidString(body) || utf8.RuneCountInString(body) > maximumCommentRunes {
+		return Comment{}, &InputError{Message: "Comment must contain 1 to 500 characters."}
+	}
+	return s.repository.CreateComment(ctx, authorID, postID, body)
+}
+
+// ListComments returns one descending comment page.
+func (s *Service) ListComments(
+	ctx context.Context,
+	postID uint64,
+	before *uint64,
+	limit int,
+) (CommentPage, error) {
+	if limit == 0 {
+		limit = defaultCommentPageSize
+	}
+	if limit < 1 || limit > maximumPageSize {
+		return CommentPage{}, &InputError{Message: "Limit must be between 1 and 50."}
+	}
+	comments, err := s.repository.ListComments(ctx, postID, before, limit)
+	if err != nil {
+		return CommentPage{}, err
+	}
+	var next *uint64
+	if len(comments) == limit {
+		cursor := comments[len(comments)-1].ID
+		next = &cursor
+	}
+	return CommentPage{Comments: comments, NextCursor: next}, nil
+}
+
+// DeleteComment removes one comment owned by the current user.
+func (s *Service) DeleteComment(ctx context.Context, authorID, postID, commentID uint64) error {
+	return s.repository.DeleteComment(ctx, authorID, postID, commentID)
 }

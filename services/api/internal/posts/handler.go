@@ -18,6 +18,9 @@ type postService interface {
 	Image(context.Context, uint64) (ImageFile, error)
 	Delete(context.Context, uint64, uint64) error
 	Report(context.Context, uint64, uint64, string) error
+	CreateComment(context.Context, uint64, uint64, string) (Comment, error)
+	ListComments(context.Context, uint64, *uint64, int) (CommentPage, error)
+	DeleteComment(context.Context, uint64, uint64, uint64) error
 }
 
 // Handler maps public post HTTP requests to the service.
@@ -178,6 +181,8 @@ func writeServiceError(w http.ResponseWriter, r *http.Request, err error) {
 		httpapi.WriteError(w, http.StatusNotFound, "post_not_found", "Post was not found.", requestID)
 	case errors.Is(err, ErrPostImageNotFound):
 		httpapi.WriteError(w, http.StatusNotFound, "post_image_not_found", "Post image was not found.", requestID)
+	case errors.Is(err, ErrCommentNotFound):
+		httpapi.WriteError(w, http.StatusNotFound, "post_comment_not_found", "Comment was not found.", requestID)
 	default:
 		slog.Error("post request failed", "request_id", requestID, "error", err)
 		httpapi.WriteError(

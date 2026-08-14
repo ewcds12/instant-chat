@@ -13,6 +13,7 @@ import 'package:instant_chat/features/posts/presentation/post_action_dialogs.dar
 import 'package:instant_chat/features/posts/presentation/post_card.dart';
 import 'package:instant_chat/features/posts/presentation/post_composer_bar.dart';
 import 'package:instant_chat/features/posts/presentation/post_composer_dialog.dart';
+import 'package:instant_chat/features/posts/presentation/post_detail_panel.dart';
 import 'package:instant_chat/features/posts/presentation/post_image_grid.dart';
 import 'package:instant_chat/features/posts/presentation/posts_controller.dart';
 
@@ -26,6 +27,7 @@ class PostsPage extends ConsumerStatefulWidget {
 class _PostsPageState extends ConsumerState<PostsPage> {
   final _scrollController = ScrollController();
   var _selectedTab = ExploreFeedTab.forYou;
+  String? _detailPostId;
 
   @override
   void initState() {
@@ -67,6 +69,7 @@ class _PostsPageState extends ConsumerState<PostsPage> {
           contactUserIds: contactIds ?? const <String>{},
         );
         final feed = _feed(state: state, posts: visiblePosts, session: session);
+        final detailPost = findExplorePost(state.posts, _detailPostId);
         return LayoutBuilder(
           builder: (context, constraints) {
             final showBrief =
@@ -74,7 +77,14 @@ class _PostsPageState extends ConsumerState<PostsPage> {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: _mainContent(session, state, feed)),
+                Expanded(
+                  child: _mainContent(
+                    session,
+                    state,
+                    feed,
+                    detailPost: detailPost,
+                  ),
+                ),
                 if (showBrief) ...[
                   VerticalDivider(
                     color: Theme.of(context).colorScheme.outlineVariant,
@@ -92,17 +102,38 @@ class _PostsPageState extends ConsumerState<PostsPage> {
     );
   }
 
-  Widget _mainContent(AuthSession session, PostsState state, Widget feed) {
+  Widget _mainContent(
+    AuthSession session,
+    PostsState state,
+    Widget feed, {
+    PublicPost? detailPost,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ExploreHeader(
           selectedTab: _selectedTab,
-          onTabSelected: (tab) => setState(() => _selectedTab = tab),
+          onTabSelected: _selectTab,
           onRefresh: () => ref.read(postsControllerProvider.notifier).refresh(),
           onCreate: () => showPostComposer(context),
         ),
-        Expanded(child: _withError(state, feed)),
+        Expanded(
+          child: _withError(
+            state,
+            detailPost == null
+                ? feed
+                : PostDetailPanel(
+                    post: detailPost,
+                    session: session,
+                    onBack: () => setState(() => _detailPostId = null),
+                    onPostAction: (action) => _handleAction(action, detailPost),
+                    onCommentCountChanged: (delta) => ref
+                        .read(postsControllerProvider.notifier)
+                        .adjustCommentCount(detailPost.id, delta),
+                    onDownloadImage: _downloadImage,
+                  ),
+          ),
+        ),
       ],
     );
   }
@@ -176,6 +207,7 @@ class _PostsPageState extends ConsumerState<PostsPage> {
                   accessToken: session.accessToken,
                   isOwnPost: post.author.id == session.user.id,
                   onAction: (action) => _handleAction(action, post),
+                  onComment: () => setState(() => _detailPostId = post.id),
                   onDownloadImage: _downloadImage,
                 ),
               ),
@@ -214,7 +246,10 @@ class _PostsPageState extends ConsumerState<PostsPage> {
     switch (action) {
       case PostAction.delete:
         if (await confirmDeletePost(context) && mounted) {
-          await controller.delete(post.id);
+          final deleted = await controller.delete(post.id);
+          if (deleted && mounted && _detailPostId == post.id) {
+            setState(() => _detailPostId = null);
+          }
         }
       case PostAction.report:
         final reason = await askReportReason(context);
@@ -246,6 +281,13 @@ class _PostsPageState extends ConsumerState<PostsPage> {
     if (_scrollController.position.extentAfter < 320) {
       ref.read(postsControllerProvider.notifier).loadMore();
     }
+  }
+
+  void _selectTab(ExploreFeedTab tab) {
+    setState(() {
+      _selectedTab = tab;
+      _detailPostId = null;
+    });
   }
 
   void _notice(String message) {

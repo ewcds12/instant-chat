@@ -22,11 +22,20 @@ type imageResponse struct {
 }
 
 type postResponse struct {
-	ID        string          `json:"id"`
-	Author    authorResponse  `json:"author"`
-	Body      string          `json:"body"`
-	Images    []imageResponse `json:"images"`
-	CreatedAt time.Time       `json:"created_at"`
+	ID           string          `json:"id"`
+	Author       authorResponse  `json:"author"`
+	Body         string          `json:"body"`
+	Images       []imageResponse `json:"images"`
+	CommentCount uint64          `json:"comment_count"`
+	CreatedAt    time.Time       `json:"created_at"`
+}
+
+type commentResponse struct {
+	ID        string         `json:"id"`
+	PostID    string         `json:"post_id"`
+	Author    authorResponse `json:"author"`
+	Body      string         `json:"body"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 func responseFromPost(post Post) postResponse {
@@ -40,7 +49,17 @@ func responseFromPost(post Post) postResponse {
 	}
 	return postResponse{
 		ID: strconv.FormatUint(post.ID, 10), Author: responseFromAuthor(post.Author),
-		Body: post.Body, Images: images, CreatedAt: post.CreatedAt.UTC(),
+		Body: post.Body, Images: images, CommentCount: post.CommentCount,
+		CreatedAt: post.CreatedAt.UTC(),
+	}
+}
+
+func responseFromComment(comment Comment) commentResponse {
+	return commentResponse{
+		ID:     strconv.FormatUint(comment.ID, 10),
+		PostID: strconv.FormatUint(comment.PostID, 10),
+		Author: responseFromAuthor(comment.Author), Body: comment.Body,
+		CreatedAt: comment.CreatedAt.UTC(),
 	}
 }
 

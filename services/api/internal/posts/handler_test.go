@@ -17,9 +17,12 @@ import (
 )
 
 type stubPostService struct {
-	userID uint64
-	body   string
-	images []ImageUpload
+	userID        uint64
+	body          string
+	images        []ImageUpload
+	commentPostID uint64
+	commentBody   string
+	commentID     uint64
 }
 
 func (s *stubPostService) Create(
@@ -48,6 +51,30 @@ func (s *stubPostService) Image(context.Context, uint64) (ImageFile, error) {
 func (s *stubPostService) Delete(context.Context, uint64, uint64) error { return nil }
 
 func (s *stubPostService) Report(context.Context, uint64, uint64, string) error { return nil }
+
+func (s *stubPostService) CreateComment(
+	_ context.Context,
+	userID, postID uint64,
+	body string,
+) (Comment, error) {
+	s.userID, s.commentPostID, s.commentBody = userID, postID, body
+	return testComment(), nil
+}
+
+func (s *stubPostService) ListComments(
+	context.Context,
+	uint64,
+	*uint64,
+	int,
+) (CommentPage, error) {
+	cursor := uint64(20)
+	return CommentPage{Comments: []Comment{testComment()}, NextCursor: &cursor}, nil
+}
+
+func (s *stubPostService) DeleteComment(_ context.Context, userID, postID, commentID uint64) error {
+	s.userID, s.commentPostID, s.commentID = userID, postID, commentID
+	return nil
+}
 
 type stubAuthService struct{}
 
@@ -133,6 +160,77 @@ func TestHandlerListReturnsStringCursorAndImagePosition(t *testing.T) {
 	}
 }
 
+func TestHandlerCreateCommentUsesAuthenticatedAuthor(t *testing.T) {
+	service := &stubPostService{}
+	handler := NewHandler(service)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/posts/41/comments",
+		strings.NewReader(`{"body":"Nice post."}`),
+	)
+	request.SetPathValue("post_id", "41")
+	request.Header.Set("Authorization", "Bearer token")
+	recorder := httptest.NewRecorder()
+
+	authenticated(http.HandlerFunc(handler.CreateComment)).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusCreated {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if service.userID != 7 || service.commentPostID != 41 || service.commentBody != "Nice post." {
+		t.Fatalf(
+			"user = %d, post = %d, body = %q",
+			service.userID, service.commentPostID, service.commentBody,
+		)
+	}
+}
+
+func TestHandlerListCommentsReturnsStringCursor(t *testing.T) {
+	handler := NewHandler(&stubPostService{})
+	request := httptest.NewRequest(http.MethodGet, "/api/v1/posts/41/comments", nil)
+	request.SetPathValue("post_id", "41")
+	request.Header.Set("Authorization", "Bearer token")
+	recorder := httptest.NewRecorder()
+
+	authenticated(http.HandlerFunc(handler.ListComments)).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var response struct {
+		Comments   []commentResponse `json:"comments"`
+		NextCursor *string           `json:"next_cursor"`
+	}
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(response.Comments) != 1 || response.NextCursor == nil || *response.NextCursor != "20" {
+		t.Fatalf("response = %+v", response)
+	}
+}
+
+func TestHandlerDeleteCommentUsesAuthenticatedAuthorAndPathIDs(t *testing.T) {
+	service := &stubPostService{}
+	handler := NewHandler(service)
+	request := httptest.NewRequest(http.MethodDelete, "/api/v1/posts/41/comments/21", nil)
+	request.SetPathValue("post_id", "41")
+	request.SetPathValue("comment_id", "21")
+	request.Header.Set("Authorization", "Bearer token")
+	recorder := httptest.NewRecorder()
+
+	authenticated(http.HandlerFunc(handler.DeleteComment)).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusNoContent {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if service.userID != 7 || service.commentPostID != 41 || service.commentID != 21 {
+		t.Fatalf(
+			"user = %d, post = %d, comment = %d",
+			service.userID, service.commentPostID, service.commentID,
+		)
+	}
+}
+
 func testPost() Post {
 	return Post{
 		ID: 41,
@@ -142,5 +240,16 @@ func testPost() Post {
 		},
 		Body: "Hello world", Images: []Image{{ID: 3, Position: 0, ContentType: "image/png", ByteSize: 8}},
 		CreatedAt: time.Date(2026, 8, 9, 9, 0, 0, 0, time.UTC),
+	}
+}
+
+func testComment() Comment {
+	return Comment{
+		ID: 21, PostID: 41,
+		Author: Author{
+			ID: 7, Username: "retro_user", DisplayName: "Retro User", HasAvatar: true,
+			CreatedAt: time.Date(2026, 8, 9, 8, 0, 0, 0, time.UTC),
+		},
+		Body: "Nice post.", CreatedAt: time.Date(2026, 8, 9, 10, 0, 0, 0, time.UTC),
 	}
 }

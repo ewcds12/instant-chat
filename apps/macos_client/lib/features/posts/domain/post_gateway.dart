@@ -1,4 +1,5 @@
 import 'package:instant_chat/features/posts/domain/public_post.dart';
+import 'package:instant_chat/features/posts/domain/post_comment.dart';
 
 abstract interface class PostGateway {
   Future<PublicPostPage> list({
@@ -24,5 +25,24 @@ abstract interface class PostGateway {
     required String accessToken,
     required String postId,
     required String reason,
+  });
+
+  Future<PostCommentPage> listComments({
+    required String accessToken,
+    required String postId,
+    String? before,
+    int limit = 30,
+  });
+
+  Future<PostComment> createComment({
+    required String accessToken,
+    required String postId,
+    required String body,
+  });
+
+  Future<void> deleteComment({
+    required String accessToken,
+    required String postId,
+    required String commentId,
   });
 }

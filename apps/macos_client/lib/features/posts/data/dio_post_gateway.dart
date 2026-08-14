@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:instant_chat/core/network/api_response.dart';
 import 'package:instant_chat/features/posts/domain/post_gateway.dart';
+import 'package:instant_chat/features/posts/domain/post_comment.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
 
 class DioPostGateway implements PostGateway {
@@ -98,6 +99,63 @@ class DioPostGateway implements PostGateway {
     _dio.post<Object?>(
       '/api/v1/posts/$postId/reports',
       data: {'reason': reason},
+      options: _options(accessToken),
+    ),
+  );
+
+  @override
+  Future<PostCommentPage> listComments({
+    required String accessToken,
+    required String postId,
+    String? before,
+    int limit = 30,
+  }) async {
+    final response = await apiRequest(
+      () => _dio.get<Object?>(
+        '/api/v1/posts/$postId/comments',
+        queryParameters: {'before': ?before, 'limit': limit},
+        options: _options(accessToken),
+      ),
+    );
+    expectStatus(response, {200});
+    final body = responseObject(response.data);
+    final cursor = body['next_cursor'];
+    if (cursor != null && cursor is! String) {
+      throw const FormatException('next_cursor must be a string or null');
+    }
+    return PostCommentPage(
+      comments: requiredList(body, 'comments')
+          .map((item) => PostComment.fromJson(_requiredObject(item)))
+          .toList(growable: false),
+      nextCursor: cursor as String?,
+    );
+  }
+
+  @override
+  Future<PostComment> createComment({
+    required String accessToken,
+    required String postId,
+    required String body,
+  }) async {
+    final response = await apiRequest(
+      () => _dio.post<Object?>(
+        '/api/v1/posts/$postId/comments',
+        data: {'body': body},
+        options: _options(accessToken),
+      ),
+    );
+    expectStatus(response, {201});
+    return PostComment.fromJson(responseObject(response.data));
+  }
+
+  @override
+  Future<void> deleteComment({
+    required String accessToken,
+    required String postId,
+    required String commentId,
+  }) => _emptyRequest(
+    _dio.delete<Object?>(
+      '/api/v1/posts/$postId/comments/$commentId',
       options: _options(accessToken),
     ),
   );

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Instant Chat API
-  version: 0.12.0
+  version: 0.13.0
 servers:
   - url: http://127.0.0.1:8080/api/v1
     description: Local development
@@ -870,6 +870,94 @@ paths:
           $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
+  /posts/{post_id}/comments:
+    get:
+      operationId: listPostComments
+      summary: List one descending page of comments for a public post
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+        - name: before
+          in: query
+          schema:
+            $ref: "#/components/schemas/ResourceID"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 50
+            default: 30
+      responses:
+        "200":
+          description: One descending comment page
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPostCommentPage"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
+    post:
+      operationId: createPostComment
+      summary: Publish one text comment on a public post
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePostCommentRequest"
+      responses:
+        "201":
+          description: Comment published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicPostComment"
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /posts/{post_id}/comments/{comment_id}:
+    delete:
+      operationId: deletePostComment
+      summary: Delete one comment owned by the current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: "#/components/parameters/PostID"
+        - name: comment_id
+          in: path
+          required: true
+          schema:
+            $ref: "#/components/schemas/ResourceID"
+      responses:
+        "204":
+          description: Comment deleted
+        "400":
+          $ref: "#/components/responses/InvalidArgument"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalError"
   /posts/{post_id}/reports:
     post:
       operationId: reportPublicPost
@@ -1517,6 +1605,7 @@ components:
         - author
         - body
         - images
+        - comment_count
         - created_at
       properties:
         id:
@@ -1531,6 +1620,9 @@ components:
           maxItems: 4
           items:
             $ref: "#/components/schemas/PublicPostImage"
+        comment_count:
+          type: integer
+          minimum: 0
         created_at:
           type: string
           format: date-time
@@ -1546,6 +1638,55 @@ components:
           maxItems: 50
           items:
             $ref: "#/components/schemas/PublicPost"
+        next_cursor:
+          oneOf:
+            - $ref: "#/components/schemas/ResourceID"
+            - type: "null"
+    CreatePostCommentRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - body
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 500
+    PublicPostComment:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - post_id
+        - author
+        - body
+        - created_at
+      properties:
+        id:
+          $ref: "#/components/schemas/ResourceID"
+        post_id:
+          $ref: "#/components/schemas/ResourceID"
+        author:
+          $ref: "#/components/schemas/PublicUser"
+        body:
+          type: string
+          minLength: 1
+          maxLength: 500
+        created_at:
+          type: string
+          format: date-time
+    PublicPostCommentPage:
+      type: object
+      additionalProperties: false
+      required:
+        - comments
+        - next_cursor
+      properties:
+        comments:
+          type: array
+          maxItems: 50
+          items:
+            $ref: "#/components/schemas/PublicPostComment"
         next_cursor:
           oneOf:
             - $ref: "#/components/schemas/ResourceID"

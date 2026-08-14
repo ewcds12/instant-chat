@@ -160,6 +160,26 @@ class PostsController extends AsyncNotifier<PostsState> {
     );
   }
 
+  void adjustCommentCount(String postId, int delta) {
+    final current = state.asData?.value;
+    if (current == null) return;
+    state = AsyncData(
+      current.copyWith(
+        posts: current.posts
+            .map(
+              (post) => post.id == postId
+                  ? post.copyWith(
+                      commentCount: (post.commentCount + delta)
+                          .clamp(0, 1 << 31)
+                          .toInt(),
+                    )
+                  : post,
+            )
+            .toList(growable: false),
+      ),
+    );
+  }
+
   Future<bool> _mutate(
     Future<void> Function() action, [
     List<PublicPost> Function(PostsState current)? updatePosts,

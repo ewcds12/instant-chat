@@ -1,0 +1,299 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/auth/domain/auth_session.dart';
+import 'package:instant_chat/features/posts/domain/post_comment.dart';
+import 'package:instant_chat/features/posts/domain/public_post.dart';
+import 'package:instant_chat/features/posts/presentation/post_card.dart';
+import 'package:instant_chat/features/posts/presentation/post_comment_composer.dart';
+import 'package:instant_chat/features/posts/presentation/post_comment_row.dart';
+import 'package:instant_chat/features/posts/presentation/post_comments_controller.dart';
+
+class PostDetailPanel extends ConsumerStatefulWidget {
+  const PostDetailPanel({
+    required this.post,
+    required this.session,
+    required this.onBack,
+    required this.onPostAction,
+    required this.onCommentCountChanged,
+    required this.onDownloadImage,
+    super.key,
+  });
+
+  final PublicPost post;
+  final AuthSession session;
+  final VoidCallback onBack;
+  final ValueChanged<PostAction> onPostAction;
+  final ValueChanged<int> onCommentCountChanged;
+  final Future<void> Function(PublicPostImage image) onDownloadImage;
+
+  @override
+  ConsumerState<PostDetailPanel> createState() => _PostDetailPanelState();
+}
+
+class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
+  final _scrollController = ScrollController();
+  final _composerFocus = FocusNode();
+  late int _commentCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _commentCount = widget.post.commentCount;
+    _scrollController.addListener(_loadNearBottom);
+  }
+
+  @override
+  void didUpdateWidget(covariant PostDetailPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.post.commentCount != widget.post.commentCount) {
+      _commentCount = widget.post.commentCount;
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_loadNearBottom)
+      ..dispose();
+    _composerFocus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final comments = ref.watch(postCommentsControllerProvider(widget.post.id));
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _DetailHeader(onBack: widget.onBack),
+        Expanded(child: _content(comments)),
+        comments.when(
+          loading: () => _composer(disabled: true),
+          error: (_, _) => _composer(disabled: true),
+          data: (state) => _composer(
+            disabled: state.isSubmitting,
+            errorMessage: state.errorMessage,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _content(AsyncValue<PostCommentsState> comments) {
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: comments.when(
+        loading: () => _commentList(const [], loading: true),
+        error: (_, _) => _commentList(const [], failed: true),
+        data: (state) =>
+            _commentList(state.comments, loadingMore: state.isLoadingMore),
+      ),
+    );
+  }
+
+  Widget _commentList(
+    List<PostComment> comments, {
+    bool loading = false,
+    bool loadingMore = false,
+    bool failed = false,
+  }) {
+    return ListView.separated(
+      key: ValueKey('post-detail-${widget.post.id}'),
+      controller: _scrollController,
+      padding: const EdgeInsets.only(bottom: 16),
+      itemCount:
+          2 + comments.length + ((loading || loadingMore || failed) ? 1 : 0),
+      separatorBuilder: (_, index) => index == 0
+          ? Divider(color: Theme.of(context).colorScheme.outlineVariant)
+          : const SizedBox.shrink(),
+      itemBuilder: (context, index) {
+        if (index == 0) {
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: RetroMetrics.exploreContentMaxWidth,
+              ),
+              child: PostCard(
+                post: widget.post,
+                accessToken: widget.session.accessToken,
+                isOwnPost: widget.post.author.id == widget.session.user.id,
+                onAction: widget.onPostAction,
+                onComment: _composerFocus.requestFocus,
+                onDownloadImage: widget.onDownloadImage,
+              ),
+            ),
+          );
+        }
+        if (index == 1) {
+          return _CommentsLabel(count: _commentCount);
+        }
+        final commentIndex = index - 2;
+        if (commentIndex < comments.length) {
+          final comment = comments[commentIndex];
+          return Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: RetroMetrics.exploreContentMaxWidth,
+              ),
+              child: PostCommentRow(
+                comment: comment,
+                accessToken: widget.session.accessToken,
+                isOwnComment: comment.author.id == widget.session.user.id,
+                onDelete: () => _delete(comment.id),
+              ),
+            ),
+          );
+        }
+        if (failed) {
+          return Center(
+            child: TextButton(
+              onPressed: () => ref.invalidate(
+                postCommentsControllerProvider(widget.post.id),
+              ),
+              child: const Text('Try again'),
+            ),
+          );
+        }
+        return const Padding(
+          padding: EdgeInsets.all(14),
+          child: Center(
+            child: SizedBox.square(
+              dimension: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _composer({required bool disabled, String? errorMessage}) {
+    return PostCommentComposer(
+      user: widget.session.user,
+      accessToken: widget.session.accessToken,
+      disabled: disabled,
+      errorMessage: errorMessage,
+      focusNode: _composerFocus,
+      onSend: _create,
+    );
+  }
+
+  void _loadNearBottom() {
+    if (!_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter < 220) {
+      ref
+          .read(postCommentsControllerProvider(widget.post.id).notifier)
+          .loadMore();
+    }
+  }
+
+  Future<void> _delete(String commentId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Comment?'),
+        content: const Text('This comment will be permanently removed.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      final deleted = await ref
+          .read(postCommentsControllerProvider(widget.post.id).notifier)
+          .delete(commentId);
+      if (deleted && mounted) {
+        setState(() => _commentCount = (_commentCount - 1).clamp(0, 1 << 31));
+        widget.onCommentCountChanged(-1);
+      }
+    }
+  }
+
+  Future<bool> _create(String body) async {
+    final created = await ref
+        .read(postCommentsControllerProvider(widget.post.id).notifier)
+        .create(body);
+    if (created && mounted) {
+      setState(() => _commentCount++);
+      widget.onCommentCountChanged(1);
+    }
+    return created;
+  }
+}
+
+class _DetailHeader extends StatelessWidget {
+  const _DetailHeader({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: RetroMetrics.postDetailHeaderHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.86),
+          border: Border(
+            bottom: BorderSide(
+              color: Theme.of(context).colorScheme.outlineVariant,
+            ),
+          ),
+        ),
+        child: Row(
+          children: [
+            const SizedBox(width: 10),
+            IconButton(
+              key: const Key('post-detail-back'),
+              tooltip: 'Back to Explore',
+              visualDensity: VisualDensity.compact,
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_rounded, size: 18),
+            ),
+            const SizedBox(width: 3),
+            Text('Post', style: Theme.of(context).textTheme.titleSmall),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CommentsLabel extends StatelessWidget {
+  const _CommentsLabel({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.topCenter,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(
+          maxWidth: RetroMetrics.exploreContentMaxWidth,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 10, 24, 3),
+          child: Text(
+            count == 1 ? '1 Comment' : '$count Comments',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

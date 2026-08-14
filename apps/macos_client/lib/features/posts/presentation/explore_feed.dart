@@ -18,6 +18,14 @@ List<PublicPost> filterExplorePosts(
       .toList(growable: false);
 }
 
+PublicPost? findExplorePost(List<PublicPost> posts, String? id) {
+  if (id == null) return null;
+  for (final post in posts) {
+    if (post.id == id) return post;
+  }
+  return null;
+}
+
 class ExploreEmpty extends StatelessWidget {
   const ExploreEmpty({required this.label, required this.onCreate, super.key});
 
