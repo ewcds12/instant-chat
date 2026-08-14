@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contacts_controller.dart';
+import 'package:instant_chat/features/news/presentation/daily_brief_rail.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
 import 'package:instant_chat/features/posts/presentation/explore_feed.dart';
 import 'package:instant_chat/features/posts/presentation/explore_header.dart';
@@ -64,40 +66,59 @@ class _PostsPageState extends ConsumerState<PostsPage> {
           selectedTab: _selectedTab,
           contactUserIds: contactIds ?? const <String>{},
         );
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ExploreHeader(
-              selectedTab: _selectedTab,
-              onTabSelected: (tab) => setState(() => _selectedTab = tab),
-              onRefresh: () =>
-                  ref.read(postsControllerProvider.notifier).refresh(),
-              onCreate: () => showPostComposer(context),
-              onBlockedUsers: () => showBlockedUsersDialog(
-                context: context,
-                ref: ref,
-                accessToken: session.accessToken,
-              ),
-            ),
-            PostComposerBar(
-              user: session.user,
-              accessToken: session.accessToken,
-              onCreate: () => showPostComposer(context),
-            ),
-            Expanded(
-              child: _withError(
-                state,
-                _feed(
-                  state: state,
-                  posts: visiblePosts,
-                  accessToken: session.accessToken,
-                  currentUserId: session.user.id,
-                ),
-              ),
-            ),
-          ],
+        final feed = _feed(
+          state: state,
+          posts: visiblePosts,
+          accessToken: session.accessToken,
+          currentUserId: session.user.id,
+        );
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final showBrief =
+                constraints.maxWidth >= RetroMetrics.dailyBriefBreakpoint;
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: _mainContent(session, state, feed)),
+                if (showBrief) ...[
+                  VerticalDivider(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  SizedBox(
+                    width: RetroMetrics.dailyBriefWidth,
+                    child: DailyBriefRail(accessToken: session.accessToken),
+                  ),
+                ],
+              ],
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _mainContent(AuthSession session, PostsState state, Widget feed) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ExploreHeader(
+          selectedTab: _selectedTab,
+          onTabSelected: (tab) => setState(() => _selectedTab = tab),
+          onRefresh: () => ref.read(postsControllerProvider.notifier).refresh(),
+          onCreate: () => showPostComposer(context),
+          onBlockedUsers: () => showBlockedUsersDialog(
+            context: context,
+            ref: ref,
+            accessToken: session.accessToken,
+          ),
+        ),
+        PostComposerBar(
+          user: session.user,
+          accessToken: session.accessToken,
+          onCreate: () => showPostComposer(context),
+        ),
+        Expanded(child: _withError(state, feed)),
+      ],
     );
   }
 

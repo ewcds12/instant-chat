@@ -21,6 +21,7 @@ import (
 	"github.com/ewcds12/instant-chat/services/api/internal/health"
 	"github.com/ewcds12/instant-chat/services/api/internal/httpapi"
 	"github.com/ewcds12/instant-chat/services/api/internal/messages"
+	"github.com/ewcds12/instant-chat/services/api/internal/news"
 	"github.com/ewcds12/instant-chat/services/api/internal/posts"
 	"github.com/ewcds12/instant-chat/services/api/internal/realtime"
 )
@@ -104,6 +105,7 @@ func run() error {
 	postHandler := posts.NewHandler(posts.NewService(
 		posts.NewMySQLRepository(database, fileStorage),
 	))
+	newsHandler := news.NewHandler(news.NewService(&http.Client{Timeout: 5 * time.Second}))
 	realtimeHandler := realtime.NewHandler(realtimeHub)
 	messageLimiter := httpapi.NewIPRateLimiter(messageRateLimit, messageRateWindow)
 	postLimiter := httpapi.NewIPRateLimiter(postRateLimit, postRateWindow)
@@ -149,6 +151,7 @@ func run() error {
 	mux.Handle("GET /api/v1/message-images/{image_id}", protected(messageHandler.Image))
 	mux.Handle("GET /api/v1/message-files/{file_id}", protected(messageHandler.File))
 	mux.Handle("GET /api/v1/posts", protected(postHandler.List))
+	mux.Handle("GET /api/v1/news/daily", protected(newsHandler.Daily))
 	mux.Handle(
 		"POST /api/v1/posts",
 		authHandler.RequireUser(postLimiter.Handler(http.HandlerFunc(postHandler.Create))),

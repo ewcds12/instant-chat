@@ -33,6 +33,7 @@ The client is located in `apps/macos_client` and currently contains:
 - `features/conversations`: direct-conversation creation, persisted unread-count state, realtime list updates, and channel selection.
 - `features/messages`: message history, text, image, and file REST sending, realtime reconciliation, idempotent retry state, and channel presentation.
 - `features/posts`: global feed pagination, compact text-and-photo composition, authenticated image presentation, reporting, and per-user blocking.
+- `features/news`: authenticated Daily Brief retrieval and the responsive source-linked Explore news rail.
 - `features/profile`: an in-app profile sheet opened from the account card, with native-style editors backed by authenticated profile and avatar APIs.
 - `features/realtime`: authenticated WebSocket lifecycle, heartbeat, reconnect backoff, and parsing for message and profile updates.
 - `features/system_status`: health domain model, Dio data access, Riverpod state, and presentation.
@@ -56,6 +57,7 @@ The server is located in `services/api` and currently contains:
 - `internal/conversations`: authorized direct-conversation creation, membership transactions, list handlers, and MySQL persistence.
 - `internal/messages`: text, image, and file validation, idempotent REST sending, cursor history, membership authorization, and attachment persistence coordination.
 - `internal/posts`: authenticated global-feed validation, cursor pagination, reporting, per-viewer blocking, HTTP handlers, and MySQL and object-storage coordination.
+- `internal/news`: on-request Wikipedia Current Events retrieval, response parsing, stale-on-error behavior, and a shared 15-minute in-memory cache.
 - `internal/uploads`: private S3-compatible object storage for uploaded post and message bytes.
 - `internal/realtime`: authenticated WebSocket connections, member-targeted delivery, heartbeat, and graceful shutdown.
 - `internal/config`: environment variable loading and validation.
@@ -110,6 +112,10 @@ The macOS client opens one authenticated WebSocket per signed-in session, sends 
 Explore is global to authenticated Instant Chat accounts. Posts are ordered by descending database ID and loaded with an exclusive `before` cursor. Each post contains a trimmed body of at most 1,000 characters, zero to four ordered PNG, JPEG, GIF, or WebP images of at most 15 MB each, and public author metadata. At least one body or image is required. Image objects are stored privately in MinIO and returned only through bearer-authenticated API endpoints; clients never receive object-store credentials.
 
 Authors can permanently delete their own posts. Other users can submit one updatable report per post with a bounded reason. A block is private to the blocker and removes the blocked author's posts from that user's feed and image access without changing contact relationships, direct-conversation membership, or the blocked user's view. The client exposes the blocked-user list so each block can be reversed. Public-post creation and reporting use per-IP rate limits.
+
+## Daily Brief
+
+Explore requests a source-linked daily brief from the authenticated API on wide layouts. The API derives up to five current-event summaries from Wikimedia's featured-feed endpoint, keeps the response in memory for 15 minutes, and returns the most recent cached response if an upstream refresh fails. It stores no third-party article content in MySQL, runs no resident fetch process, and exposes no third-party credentials to the client. The client renders text only and opens each Wikipedia source in the default browser.
 
 ## Health States
 
