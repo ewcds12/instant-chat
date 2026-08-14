@@ -66,12 +66,7 @@ class _PostsPageState extends ConsumerState<PostsPage> {
           selectedTab: _selectedTab,
           contactUserIds: contactIds ?? const <String>{},
         );
-        final feed = _feed(
-          state: state,
-          posts: visiblePosts,
-          accessToken: session.accessToken,
-          currentUserId: session.user.id,
-        );
+        final feed = _feed(state: state, posts: visiblePosts, session: session);
         return LayoutBuilder(
           builder: (context, constraints) {
             final showBrief =
@@ -112,11 +107,6 @@ class _PostsPageState extends ConsumerState<PostsPage> {
             accessToken: session.accessToken,
           ),
         ),
-        PostComposerBar(
-          user: session.user,
-          accessToken: session.accessToken,
-          onCreate: () => showPostComposer(context),
-        ),
         Expanded(child: _withError(state, feed)),
       ],
     );
@@ -125,40 +115,75 @@ class _PostsPageState extends ConsumerState<PostsPage> {
   Widget _feed({
     required PostsState state,
     required List<PublicPost> posts,
-    required String accessToken,
-    required String currentUserId,
+    required AuthSession session,
   }) {
-    if (posts.isEmpty) {
-      final label = _selectedTab == ExploreFeedTab.contacts
-          ? 'Posts from your contacts will appear here.'
-          : 'Be the first to share something.';
-      return ExploreEmpty(
-        label: label,
-        onCreate: () => showPostComposer(context),
-      );
-    }
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: RetroMetrics.exploreContentMaxWidth,
-        ),
-        child: ListView.separated(
+    return ScrollConfiguration(
+      behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+      child: LayoutBuilder(
+        builder: (context, constraints) => ListView.separated(
           key: const PageStorageKey('explore-feed'),
           controller: _scrollController,
           padding: const EdgeInsets.only(bottom: 28),
-          itemCount: posts.length + (state.isLoadingMore ? 1 : 0),
-          separatorBuilder: (_, _) =>
-              Divider(color: Theme.of(context).colorScheme.outlineVariant),
+          itemCount:
+              1 +
+              (posts.isEmpty ? 1 : posts.length) +
+              (state.isLoadingMore ? 1 : 0),
+          separatorBuilder: (context, index) {
+            if (index == 0) return const SizedBox.shrink();
+            return Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: RetroMetrics.exploreContentMaxWidth,
+                ),
+                child: Divider(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+            );
+          },
           itemBuilder: (context, index) {
-            if (index == posts.length) return const ExploreLoadingMore();
-            final post = posts[index];
-            return PostCard(
-              post: post,
-              accessToken: accessToken,
-              isOwnPost: post.author.id == currentUserId,
-              onAction: (action) => _handleAction(action, post),
-              onDownloadImage: _downloadImage,
+            if (index == 0) {
+              return PostComposerBar(
+                user: session.user,
+                accessToken: session.accessToken,
+                onCreate: () => showPostComposer(context),
+              );
+            }
+            if (posts.isEmpty) {
+              final emptyHeight =
+                  (constraints.maxHeight - RetroMetrics.exploreComposerHeight)
+                      .clamp(0, double.infinity)
+                      .toDouble();
+              return SizedBox(
+                height: emptyHeight,
+                child: ExploreEmpty(
+                  label: _selectedTab == ExploreFeedTab.contacts
+                      ? 'Posts from your contacts will appear here.'
+                      : 'Be the first to share something.',
+                  onCreate: () => showPostComposer(context),
+                ),
+              );
+            }
+            final postIndex = index - 1;
+            if (postIndex == posts.length) {
+              return const ExploreLoadingMore();
+            }
+            final post = posts[postIndex];
+            return Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(
+                  maxWidth: RetroMetrics.exploreContentMaxWidth,
+                ),
+                child: PostCard(
+                  post: post,
+                  accessToken: session.accessToken,
+                  isOwnPost: post.author.id == session.user.id,
+                  onAction: (action) => _handleAction(action, post),
+                  onDownloadImage: _downloadImage,
+                ),
+              ),
             );
           },
         ),

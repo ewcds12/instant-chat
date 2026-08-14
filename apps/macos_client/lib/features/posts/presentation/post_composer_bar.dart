@@ -19,6 +19,7 @@ class PostComposerBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return SizedBox(
+      key: const Key('explore-composer-flow'),
       width: double.infinity,
       height: RetroMetrics.exploreComposerHeight,
       child: Material(
