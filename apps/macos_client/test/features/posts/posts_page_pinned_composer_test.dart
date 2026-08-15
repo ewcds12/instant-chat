@@ -9,6 +9,7 @@ import 'package:instant_chat/features/contacts/presentation/contacts_controller.
 import 'package:instant_chat/features/posts/domain/post_gateway.dart';
 import 'package:instant_chat/features/posts/domain/post_comment.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
+import 'package:instant_chat/features/posts/presentation/post_comment_row.dart';
 import 'package:instant_chat/features/posts/presentation/posts_controller.dart';
 import 'package:instant_chat/features/posts/presentation/posts_page.dart';
 import 'package:instant_chat/features/users/domain/public_user.dart';
@@ -86,6 +87,35 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Nice photo'), findsOneWidget);
+  });
+
+  testWidgets('renders a hairline divider below each comment', (tester) async {
+    final comment = PostComment(
+      id: 'comment-1',
+      postId: 'post-1',
+      author: _author,
+      body: 'Nice photo',
+      createdAt: DateTime.utc(2026, 8, 14, 11),
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: RetroTheme.data,
+        home: Scaffold(
+          body: PostCommentRow(
+            comment: comment,
+            accessToken: 'access-token',
+            isOwnComment: false,
+            onDelete: () {},
+          ),
+        ),
+      ),
+    );
+
+    final dividerFinder = find.byKey(
+      const Key('post-comment-divider-comment-1'),
+    );
+    expect(dividerFinder, findsOneWidget);
+    expect(tester.widget<Divider>(dividerFinder).thickness, 1);
   });
 }
 
