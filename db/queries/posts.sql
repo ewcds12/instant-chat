@@ -128,13 +128,23 @@ SELECT EXISTS (
 ) AS post_exists;
 
 -- name: CreatePostComment :execresult
-INSERT INTO post_comments (post_id, author_id, body)
-VALUES (?, ?, ?);
+INSERT INTO post_comments (post_id, author_id, parent_comment_id, body)
+VALUES (?, ?, ?, ?);
+
+-- name: ReplyParentExists :one
+SELECT EXISTS (
+  SELECT 1
+  FROM post_comments
+  WHERE id = sqlc.arg(parent_comment_id)
+    AND post_id = sqlc.arg(post_id)
+    AND parent_comment_id IS NULL
+) AS reply_parent_exists;
 
 -- name: GetPostComment :one
 SELECT
   comment.id,
   comment.post_id,
+  comment.parent_comment_id,
   comment.body,
   comment.created_at,
   author.id AS author_id,
@@ -148,9 +158,25 @@ WHERE comment.id = sqlc.arg(comment_id)
 LIMIT 1;
 
 -- name: ListLatestPostComments :many
+WITH selected_roots AS (
+  SELECT root_comment.id
+  FROM post_comments AS root_comment
+  WHERE root_comment.post_id = sqlc.arg(post_id)
+    AND root_comment.parent_comment_id IS NULL
+  ORDER BY root_comment.id DESC
+  LIMIT ?
+),
+selected_replies AS (
+  SELECT
+    reply.id,
+    ROW_NUMBER() OVER (PARTITION BY reply.parent_comment_id ORDER BY reply.id DESC) AS reply_number
+  FROM post_comments AS reply
+  JOIN selected_roots AS root ON reply.parent_comment_id = root.id
+)
 SELECT
   comment.id,
   comment.post_id,
+  comment.parent_comment_id,
   comment.body,
   comment.created_at,
   author.id AS author_id,
@@ -159,15 +185,38 @@ SELECT
   author.avatar_content_type AS author_avatar_content_type,
   author.created_at AS author_created_at
 FROM post_comments AS comment
+JOIN selected_roots AS root
+  ON comment.id = root.id
+    OR (
+      comment.parent_comment_id = root.id
+      AND comment.id IN (
+        SELECT id FROM selected_replies WHERE reply_number <= 50
+      )
+    )
 JOIN users AS author ON author.id = comment.author_id
-WHERE comment.post_id = sqlc.arg(post_id)
-ORDER BY comment.id DESC
-LIMIT ?;
+ORDER BY root.id DESC, comment.parent_comment_id IS NOT NULL, comment.id ASC;
 
 -- name: ListPostCommentsBefore :many
+WITH selected_roots AS (
+  SELECT root_comment.id
+  FROM post_comments AS root_comment
+  WHERE root_comment.post_id = sqlc.arg(post_id)
+    AND root_comment.parent_comment_id IS NULL
+    AND root_comment.id < sqlc.arg(before_comment_id)
+  ORDER BY root_comment.id DESC
+  LIMIT ?
+),
+selected_replies AS (
+  SELECT
+    reply.id,
+    ROW_NUMBER() OVER (PARTITION BY reply.parent_comment_id ORDER BY reply.id DESC) AS reply_number
+  FROM post_comments AS reply
+  JOIN selected_roots AS root ON reply.parent_comment_id = root.id
+)
 SELECT
   comment.id,
   comment.post_id,
+  comment.parent_comment_id,
   comment.body,
   comment.created_at,
   author.id AS author_id,
@@ -176,11 +225,16 @@ SELECT
   author.avatar_content_type AS author_avatar_content_type,
   author.created_at AS author_created_at
 FROM post_comments AS comment
+JOIN selected_roots AS root
+  ON comment.id = root.id
+    OR (
+      comment.parent_comment_id = root.id
+      AND comment.id IN (
+        SELECT id FROM selected_replies WHERE reply_number <= 50
+      )
+    )
 JOIN users AS author ON author.id = comment.author_id
-WHERE comment.post_id = sqlc.arg(post_id)
-  AND comment.id < sqlc.arg(before_comment_id)
-ORDER BY comment.id DESC
-LIMIT ?;
+ORDER BY root.id DESC, comment.parent_comment_id IS NOT NULL, comment.id ASC;
 
 -- name: DeletePostCommentForAuthor :execresult
 DELETE FROM post_comments

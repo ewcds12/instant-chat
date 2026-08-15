@@ -22,6 +22,7 @@ type stubPostService struct {
 	images        []ImageUpload
 	commentPostID uint64
 	commentBody   string
+	commentParent *uint64
 	commentID     uint64
 }
 
@@ -55,10 +56,14 @@ func (s *stubPostService) Report(context.Context, uint64, uint64, string) error 
 func (s *stubPostService) CreateComment(
 	_ context.Context,
 	userID, postID uint64,
+	parentCommentID *uint64,
 	body string,
 ) (Comment, error) {
 	s.userID, s.commentPostID, s.commentBody = userID, postID, body
-	return testComment(), nil
+	s.commentParent = parentCommentID
+	comment := testComment()
+	comment.ParentCommentID = parentCommentID
+	return comment, nil
 }
 
 func (s *stubPostService) ListComments(
@@ -166,7 +171,7 @@ func TestHandlerCreateCommentUsesAuthenticatedAuthor(t *testing.T) {
 	request := httptest.NewRequest(
 		http.MethodPost,
 		"/api/v1/posts/41/comments",
-		strings.NewReader(`{"body":"Nice post."}`),
+		strings.NewReader(`{"body":"Nice post.","parent_comment_id":"20"}`),
 	)
 	request.SetPathValue("post_id", "41")
 	request.Header.Set("Authorization", "Bearer token")
@@ -177,11 +182,39 @@ func TestHandlerCreateCommentUsesAuthenticatedAuthor(t *testing.T) {
 	if recorder.Code != http.StatusCreated {
 		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
 	}
-	if service.userID != 7 || service.commentPostID != 41 || service.commentBody != "Nice post." {
+	var response commentResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if service.userID != 7 || service.commentPostID != 41 || service.commentBody != "Nice post." ||
+		service.commentParent == nil || *service.commentParent != 20 ||
+		response.ParentCommentID == nil || *response.ParentCommentID != "20" {
 		t.Fatalf(
-			"user = %d, post = %d, body = %q",
-			service.userID, service.commentPostID, service.commentBody,
+			"user = %d, post = %d, body = %q, parent = %v",
+			service.userID, service.commentPostID, service.commentBody, service.commentParent,
 		)
+	}
+}
+
+func TestHandlerCreateCommentRejectsInvalidParentID(t *testing.T) {
+	service := &stubPostService{}
+	handler := NewHandler(service)
+	request := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/posts/41/comments",
+		strings.NewReader(`{"body":"Reply","parent_comment_id":"invalid"}`),
+	)
+	request.SetPathValue("post_id", "41")
+	request.Header.Set("Authorization", "Bearer token")
+	recorder := httptest.NewRecorder()
+
+	authenticated(http.HandlerFunc(handler.CreateComment)).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	if service.commentBody != "" {
+		t.Fatalf("service received body = %q", service.commentBody)
 	}
 }
 

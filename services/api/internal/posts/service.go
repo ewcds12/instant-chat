@@ -113,13 +113,14 @@ func (s *Service) Report(
 func (s *Service) CreateComment(
 	ctx context.Context,
 	authorID, postID uint64,
+	parentCommentID *uint64,
 	body string,
 ) (Comment, error) {
 	body = strings.TrimSpace(body)
 	if body == "" || !utf8.ValidString(body) || utf8.RuneCountInString(body) > maximumCommentRunes {
 		return Comment{}, &InputError{Message: "Comment must contain 1 to 500 characters."}
 	}
-	return s.repository.CreateComment(ctx, authorID, postID, body)
+	return s.repository.CreateComment(ctx, authorID, postID, parentCommentID, body)
 }
 
 // ListComments returns one descending comment page.
@@ -140,9 +141,16 @@ func (s *Service) ListComments(
 		return CommentPage{}, err
 	}
 	var next *uint64
-	if len(comments) == limit {
-		cursor := comments[len(comments)-1].ID
-		next = &cursor
+	rootCount := 0
+	for _, comment := range comments {
+		if comment.ParentCommentID == nil {
+			rootCount++
+			cursor := comment.ID
+			next = &cursor
+		}
+	}
+	if rootCount < limit {
+		next = nil
 	}
 	return CommentPage{Comments: comments, NextCursor: next}, nil
 }

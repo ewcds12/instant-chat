@@ -25,6 +25,14 @@ class PostCommentsState {
   final bool isSubmitting;
   final String? errorMessage;
 
+  List<PostComment> get rootComments => comments
+      .where((comment) => comment.parentCommentId == null)
+      .toList(growable: false);
+
+  List<PostComment> repliesFor(String commentId) => comments
+      .where((comment) => comment.parentCommentId == commentId)
+      .toList(growable: false);
+
   PostCommentsState copyWith({
     List<PostComment>? comments,
     String? nextCursor,
@@ -106,17 +114,22 @@ class PostCommentsController extends AsyncNotifier<PostCommentsState> {
     }
   }
 
-  Future<bool> create(String body) async {
+  Future<bool> create(String body, {String? parentCommentId}) async {
     final current = state.requireValue;
     state = AsyncData(current.copyWith(isSubmitting: true, clearError: true));
     try {
       final comment = await ref
           .read(postGatewayProvider)
-          .createComment(accessToken: _accessToken, postId: postId, body: body);
+          .createComment(
+            accessToken: _accessToken,
+            postId: postId,
+            body: body,
+            parentCommentId: parentCommentId,
+          );
       final latest = state.requireValue;
       state = AsyncData(
         latest.copyWith(
-          comments: [comment, ...latest.comments],
+          comments: _insertComment(latest.comments, comment),
           isSubmitting: false,
           clearError: true,
         ),
@@ -134,7 +147,7 @@ class PostCommentsController extends AsyncNotifier<PostCommentsState> {
     }
   }
 
-  Future<bool> delete(String commentId) async {
+  Future<int?> delete(String commentId) async {
     final current = state.requireValue;
     try {
       await ref
@@ -145,21 +158,45 @@ class PostCommentsController extends AsyncNotifier<PostCommentsState> {
             commentId: commentId,
           );
       final latest = state.requireValue;
+      final removed = latest.comments
+          .where(
+            (comment) =>
+                comment.id == commentId || comment.parentCommentId == commentId,
+          )
+          .length;
       state = AsyncData(
         latest.copyWith(
           comments: latest.comments
-              .where((comment) => comment.id != commentId)
+              .where(
+                (comment) =>
+                    comment.id != commentId &&
+                    comment.parentCommentId != commentId,
+              )
               .toList(growable: false),
           clearError: true,
         ),
       );
-      return true;
+      return removed;
     } catch (error) {
       final latest = state.asData?.value ?? current;
       state = AsyncData(latest.copyWith(errorMessage: _commentError(error)));
-      return false;
+      return null;
     }
   }
+}
+
+List<PostComment> _insertComment(
+  List<PostComment> comments,
+  PostComment comment,
+) {
+  final parentID = comment.parentCommentId;
+  if (parentID == null) return [comment, ...comments];
+  final updated = [...comments];
+  final index = updated.lastIndexWhere(
+    (item) => item.id == parentID || item.parentCommentId == parentID,
+  );
+  updated.insert(index < 0 ? updated.length : index + 1, comment);
+  return updated;
 }
 
 String _commentError(Object error) {

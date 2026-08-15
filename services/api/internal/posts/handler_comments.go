@@ -8,7 +8,8 @@ import (
 )
 
 type commentRequest struct {
-	Body string `json:"body"`
+	Body            string  `json:"body"`
+	ParentCommentID *string `json:"parent_comment_id"`
 }
 
 // CreateComment persists one text comment.
@@ -22,12 +23,30 @@ func (h *Handler) CreateComment(w http.ResponseWriter, r *http.Request) {
 		writeInvalidArgument(w, r, "Request body must be a valid JSON object.")
 		return
 	}
-	comment, err := h.service.CreateComment(r.Context(), currentUserID(r), postID, body.Body)
+	parentCommentID, ok := optionalCommentID(w, r, body.ParentCommentID)
+	if !ok {
+		return
+	}
+	comment, err := h.service.CreateComment(
+		r.Context(), currentUserID(r), postID, parentCommentID, body.Body,
+	)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
 	}
 	httpapi.WriteJSON(w, http.StatusCreated, responseFromComment(comment))
+}
+
+func optionalCommentID(w http.ResponseWriter, r *http.Request, value *string) (*uint64, bool) {
+	if value == nil {
+		return nil, true
+	}
+	id, err := strconv.ParseUint(*value, 10, 64)
+	if err != nil || id == 0 {
+		writeInvalidArgument(w, r, "Parent comment ID must be a positive integer string.")
+		return nil, false
+	}
+	return &id, true
 }
 
 // ListComments returns one descending comment page.

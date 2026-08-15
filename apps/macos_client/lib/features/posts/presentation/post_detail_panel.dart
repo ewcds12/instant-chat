@@ -8,6 +8,7 @@ import 'package:instant_chat/features/posts/presentation/post_card.dart';
 import 'package:instant_chat/features/posts/presentation/post_comment_composer.dart';
 import 'package:instant_chat/features/posts/presentation/post_comment_row.dart';
 import 'package:instant_chat/features/posts/presentation/post_comments_controller.dart';
+import 'package:instant_chat/features/posts/presentation/post_detail_header.dart';
 
 class PostDetailPanel extends ConsumerStatefulWidget {
   const PostDetailPanel({
@@ -35,6 +36,7 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
   final _scrollController = ScrollController();
   final _composerFocus = FocusNode();
   late int _commentCount;
+  PostComment? _replyTarget;
 
   @override
   void initState() {
@@ -66,7 +68,7 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _DetailHeader(onBack: widget.onBack),
+        PostDetailHeader(onBack: widget.onBack),
         Expanded(child: _content(comments)),
         comments.when(
           loading: () => _composer(disabled: true),
@@ -98,12 +100,15 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
     bool loadingMore = false,
     bool failed = false,
   }) {
+    final roots = comments
+        .where((comment) => comment.parentCommentId == null)
+        .toList(growable: false);
     return ListView.separated(
       key: ValueKey('post-detail-${widget.post.id}'),
       controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 16),
       itemCount:
-          2 + comments.length + ((loading || loadingMore || failed) ? 1 : 0),
+          2 + roots.length + ((loading || loadingMore || failed) ? 1 : 0),
       separatorBuilder: (_, index) => index == 0
           ? Divider(color: Theme.of(context).colorScheme.outlineVariant)
           : const SizedBox.shrink(),
@@ -120,18 +125,18 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
                 accessToken: widget.session.accessToken,
                 isOwnPost: widget.post.author.id == widget.session.user.id,
                 onAction: widget.onPostAction,
-                onComment: _composerFocus.requestFocus,
+                onComment: _focusComposer,
                 onDownloadImage: widget.onDownloadImage,
               ),
             ),
           );
         }
         if (index == 1) {
-          return _CommentsLabel(count: _commentCount);
+          return PostCommentsLabel(count: _commentCount);
         }
         final commentIndex = index - 2;
-        if (commentIndex < comments.length) {
-          final comment = comments[commentIndex];
+        if (commentIndex < roots.length) {
+          final comment = roots[commentIndex];
           return Align(
             alignment: Alignment.topCenter,
             child: ConstrainedBox(
@@ -140,9 +145,13 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
               ),
               child: PostCommentRow(
                 comment: comment,
+                replies: comments
+                    .where((reply) => reply.parentCommentId == comment.id)
+                    .toList(growable: false),
                 accessToken: widget.session.accessToken,
-                isOwnComment: comment.author.id == widget.session.user.id,
-                onDelete: () => _delete(comment.id),
+                currentUserId: widget.session.user.id,
+                onReply: _reply,
+                onDelete: _delete,
               ),
             ),
           );
@@ -177,6 +186,8 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
       disabled: disabled,
       errorMessage: errorMessage,
       focusNode: _composerFocus,
+      replyingTo: _replyTarget,
+      onCancelReply: _cancelReply,
       onSend: _create,
     );
   }
@@ -212,88 +223,45 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
       ),
     );
     if (confirmed == true && mounted) {
-      final deleted = await ref
+      final removed = await ref
           .read(postCommentsControllerProvider(widget.post.id).notifier)
           .delete(commentId);
-      if (deleted && mounted) {
-        setState(() => _commentCount = (_commentCount - 1).clamp(0, 1 << 31));
-        widget.onCommentCountChanged(-1);
+      if (removed != null && mounted) {
+        setState(() {
+          _commentCount = (_commentCount - removed).clamp(0, 1 << 31);
+          if (_replyTarget?.id == commentId ||
+              _replyTarget?.parentCommentId == commentId) {
+            _replyTarget = null;
+          }
+        });
+        widget.onCommentCountChanged(-removed);
       }
     }
   }
 
-  Future<bool> _create(String body) async {
+  Future<bool> _create(String body, String? parentCommentId) async {
     final created = await ref
         .read(postCommentsControllerProvider(widget.post.id).notifier)
-        .create(body);
+        .create(body, parentCommentId: parentCommentId);
     if (created && mounted) {
-      setState(() => _commentCount++);
+      setState(() {
+        _commentCount++;
+        _replyTarget = null;
+      });
       widget.onCommentCountChanged(1);
     }
     return created;
   }
-}
 
-class _DetailHeader extends StatelessWidget {
-  const _DetailHeader({required this.onBack});
-
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: RetroMetrics.postDetailHeaderHeight,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.86),
-          border: Border(
-            bottom: BorderSide(
-              color: Theme.of(context).colorScheme.outlineVariant,
-            ),
-          ),
-        ),
-        child: Row(
-          children: [
-            const SizedBox(width: 10),
-            IconButton(
-              key: const Key('post-detail-back'),
-              tooltip: 'Back to Explore',
-              visualDensity: VisualDensity.compact,
-              onPressed: onBack,
-              icon: const Icon(Icons.arrow_back_rounded, size: 18),
-            ),
-            const SizedBox(width: 3),
-            Text('Post', style: Theme.of(context).textTheme.titleSmall),
-          ],
-        ),
-      ),
-    );
+  void _focusComposer() {
+    setState(() => _replyTarget = null);
+    _composerFocus.requestFocus();
   }
-}
 
-class _CommentsLabel extends StatelessWidget {
-  const _CommentsLabel({required this.count});
-
-  final int count;
-
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.topCenter,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          maxWidth: RetroMetrics.exploreContentMaxWidth,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 10, 24, 3),
-          child: Text(
-            count == 1 ? '1 Comment' : '$count Comments',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-      ),
-    );
+  void _reply(PostComment comment) {
+    setState(() => _replyTarget = comment);
+    _composerFocus.requestFocus();
   }
+
+  void _cancelReply() => setState(() => _replyTarget = null);
 }

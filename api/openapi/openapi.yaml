@@ -1652,12 +1652,17 @@ components:
           type: string
           minLength: 1
           maxLength: 500
+        parent_comment_id:
+          oneOf:
+            - $ref: "#/components/schemas/ResourceID"
+            - type: "null"
     PublicPostComment:
       type: object
       additionalProperties: false
       required:
         - id
         - post_id
+        - parent_comment_id
         - author
         - body
         - created_at
@@ -1666,6 +1671,10 @@ components:
           $ref: "#/components/schemas/ResourceID"
         post_id:
           $ref: "#/components/schemas/ResourceID"
+        parent_comment_id:
+          oneOf:
+            - $ref: "#/components/schemas/ResourceID"
+            - type: "null"
         author:
           $ref: "#/components/schemas/PublicUser"
         body:
@@ -1684,7 +1693,7 @@ components:
       properties:
         comments:
           type: array
-          maxItems: 50
+          maxItems: 2550
           items:
             $ref: "#/components/schemas/PublicPostComment"
         next_cursor:

@@ -2,6 +2,7 @@ package posts
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"time"
@@ -13,6 +14,7 @@ import (
 func (r *MySQLRepository) CreateComment(
 	ctx context.Context,
 	authorID, postID uint64,
+	parentCommentID *uint64,
 	body string,
 ) (Comment, error) {
 	exists, err := r.queries.PostExists(ctx, postID)
@@ -22,8 +24,21 @@ func (r *MySQLRepository) CreateComment(
 	if !exists {
 		return Comment{}, ErrPostNotFound
 	}
+	if parentCommentID != nil {
+		exists, err := r.queries.ReplyParentExists(ctx, store.ReplyParentExistsParams{
+			ParentCommentID: *parentCommentID,
+			PostID:          postID,
+		})
+		if err != nil {
+			return Comment{}, fmt.Errorf("check reply parent: %w", err)
+		}
+		if !exists {
+			return Comment{}, ErrCommentNotFound
+		}
+	}
 	result, err := r.queries.CreatePostComment(ctx, store.CreatePostCommentParams{
-		PostID: postID, AuthorID: authorID, Body: body,
+		PostID: postID, AuthorID: authorID,
+		ParentCommentID: nullableCommentID(parentCommentID), Body: body,
 	})
 	if err != nil {
 		return Comment{}, fmt.Errorf("create post comment: %w", err)
@@ -40,7 +55,7 @@ func (r *MySQLRepository) CreateComment(
 		return Comment{}, fmt.Errorf("read created post comment: %w", err)
 	}
 	return commentFromColumns(
-		row.ID, row.PostID, row.Body, row.CreatedAt, row.AuthorID,
+		row.ID, row.PostID, row.ParentCommentID, row.Body, row.CreatedAt, row.AuthorID,
 		row.AuthorUsername, row.AuthorDisplayName,
 		row.AuthorAvatarContentType.Valid, row.AuthorCreatedAt,
 	), nil
@@ -70,7 +85,7 @@ func (r *MySQLRepository) ListComments(
 		comments := make([]Comment, 0, len(rows))
 		for _, row := range rows {
 			comments = append(comments, commentFromColumns(
-				row.ID, row.PostID, row.Body, row.CreatedAt, row.AuthorID,
+				row.ID, row.PostID, row.ParentCommentID, row.Body, row.CreatedAt, row.AuthorID,
 				row.AuthorUsername, row.AuthorDisplayName,
 				row.AuthorAvatarContentType.Valid, row.AuthorCreatedAt,
 			))
@@ -86,7 +101,7 @@ func (r *MySQLRepository) ListComments(
 	comments := make([]Comment, 0, len(rows))
 	for _, row := range rows {
 		comments = append(comments, commentFromColumns(
-			row.ID, row.PostID, row.Body, row.CreatedAt, row.AuthorID,
+			row.ID, row.PostID, row.ParentCommentID, row.Body, row.CreatedAt, row.AuthorID,
 			row.AuthorUsername, row.AuthorDisplayName,
 			row.AuthorAvatarContentType.Valid, row.AuthorCreatedAt,
 		))
@@ -120,6 +135,7 @@ func (r *MySQLRepository) DeleteComment(
 
 func commentFromColumns(
 	id, postID uint64,
+	parentCommentID sql.NullInt64,
 	body string,
 	createdAt time.Time,
 	authorID uint64,
@@ -128,10 +144,26 @@ func commentFromColumns(
 	authorCreatedAt time.Time,
 ) Comment {
 	return Comment{
-		ID: id, PostID: postID, Body: body, CreatedAt: createdAt,
+		ID: id, PostID: postID, ParentCommentID: commentIDPointer(parentCommentID),
+		Body: body, CreatedAt: createdAt,
 		Author: Author{
 			ID: authorID, Username: authorUsername, DisplayName: authorDisplayName,
 			HasAvatar: authorHasAvatar, CreatedAt: authorCreatedAt,
 		},
 	}
+}
+
+func nullableCommentID(value *uint64) sql.NullInt64 {
+	if value == nil {
+		return sql.NullInt64{}
+	}
+	return sql.NullInt64{Int64: int64(*value), Valid: true}
+}
+
+func commentIDPointer(value sql.NullInt64) *uint64 {
+	if !value.Valid {
+		return nil
+	}
+	id := uint64(value.Int64)
+	return &id
 }

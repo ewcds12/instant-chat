@@ -35,12 +35,14 @@ void main() {
       accessToken: 'access-token',
       postId: '41',
       body: 'Nice photo',
+      parentCommentId: '4',
     );
 
     expect(adapter.method, 'POST');
     expect(adapter.path, '/api/v1/posts/41/comments');
-    expect(adapter.data, {'body': 'Nice photo'});
+    expect(adapter.data, {'body': 'Nice photo', 'parent_comment_id': '4'});
     expect(comment.body, 'Nice photo');
+    expect(comment.parentCommentId, '4');
     expect(comment.author.displayName, 'Retro User');
   });
 
@@ -143,6 +145,7 @@ final _post = {
 final _comment = {
   'id': '5',
   'post_id': '41',
+  'parent_comment_id': '4',
   'author': _post['author'],
   'body': 'Nice photo',
   'created_at': '2026-08-09T09:30:00Z',

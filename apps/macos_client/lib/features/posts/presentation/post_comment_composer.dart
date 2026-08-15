@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
+import 'package:instant_chat/features/posts/domain/post_comment.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 
 class PostCommentComposer extends StatefulWidget {
@@ -9,7 +10,9 @@ class PostCommentComposer extends StatefulWidget {
     required this.accessToken,
     required this.disabled,
     required this.onSend,
+    required this.onCancelReply,
     required this.focusNode,
+    this.replyingTo,
     this.errorMessage,
     super.key,
   });
@@ -17,8 +20,10 @@ class PostCommentComposer extends StatefulWidget {
   final AuthUser user;
   final String accessToken;
   final bool disabled;
-  final Future<bool> Function(String body) onSend;
+  final Future<bool> Function(String body, String? parentCommentId) onSend;
+  final VoidCallback onCancelReply;
   final FocusNode focusNode;
+  final PostComment? replyingTo;
   final String? errorMessage;
 
   @override
@@ -66,6 +71,42 @@ class _PostCommentComposerState extends State<PostCommentComposer> {
                 ).textTheme.bodySmall?.copyWith(color: colors.error),
               ),
               const SizedBox(height: 7),
+            ],
+            if (widget.replyingTo case final reply?) ...[
+              Row(
+                key: const Key('post-comment-reply-context'),
+                children: [
+                  Icon(
+                    Icons.reply_rounded,
+                    size: 14,
+                    color: colors.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Replying to ${reply.author.displayName}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    key: const Key('post-comment-cancel-reply'),
+                    tooltip: 'Cancel reply',
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: RetroMetrics.postCommentActionHeight,
+                      height: RetroMetrics.postCommentActionHeight,
+                    ),
+                    onPressed: widget.onCancelReply,
+                    icon: const Icon(Icons.close_rounded, size: 14),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 5),
             ],
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -142,7 +183,9 @@ class _PostCommentComposerState extends State<PostCommentComposer> {
   Future<void> _send() async {
     final body = _controller.text.trim();
     if (body.isEmpty || widget.disabled) return;
-    if (await widget.onSend(body) && mounted) {
+    final target = widget.replyingTo;
+    final parentCommentId = target?.parentCommentId ?? target?.id;
+    if (await widget.onSend(body, parentCommentId) && mounted) {
       _controller.clear();
       widget.focusNode.requestFocus();
     }

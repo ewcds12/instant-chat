@@ -31,11 +31,12 @@ type postResponse struct {
 }
 
 type commentResponse struct {
-	ID        string         `json:"id"`
-	PostID    string         `json:"post_id"`
-	Author    authorResponse `json:"author"`
-	Body      string         `json:"body"`
-	CreatedAt time.Time      `json:"created_at"`
+	ID              string         `json:"id"`
+	PostID          string         `json:"post_id"`
+	ParentCommentID *string        `json:"parent_comment_id"`
+	Author          authorResponse `json:"author"`
+	Body            string         `json:"body"`
+	CreatedAt       time.Time      `json:"created_at"`
 }
 
 func responseFromPost(post Post) postResponse {
@@ -55,12 +56,17 @@ func responseFromPost(post Post) postResponse {
 }
 
 func responseFromComment(comment Comment) commentResponse {
-	return commentResponse{
+	response := commentResponse{
 		ID:     strconv.FormatUint(comment.ID, 10),
 		PostID: strconv.FormatUint(comment.PostID, 10),
 		Author: responseFromAuthor(comment.Author), Body: comment.Body,
 		CreatedAt: comment.CreatedAt.UTC(),
 	}
+	if comment.ParentCommentID != nil {
+		value := strconv.FormatUint(*comment.ParentCommentID, 10)
+		response.ParentCommentID = &value
+	}
+	return response
 }
 
 func responseFromAuthor(author Author) authorResponse {

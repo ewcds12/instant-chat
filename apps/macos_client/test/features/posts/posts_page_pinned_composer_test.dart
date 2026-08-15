@@ -9,6 +9,7 @@ import 'package:instant_chat/features/contacts/presentation/contacts_controller.
 import 'package:instant_chat/features/posts/domain/post_gateway.dart';
 import 'package:instant_chat/features/posts/domain/post_comment.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
+import 'package:instant_chat/features/posts/presentation/post_comment_composer.dart';
 import 'package:instant_chat/features/posts/presentation/post_comment_row.dart';
 import 'package:instant_chat/features/posts/presentation/posts_controller.dart';
 import 'package:instant_chat/features/posts/presentation/posts_page.dart';
@@ -89,23 +90,37 @@ void main() {
     expect(find.text('Nice photo'), findsOneWidget);
   });
 
-  testWidgets('renders a hairline divider below each comment', (tester) async {
+  testWidgets('renders a nested reply and compact reply action', (
+    tester,
+  ) async {
     final comment = PostComment(
       id: 'comment-1',
       postId: 'post-1',
+      parentCommentId: null,
       author: _author,
       body: 'Nice photo',
       createdAt: DateTime.utc(2026, 8, 14, 11),
     );
+    final reply = PostComment(
+      id: 'comment-2',
+      postId: 'post-1',
+      parentCommentId: 'comment-1',
+      author: _author,
+      body: 'Thanks',
+      createdAt: DateTime.utc(2026, 8, 14, 12),
+    );
+    PostComment? replyTarget;
     await tester.pumpWidget(
       MaterialApp(
         theme: RetroTheme.data,
         home: Scaffold(
           body: PostCommentRow(
             comment: comment,
+            replies: [reply],
             accessToken: 'access-token',
-            isOwnComment: false,
-            onDelete: () {},
+            currentUserId: '8',
+            onReply: (comment) => replyTarget = comment,
+            onDelete: (_) {},
           ),
         ),
       ),
@@ -116,6 +131,68 @@ void main() {
     );
     expect(dividerFinder, findsOneWidget);
     expect(tester.widget<Divider>(dividerFinder).thickness, 1);
+    expect(
+      find.byKey(const Key('post-comment-body-comment-2')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('post-comment-reply-comment-2')));
+    expect(replyTarget?.id, 'comment-2');
+  });
+
+  testWidgets('composer sends a reply to the root comment', (tester) async {
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+    final root = PostComment(
+      id: 'comment-1',
+      postId: 'post-1',
+      parentCommentId: null,
+      author: _author,
+      body: 'Nice photo',
+      createdAt: DateTime.utc(2026, 8, 14, 11),
+    );
+    final reply = PostComment(
+      id: 'comment-2',
+      postId: 'post-1',
+      parentCommentId: root.id,
+      author: _author,
+      body: 'Thanks',
+      createdAt: DateTime.utc(2026, 8, 14, 12),
+    );
+    String? submittedParent;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: RetroTheme.data,
+        home: Scaffold(
+          body: PostCommentComposer(
+            user: _session.user,
+            accessToken: _session.accessToken,
+            disabled: false,
+            replyingTo: reply,
+            focusNode: focusNode,
+            onCancelReply: () {},
+            onSend: (body, parentCommentId) async {
+              submittedParent = parentCommentId;
+              return true;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Replying to Operator'), findsOneWidget);
+    await tester.enterText(find.byKey(const Key('post-comment-field')), 'Yes');
+    await tester.pump();
+    expect(
+      tester
+          .widget<IconButton>(find.byKey(const Key('post-comment-send')))
+          .onPressed,
+      isNotNull,
+    );
+    await tester.tap(find.byKey(const Key('post-comment-send')));
+    await tester.pumpAndSettle();
+
+    expect(submittedParent, root.id);
   });
 }
 
@@ -166,9 +243,10 @@ class _StubContactsController extends ContactsController {
 }
 
 class _StubPostGateway implements PostGateway {
-  const _StubPostGateway(this.posts);
+  _StubPostGateway(this.posts);
 
   final List<PublicPost> posts;
+  var _commentSequence = 0;
 
   @override
   Future<PublicPostPage> list({
@@ -214,13 +292,18 @@ class _StubPostGateway implements PostGateway {
     required String accessToken,
     required String postId,
     required String body,
-  }) async => PostComment(
-    id: 'comment-1',
-    postId: postId,
-    author: _author,
-    body: body,
-    createdAt: DateTime.utc(2026, 8, 14, 11),
-  );
+    String? parentCommentId,
+  }) async {
+    _commentSequence++;
+    return PostComment(
+      id: 'comment-$_commentSequence',
+      postId: postId,
+      parentCommentId: parentCommentId,
+      author: _author,
+      body: body,
+      createdAt: DateTime.utc(2026, 8, 14, 11),
+    );
+  }
 
   @override
   Future<void> deleteComment({

@@ -13,6 +13,7 @@ type fakeRepository struct {
 	posts         []Post
 	reported      string
 	commentBody   string
+	commentParent *uint64
 	comments      []Comment
 	commentLimit  int
 	err           error
@@ -52,9 +53,11 @@ func (f *fakeRepository) Report(_ context.Context, _, _ uint64, reason string) e
 func (f *fakeRepository) CreateComment(
 	_ context.Context,
 	_, _ uint64,
+	parentCommentID *uint64,
 	body string,
 ) (Comment, error) {
 	f.commentBody = body
+	f.commentParent = parentCommentID
 	return Comment{ID: 21, Body: body}, f.err
 }
 
@@ -152,7 +155,7 @@ func TestServiceCreateCommentTrimsBody(t *testing.T) {
 	repository := &fakeRepository{}
 	service := NewService(repository)
 
-	comment, err := service.CreateComment(context.Background(), 7, 41, "  Nice post.  ")
+	comment, err := service.CreateComment(context.Background(), 7, 41, nil, "  Nice post.  ")
 
 	if err != nil || comment.ID != 21 || repository.commentBody != "Nice post." {
 		t.Fatalf("CreateComment() = %+v, %v; body = %q", comment, err, repository.commentBody)
@@ -162,11 +165,23 @@ func TestServiceCreateCommentTrimsBody(t *testing.T) {
 func TestServiceCreateCommentRejectsEmptyBody(t *testing.T) {
 	service := NewService(&fakeRepository{})
 
-	_, err := service.CreateComment(context.Background(), 7, 41, "   ")
+	_, err := service.CreateComment(context.Background(), 7, 41, nil, "   ")
 
 	var inputError *InputError
 	if !errors.As(err, &inputError) {
 		t.Fatalf("CreateComment() error = %v, want InputError", err)
+	}
+}
+
+func TestServiceCreateReplyPreservesParent(t *testing.T) {
+	repository := &fakeRepository{}
+	service := NewService(repository)
+	parentID := uint64(20)
+
+	_, err := service.CreateComment(context.Background(), 7, 41, &parentID, "Reply")
+
+	if err != nil || repository.commentParent == nil || *repository.commentParent != parentID {
+		t.Fatalf("CreateComment() error = %v, parent = %v", err, repository.commentParent)
 	}
 }
 
@@ -188,5 +203,21 @@ func TestServiceListCommentsUsesDefaultLimitAndReturnsCursor(t *testing.T) {
 	}
 	if page.NextCursor == nil || *page.NextCursor != comments[len(comments)-1].ID {
 		t.Fatalf("next cursor = %v", page.NextCursor)
+	}
+}
+
+func TestServiceListCommentsCursorUsesLastRoot(t *testing.T) {
+	parentID := uint64(100)
+	comments := []Comment{
+		{ID: 100},
+		{ID: 101, ParentCommentID: &parentID},
+	}
+	repository := &fakeRepository{comments: comments}
+	service := NewService(repository)
+
+	page, err := service.ListComments(context.Background(), 41, nil, 1)
+
+	if err != nil || page.NextCursor == nil || *page.NextCursor != 100 {
+		t.Fatalf("ListComments() = %+v, %v", page, err)
 	}
 }

@@ -98,11 +98,12 @@ type Post struct {
 }
 
 type PostComment struct {
-	ID        uint64    `db:"id"`
-	PostID    uint64    `db:"post_id"`
-	AuthorID  uint64    `db:"author_id"`
-	Body      string    `db:"body"`
-	CreatedAt time.Time `db:"created_at"`
+	ID              uint64        `db:"id"`
+	PostID          uint64        `db:"post_id"`
+	AuthorID        uint64        `db:"author_id"`
+	Body            string        `db:"body"`
+	CreatedAt       time.Time     `db:"created_at"`
+	ParentCommentID sql.NullInt64 `db:"parent_comment_id"`
 }
 
 type PostImage struct {

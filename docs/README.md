@@ -30,7 +30,7 @@ The authentication, contacts, direct conversations, and persisted message founda
 - The Go API provides health, registration, sign-in, refresh, sign-out, current-user, profile update, and authenticated avatar endpoints.
 - The Go API enforces unique bilateral contact relationships and unique direct conversations.
 - The health check verifies the MySQL connection with `PingContext`.
-- MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, members, ordered messages, public posts, post comments, and reports.
+- MySQL migrations and sqlc queries define users, opaque session tokens, contact relationships, conversations, members, ordered messages, public posts, single-level threaded post comments, and reports.
 - Docker Compose provides pinned MySQL 8.4 and source-built MinIO development services.
 - OpenAPI defines the implemented HTTP and WebSocket event contracts.
 

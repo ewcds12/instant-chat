@@ -136,11 +136,12 @@ class DioPostGateway implements PostGateway {
     required String accessToken,
     required String postId,
     required String body,
+    String? parentCommentId,
   }) async {
     final response = await apiRequest(
       () => _dio.post<Object?>(
         '/api/v1/posts/$postId/comments',
-        data: {'body': body},
+        data: {'body': body, 'parent_comment_id': ?parentCommentId},
         options: _options(accessToken),
       ),
     );

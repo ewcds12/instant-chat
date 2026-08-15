@@ -38,6 +38,7 @@ abstract interface class PostGateway {
     required String accessToken,
     required String postId,
     required String body,
+    String? parentCommentId,
   });
 
   Future<void> deleteComment({

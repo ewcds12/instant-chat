@@ -130,6 +130,11 @@ abstract final class RetroMetrics {
   static const postDetailHeaderHeight = 44.0;
   static const postCommentAvatarRadius = 15.0;
   static const postCommentVerticalInset = 11.0;
+  static const postReplyAvatarRadius = 12.0;
+  static const postReplyIndent = 64.0;
+  static const postReplyHorizontalInset = 10.0;
+  static const postReplyVerticalInset = 8.0;
+  static const postCommentActionHeight = 22.0;
   static const postCommentComposerInset = 12.0;
   static const postCommentComposerCorner = 17.0;
   static const postCommentSendDiameter = 28.0;

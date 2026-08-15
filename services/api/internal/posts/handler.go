@@ -18,7 +18,7 @@ type postService interface {
 	Image(context.Context, uint64) (ImageFile, error)
 	Delete(context.Context, uint64, uint64) error
 	Report(context.Context, uint64, uint64, string) error
-	CreateComment(context.Context, uint64, uint64, string) (Comment, error)
+	CreateComment(context.Context, uint64, uint64, *uint64, string) (Comment, error)
 	ListComments(context.Context, uint64, *uint64, int) (CommentPage, error)
 	DeleteComment(context.Context, uint64, uint64, uint64) error
 }
