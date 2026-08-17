@@ -156,6 +156,12 @@ class MainFlutterWindow: NSWindow {
     }
   }
 
+  static func refreshAfterModeChange(_ window: NSWindow) {
+    window.contentViewController?.view.needsLayout = true
+    window.contentViewController?.view.needsDisplay = true
+    window.makeKeyAndOrderFront(nil)
+  }
+
   @objc private func repositionWindowControlsAfterResize() {
     Self.repositionWindowControls(in: self)
   }
@@ -204,6 +210,12 @@ private final class AppWindowModeChannel {
         for: mode,
         animated: MainFlutterWindow.animatesModeTransitions
       )
+      DispatchQueue.main.async { [weak window] in
+        guard let window else {
+          return
+        }
+        MainFlutterWindow.refreshAfterModeChange(window)
+      }
       result(nil)
     }
   }

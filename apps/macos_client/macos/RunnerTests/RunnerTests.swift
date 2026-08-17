@@ -60,6 +60,20 @@ class RunnerTests: XCTestCase {
     XCTAssertTrue(window.standardWindowButton(.zoomButton)?.isEnabled ?? false)
   }
 
+  func testModeChangeRefreshesAndPresentsTheFlutterView() {
+    let window = makeWindow()
+    let controller = NSViewController()
+    controller.view = NSView(frame: window.contentLayoutRect)
+    window.contentViewController = controller
+    window.orderOut(nil)
+
+    MainFlutterWindow.refreshAfterModeChange(window)
+
+    XCTAssertTrue(controller.view.needsLayout)
+    XCTAssertTrue(controller.view.needsDisplay)
+    XCTAssertTrue(window.isVisible)
+  }
+
   func testWindowChromeUsesTheFullSizeContentView() {
     let window = NSWindow(
       contentRect: .zero,
