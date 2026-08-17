@@ -9,7 +9,7 @@ enum AppWindowMode: String {
 class MainFlutterWindow: NSWindow {
   static let authenticationFrameSize = NSSize(width: 280, height: 360)
   static let mainFrameSize = NSSize(width: 1150, height: 750)
-  static let mainMinimumFrameSize = NSSize(width: 960, height: 620)
+  static let mainMinimumFrameSize = NSSize(width: 1050, height: 680)
   static let initialFrameSize = authenticationFrameSize
   static let animatesModeTransitions = false
   private static let trafficLightOffset = NSPoint(x: 12, y: -8)

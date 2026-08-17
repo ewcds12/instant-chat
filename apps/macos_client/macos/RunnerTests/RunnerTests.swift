@@ -13,6 +13,21 @@ class RunnerTests: XCTestCase {
     XCTAssertFalse(MainFlutterWindow.animatesModeTransitions)
   }
 
+  func testMainWindowStartsLargerThanItsMinimumSize() {
+    XCTAssertEqual(MainFlutterWindow.mainFrameSize.width, 1150)
+    XCTAssertEqual(MainFlutterWindow.mainFrameSize.height, 750)
+    XCTAssertEqual(MainFlutterWindow.mainMinimumFrameSize.width, 1050)
+    XCTAssertEqual(MainFlutterWindow.mainMinimumFrameSize.height, 680)
+    XCTAssertGreaterThan(
+      MainFlutterWindow.mainFrameSize.width,
+      MainFlutterWindow.mainMinimumFrameSize.width
+    )
+    XCTAssertGreaterThan(
+      MainFlutterWindow.mainFrameSize.height,
+      MainFlutterWindow.mainMinimumFrameSize.height
+    )
+  }
+
   func testAuthenticationWindowIsFixedAndCompact() {
     let window = makeWindow()
 
