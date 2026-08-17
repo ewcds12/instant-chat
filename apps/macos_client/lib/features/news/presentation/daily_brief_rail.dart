@@ -81,29 +81,27 @@ class DailyBriefPanel extends StatelessWidget {
     if (value.items.isEmpty) {
       return const Center(child: Text('No headlines are available today.'));
     }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final available =
-            (constraints.maxHeight / RetroMetrics.dailyBriefItemHeight)
-                .floor()
-                .clamp(1, value.items.length);
-        final visibleItems = value.items
-            .take(available)
-            .toList(growable: false);
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final item in visibleItems) ...[
-              SizedBox(
-                height: RetroMetrics.dailyBriefItemHeight,
-                child: _NewsRow(item: item, onOpen: onOpen),
+    return Builder(
+      builder: (context) => ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: ListView.separated(
+          primary: false,
+          padding: EdgeInsets.zero,
+          itemCount: value.items.length,
+          itemBuilder: (context, index) {
+            final item = value.items[index];
+            return ConstrainedBox(
+              key: ValueKey('daily-news-${item.id}'),
+              constraints: const BoxConstraints(
+                minHeight: RetroMetrics.dailyBriefItemMinHeight,
               ),
-              if (item != visibleItems.last)
-                Divider(color: Theme.of(context).colorScheme.outlineVariant),
-            ],
-          ],
-        );
-      },
+              child: _NewsRow(item: item, onOpen: onOpen),
+            );
+          },
+          separatorBuilder: (context, index) =>
+              Divider(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
+      ),
     );
   }
 

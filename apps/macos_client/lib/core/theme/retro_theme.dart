@@ -114,7 +114,7 @@ abstract final class RetroMetrics {
   static const dailyBriefWidth = 300.0;
   static const dailyBriefBreakpoint = 900.0;
   static const dailyBriefInset = 18.0;
-  static const dailyBriefItemHeight = 88.0;
+  static const dailyBriefItemMinHeight = 88.0;
   static const dailyBriefFooterIconSize = 14.0;
   static const exploreAvatarRadius = 20.0;
   static const explorePostHorizontalInset = 24.0;

@@ -52,6 +52,42 @@ void main() {
     await tester.tap(find.text('Try Again'));
     expect(retried, isTrue);
   });
+
+  testWidgets('grows a headline row when title and summary wrap', (
+    tester,
+  ) async {
+    const itemId = 'long-headline';
+    await tester.pumpWidget(
+      _app(
+        DailyBriefPanel(
+          brief: AsyncData(
+            DailyBrief(
+              items: [
+                DailyNewsItem(
+                  id: itemId,
+                  title: '2026 East Nusa Tenggara earthquake affects region',
+                  summary:
+                      'A magnitude-7.7 earthquake strikes off the coast of '
+                      'Flores, Indonesia, causing widespread disruption.',
+                  source: 'Wikipedia Current Events',
+                  url: Uri.parse('https://en.wikipedia.org/wiki/Earthquake'),
+                ),
+              ],
+              updatedAt: DateTime.utc(2026, 8, 17),
+            ),
+          ),
+          onRetry: () {},
+          onOpen: (_) {},
+        ),
+      ),
+    );
+
+    expect(tester.takeException(), isNull);
+    expect(
+      tester.getSize(find.byKey(const ValueKey('daily-news-$itemId'))).height,
+      greaterThan(RetroMetrics.dailyBriefItemMinHeight),
+    );
+  });
 }
 
 Widget _app(Widget child) {
