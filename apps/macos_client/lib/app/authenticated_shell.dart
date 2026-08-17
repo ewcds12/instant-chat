@@ -46,8 +46,11 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
               session: widget.session,
               selectedIndex: _selectedIndex,
               onSelect: _selectPage,
-              onOpenProfile: () =>
-                  showProfileSheet(context: context, session: widget.session),
+              onOpenProfile: () => showProfileSheet(
+                context: context,
+                session: widget.session,
+                onSignOut: widget.onSignOut,
+              ),
             ),
             VerticalDivider(color: colors.outlineVariant),
             Expanded(
@@ -61,7 +64,7 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
                   _exploreWasOpened
                       ? const PostsPage()
                       : const SizedBox.shrink(),
-                  SystemStatusPage(onSignOut: widget.onSignOut),
+                  const SystemStatusPage(),
                 ],
               ),
             ),

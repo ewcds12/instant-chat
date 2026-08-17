@@ -6,9 +6,7 @@ import 'package:instant_chat/features/system_status/domain/service_health.dart';
 import 'package:instant_chat/features/system_status/presentation/system_status_provider.dart';
 
 class SystemStatusPage extends ConsumerWidget {
-  const SystemStatusPage({required this.onSignOut, super.key});
-
-  final Future<void> Function() onSignOut;
+  const SystemStatusPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -44,21 +42,10 @@ class SystemStatusPage extends ConsumerWidget {
                 const SizedBox(height: RetroMetrics.spaceMedium),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Wrap(
-                    spacing: RetroMetrics.spaceSmall,
-                    runSpacing: RetroMetrics.spaceSmall,
-                    children: [
-                      FilledButton.icon(
-                        onPressed: () => ref.invalidate(serviceHealthProvider),
-                        icon: const Icon(Icons.refresh_rounded, size: 19),
-                        label: const Text('Check again'),
-                      ),
-                      TextButton.icon(
-                        onPressed: onSignOut,
-                        icon: const Icon(Icons.logout_rounded, size: 19),
-                        label: const Text('Sign out'),
-                      ),
-                    ],
+                  child: FilledButton.icon(
+                    onPressed: () => ref.invalidate(serviceHealthProvider),
+                    icon: const Icon(Icons.refresh_rounded, size: 19),
+                    label: const Text('Check again'),
                   ),
                 ),
               ],

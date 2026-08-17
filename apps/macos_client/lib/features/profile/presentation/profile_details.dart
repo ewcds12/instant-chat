@@ -9,7 +9,6 @@ class ProfileDetails extends StatelessWidget {
     required this.user,
     required this.onEditName,
     required this.onEditGender,
-    required this.onEditRegion,
     required this.onEditID,
     super.key,
   });
@@ -17,7 +16,6 @@ class ProfileDetails extends StatelessWidget {
   final AuthUser user;
   final VoidCallback onEditName;
   final VoidCallback onEditGender;
-  final VoidCallback onEditRegion;
   final VoidCallback onEditID;
 
   @override
@@ -51,11 +49,6 @@ class ProfileDetails extends StatelessWidget {
               onTap: onEditGender,
             ),
             ProfileRow(
-              label: 'Region',
-              value: user.region ?? 'Not set',
-              onTap: onEditRegion,
-            ),
-            ProfileRow(
               label: 'ID',
               value: '@${user.username}',
               onTap: onEditID,
@@ -67,9 +60,64 @@ class ProfileDetails extends StatelessWidget {
   }
 }
 
+class ProfileAccountActions extends StatelessWidget {
+  const ProfileAccountActions({required this.onSignOut, super.key});
+
+  final VoidCallback onSignOut;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(
+            left: RetroMetrics.spaceMedium,
+            bottom: RetroMetrics.spaceSmall,
+          ),
+          child: Text(
+            'Account',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+          ),
+        ),
+        ProfileRows(
+          children: [
+            Material(
+              color: Colors.transparent,
+              child: InkWell(
+                key: const Key('profile-sign-out'),
+                onTap: onSignOut,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: RetroMetrics.spaceLarge,
+                  ),
+                  child: SizedBox(
+                    height: RetroMetrics.profileRowHeight,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Sign out',
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodyLarge?.copyWith(color: colors.error),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 enum ProfileField {
   name('Name', 'Name', 'Your display name'),
-  region('Region', 'Region', 'Your region'),
   id('ID', 'ID', 'your_id');
 
   const ProfileField(this.title, this.label, this.hintText);
@@ -80,13 +128,11 @@ enum ProfileField {
 
   String value(AuthUser user) => switch (this) {
     ProfileField.name => user.displayName,
-    ProfileField.region => user.region ?? '',
     ProfileField.id => user.username,
   };
 
   ProfileUpdate update(AuthUser user, String value) => switch (this) {
     ProfileField.name => profileUpdate(user, displayName: value),
-    ProfileField.region => profileUpdate(user, region: value),
     ProfileField.id => profileUpdate(user, username: value),
   };
 }

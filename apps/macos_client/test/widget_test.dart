@@ -61,6 +61,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Online'), findsOneWidget);
+    expect(find.text('Sign out'), findsNothing);
     expect(
       find.textContaining('API and MySQL are operational'),
       findsOneWidget,
@@ -163,12 +164,11 @@ void main() {
   testWidgets('shows the modern navigation and filters conversations', (
     tester,
   ) async {
+    final authController = _StubAuthController(AuthState(session: _session));
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          authControllerProvider.overrideWith(
-            () => _StubAuthController(AuthState(session: _session)),
-          ),
+          authControllerProvider.overrideWith(() => authController),
           contactsControllerProvider.overrideWith(
             () => _StubContactsController(_emptyContacts),
           ),
@@ -205,7 +205,11 @@ void main() {
     expect(find.byKey(const Key('profile-sheet')), findsOneWidget);
     expect(find.text('Profile Photo'), findsNothing);
     expect(find.text('Gender'), findsOneWidget);
-    expect(find.text('Region'), findsOneWidget);
+    expect(find.text('Region'), findsNothing);
+    expect(find.text('Account'), findsOneWidget);
+    expect(find.byKey(const Key('profile-sign-out')), findsOneWidget);
+    expect(find.text('Notifications'), findsNothing);
+    expect(find.text('Privacy'), findsNothing);
     await tester.tap(find.byKey(const Key('profile-sheet-close')));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('profile-sheet')), findsNothing);
@@ -218,6 +222,14 @@ void main() {
 
     expect(find.text('Other User'), findsNothing);
     expect(find.text('No matching conversations'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('profile-account-card')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('profile-sign-out')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('profile-sheet')), findsNothing);
+    expect(authController.signOutCalls, 1);
   });
 
   testWidgets('opens a direct text channel and sends a message with Enter', (
@@ -296,9 +308,15 @@ class _StubAuthController extends AuthController {
   _StubAuthController(this.authState);
 
   final AuthState authState;
+  var signOutCalls = 0;
 
   @override
   Future<AuthState> build() async => authState;
+
+  @override
+  Future<void> signOut() async {
+    signOutCalls += 1;
+  }
 }
 
 class _RecordingWindowController implements AppWindowController {

@@ -21,6 +21,7 @@ import 'package:instant_chat/features/profile/presentation/profile_provider.dart
 Future<void> showProfileSheet({
   required BuildContext context,
   required AuthSession session,
+  required Future<void> Function() onSignOut,
 }) {
   return showDialog<void>(
     context: context,
@@ -30,15 +31,20 @@ Future<void> showProfileSheet({
         sigmaX: RetroMetrics.profileBackdropBlur,
         sigmaY: RetroMetrics.profileBackdropBlur,
       ),
-      child: ProfileSheet(session: session),
+      child: ProfileSheet(session: session, onSignOut: onSignOut),
     ),
   );
 }
 
 class ProfileSheet extends ConsumerStatefulWidget {
-  const ProfileSheet({required this.session, super.key});
+  const ProfileSheet({
+    required this.session,
+    required this.onSignOut,
+    super.key,
+  });
 
   final AuthSession session;
+  final Future<void> Function() onSignOut;
 
   @override
   ConsumerState<ProfileSheet> createState() => _ProfileSheetState();
@@ -104,7 +110,6 @@ class _ProfileSheetState extends ConsumerState<ProfileSheet> {
                   user: session.user,
                   onEditName: () => _editText(session, ProfileField.name),
                   onEditGender: () => _editGender(session),
-                  onEditRegion: () => _editText(session, ProfileField.region),
                   onEditID: () => _editText(session, ProfileField.id),
                 ),
                 AnimatedSize(
@@ -122,7 +127,9 @@ class _ProfileSheetState extends ConsumerState<ProfileSheet> {
                           ),
                         ),
                 ),
-                const SizedBox(height: RetroMetrics.spaceLarge * 2),
+                const SizedBox(height: RetroMetrics.spaceLarge),
+                ProfileAccountActions(onSignOut: _signOut),
+                const SizedBox(height: RetroMetrics.spaceLarge),
                 Text(
                   'Instant Chat for macOS',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -163,6 +170,12 @@ class _ProfileSheetState extends ConsumerState<ProfileSheet> {
     } finally {
       await File(croppedPath).delete();
     }
+  }
+
+  Future<void> _signOut() async {
+    final onSignOut = widget.onSignOut;
+    Navigator.of(context).pop();
+    await onSignOut();
   }
 
   Future<void> _editText(AuthSession session, ProfileField field) async {
