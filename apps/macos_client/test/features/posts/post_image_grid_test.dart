@@ -36,6 +36,13 @@ void main() {
     final image = tester.widget<Image>(find.byType(Image));
     expect(image.fit, BoxFit.contain);
     expect(image.width, double.infinity);
+    final material = tester.widget<Material>(
+      find.descendant(
+        of: find.byKey(const Key('post-image-0')),
+        matching: find.byType(Material),
+      ),
+    );
+    expect(material.type, MaterialType.transparency);
   });
 
   testWidgets('two post images render side by side', (tester) async {

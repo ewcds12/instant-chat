@@ -189,7 +189,7 @@ class _PostPhoto extends StatelessWidget {
         ? BorderRadius.circular(RetroMetrics.corner)
         : BorderRadius.zero;
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainer,
+      type: MaterialType.transparency,
       borderRadius: borderRadius,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
