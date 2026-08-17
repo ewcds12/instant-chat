@@ -11,6 +11,7 @@ class MainFlutterWindow: NSWindow {
   static let mainFrameSize = NSSize(width: 1150, height: 750)
   static let mainMinimumFrameSize = NSSize(width: 960, height: 620)
   static let initialFrameSize = authenticationFrameSize
+  static let animatesModeTransitions = false
   private static let trafficLightOffset = NSPoint(x: 12, y: -8)
   private static let standardTrafficLightOrigin = NSPoint(x: 7, y: 6)
   private static let trafficLightSpacing = CGFloat(20)
@@ -198,7 +199,11 @@ private final class AppWindowModeChannel {
         )
         return
       }
-      MainFlutterWindow.configureWindow(window, for: mode, animated: true)
+      MainFlutterWindow.configureWindow(
+        window,
+        for: mode,
+        animated: MainFlutterWindow.animatesModeTransitions
+      )
       result(nil)
     }
   }

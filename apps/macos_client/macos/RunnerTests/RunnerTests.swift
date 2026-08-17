@@ -9,6 +9,10 @@ class RunnerTests: XCTestCase {
     XCTAssertEqual(MainFlutterWindow.initialFrameSize.height, 360)
   }
 
+  func testWindowModeTransitionsDoNotAnimate() {
+    XCTAssertFalse(MainFlutterWindow.animatesModeTransitions)
+  }
+
   func testAuthenticationWindowIsFixedAndCompact() {
     let window = makeWindow()
 
