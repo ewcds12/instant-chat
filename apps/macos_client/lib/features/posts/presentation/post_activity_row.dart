@@ -39,7 +39,6 @@ class _PostActivityRowState extends State<PostActivityRow> {
             onPressed: widget.onComment,
             tooltip: 'Comments',
           ),
-          _ActivityIcon(icon: Icons.repeat_rounded, color: muted),
           _ActivityIcon(
             icon: widget.likedByMe
                 ? Icons.favorite_rounded

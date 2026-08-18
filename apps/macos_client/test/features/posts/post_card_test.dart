@@ -34,6 +34,7 @@ void main() {
 
     expect(find.text('Hello everyone'), findsOneWidget);
     expect(find.text('Retro User'), findsOneWidget);
+    expect(find.byIcon(Icons.repeat_rounded), findsNothing);
     final postRight = tester.getRect(find.byType(PostCard)).right;
     final menuRight = tester.getRect(find.byTooltip('Post actions')).right;
     expect(
