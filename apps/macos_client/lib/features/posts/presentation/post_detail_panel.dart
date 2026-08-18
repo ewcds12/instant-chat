@@ -144,6 +144,7 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
                 maxWidth: RetroMetrics.exploreContentMaxWidth,
               ),
               child: PostCommentRow(
+                key: ValueKey('post-comment-${comment.id}'),
                 comment: comment,
                 replies: comments
                     .where((reply) => reply.parentCommentId == comment.id)

@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/posts/domain/post_comment.dart';
-import 'package:instant_chat/features/posts/presentation/post_card.dart';
-import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
+import 'package:instant_chat/features/posts/presentation/post_comment_body.dart';
 
-class PostCommentRow extends StatelessWidget {
+class PostCommentRow extends StatefulWidget {
   const PostCommentRow({
     required this.comment,
     required this.replies,
@@ -23,22 +22,31 @@ class PostCommentRow extends StatelessWidget {
   final ValueChanged<String> onDelete;
 
   @override
+  State<PostCommentRow> createState() => _PostCommentRowState();
+}
+
+class _PostCommentRowState extends State<PostCommentRow> {
+  static const _replyBatchSize = 5;
+
+  var _visibleReplyCount = 0;
+
+  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Column(
-      key: ValueKey('post-comment-${comment.id}'),
+      key: ValueKey('post-comment-${widget.comment.id}'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _CommentBody(
-          comment: comment,
-          accessToken: accessToken,
-          isOwnComment: comment.author.id == currentUserId,
-          onReply: onReply,
-          onDelete: onDelete,
+        PostCommentBody(
+          comment: widget.comment,
+          accessToken: widget.accessToken,
+          isOwnComment: widget.comment.author.id == widget.currentUserId,
+          onReply: widget.onReply,
+          onDelete: widget.onDelete,
         ),
-        if (replies.isNotEmpty) _replyList(colors),
+        if (widget.replies.isNotEmpty) _replySection(colors),
         Divider(
-          key: ValueKey('post-comment-divider-${comment.id}'),
+          key: ValueKey('post-comment-divider-${widget.comment.id}'),
           height: 1,
           thickness: 1,
           indent:
@@ -52,7 +60,11 @@ class PostCommentRow extends StatelessWidget {
     );
   }
 
-  Widget _replyList(ColorScheme colors) {
+  Widget _replySection(ColorScheme colors) {
+    final visibleReplies = widget.replies
+        .take(_visibleReplyCount)
+        .toList(growable: false);
+    final remaining = widget.replies.length - visibleReplies.length;
     return Padding(
       padding: const EdgeInsets.only(
         left: RetroMetrics.postReplyIndent,
@@ -63,17 +75,19 @@ class PostCommentRow extends StatelessWidget {
           border: Border(left: BorderSide(color: colors.outlineVariant)),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            for (var index = 0; index < replies.length; index++) ...[
-              _CommentBody(
-                comment: replies[index],
-                accessToken: accessToken,
-                isOwnComment: replies[index].author.id == currentUserId,
+            for (var index = 0; index < visibleReplies.length; index++) ...[
+              PostCommentBody(
+                comment: visibleReplies[index],
+                accessToken: widget.accessToken,
+                isOwnComment:
+                    visibleReplies[index].author.id == widget.currentUserId,
                 compact: true,
-                onReply: onReply,
-                onDelete: onDelete,
+                onReply: widget.onReply,
+                onDelete: widget.onDelete,
               ),
-              if (index < replies.length - 1)
+              if (index < visibleReplies.length - 1)
                 Divider(
                   height: 1,
                   thickness: 1,
@@ -84,135 +98,83 @@ class PostCommentRow extends StatelessWidget {
                   color: colors.outlineVariant,
                 ),
             ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _CommentBody extends StatelessWidget {
-  const _CommentBody({
-    required this.comment,
-    required this.accessToken,
-    required this.isOwnComment,
-    required this.onReply,
-    required this.onDelete,
-    this.compact = false,
-  });
-
-  final PostComment comment;
-  final String accessToken;
-  final bool isOwnComment;
-  final bool compact;
-  final ValueChanged<PostComment> onReply;
-  final ValueChanged<String> onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final horizontalInset = compact
-        ? RetroMetrics.postReplyHorizontalInset
-        : RetroMetrics.explorePostHorizontalInset;
-    final verticalInset = compact
-        ? RetroMetrics.postReplyVerticalInset
-        : RetroMetrics.postCommentVerticalInset;
-    return Padding(
-      key: ValueKey('post-comment-body-${comment.id}'),
-      padding: EdgeInsets.symmetric(
-        horizontal: horizontalInset,
-        vertical: verticalInset,
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ProfileAvatar(
-            name: comment.author.displayName,
-            accessToken: accessToken,
-            avatarUrl: comment.author.avatarUrl,
-            radius: compact
-                ? RetroMetrics.postReplyAvatarRadius
-                : RetroMetrics.postCommentAvatarRadius,
-          ),
-          const SizedBox(width: 10),
-          Expanded(child: _content(context, colors)),
-          if (isOwnComment) _deleteMenu(colors),
-        ],
-      ),
-    );
-  }
-
-  Widget _content(BuildContext context, ColorScheme colors) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Flexible(
-              child: Text(
-                comment.author.displayName,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelMedium,
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                RetroMetrics.postReplyHorizontalInset,
+                2,
+                RetroMetrics.postReplyHorizontalInset,
+                6,
               ),
-            ),
-            const SizedBox(width: 5),
-            Flexible(
-              child: Text(
-                '@${comment.author.username} · ${postTime(comment.createdAt)}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+              child: Wrap(
+                spacing: RetroMetrics.spaceMedium,
+                children: [
+                  if (_visibleReplyCount == 0)
+                    _replyControl(
+                      key: ValueKey(
+                        'post-comment-show-replies-${widget.comment.id}',
+                      ),
+                      label: _collapsedLabel,
+                      onPressed: _showMoreReplies,
+                    )
+                  else ...[
+                    if (remaining > 0)
+                      _replyControl(
+                        key: ValueKey(
+                          'post-comment-show-more-replies-${widget.comment.id}',
+                        ),
+                        label:
+                            'Show ${remaining.clamp(1, _replyBatchSize)} more',
+                        onPressed: _showMoreReplies,
+                      ),
+                    _replyControl(
+                      key: ValueKey(
+                        'post-comment-collapse-replies-${widget.comment.id}',
+                      ),
+                      label: 'Collapse',
+                      onPressed: _collapseReplies,
+                    ),
+                  ],
+                ],
               ),
             ),
           ],
         ),
-        const SizedBox(height: 3),
-        Text(comment.body, style: Theme.of(context).textTheme.bodyMedium),
-        SizedBox(
-          height: RetroMetrics.postCommentActionHeight,
-          child: TextButton(
-            key: ValueKey('post-comment-reply-${comment.id}'),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              visualDensity: VisualDensity.compact,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              foregroundColor: colors.onSurfaceVariant,
-            ),
-            onPressed: () => onReply(comment),
-            child: Text('Reply', style: Theme.of(context).textTheme.labelSmall),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
-  Widget _deleteMenu(ColorScheme colors) {
-    return PopupMenuButton<String>(
-      tooltip: 'Comment actions',
-      icon: const Icon(Icons.more_horiz_rounded, size: 16),
-      splashRadius: 15,
-      padding: EdgeInsets.zero,
-      position: PopupMenuPosition.under,
-      onSelected: (_) => onDelete(comment.id),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'delete',
-          height: 32,
-          child: Row(
-            children: [
-              Icon(Icons.delete_outline_rounded, size: 15, color: colors.error),
-              const SizedBox(width: 7),
-              Text(
-                'Delete',
-                style: TextStyle(fontSize: 13, color: colors.error),
-              ),
-            ],
-          ),
-        ),
-      ],
+  String get _collapsedLabel {
+    final count = widget.replies.length;
+    return 'Show $count ${count == 1 ? 'reply' : 'replies'}';
+  }
+
+  Widget _replyControl({
+    required Key key,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return TextButton(
+      key: key,
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.zero,
+        visualDensity: VisualDensity.compact,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(label),
     );
+  }
+
+  void _showMoreReplies() {
+    setState(() {
+      _visibleReplyCount = (_visibleReplyCount + _replyBatchSize).clamp(
+        0,
+        widget.replies.length,
+      );
+    });
+  }
+
+  void _collapseReplies() {
+    setState(() => _visibleReplyCount = 0);
   }
 }

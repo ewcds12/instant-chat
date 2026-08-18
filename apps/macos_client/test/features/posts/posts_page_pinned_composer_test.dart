@@ -131,8 +131,19 @@ void main() {
     );
     expect(dividerFinder, findsOneWidget);
     expect(tester.widget<Divider>(dividerFinder).thickness, 1);
+    expect(find.byKey(const Key('post-comment-body-comment-2')), findsNothing);
+
+    await tester.tap(
+      find.byKey(const Key('post-comment-show-replies-comment-1')),
+    );
+    await tester.pump();
+
     expect(
       find.byKey(const Key('post-comment-body-comment-2')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('post-comment-collapse-replies-comment-1')),
       findsOneWidget,
     );
 
