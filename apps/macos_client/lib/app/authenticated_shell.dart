@@ -14,7 +14,6 @@ import 'package:instant_chat/features/profile/presentation/profile_sheet.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
 import 'package:instant_chat/features/posts/presentation/posts_page.dart';
 import 'package:instant_chat/features/realtime/presentation/realtime_provider.dart';
-import 'package:instant_chat/features/system_status/presentation/system_status_page.dart';
 
 class AuthenticatedShell extends ConsumerStatefulWidget {
   const AuthenticatedShell({
@@ -64,7 +63,6 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
                   _exploreWasOpened
                       ? const PostsPage()
                       : const SizedBox.shrink(),
-                  const SystemStatusPage(),
                 ],
               ),
             ),
@@ -150,10 +148,7 @@ class _AppSidebar extends ConsumerWidget {
                 onTap: () => onSelect(2),
               ),
               const Spacer(),
-              _SystemButton(
-                selected: selectedIndex == 3,
-                onTap: () => onSelect(3),
-              ),
+              const _SystemButton(),
               const SizedBox(height: 10),
               _AccountTile(session: session, onTap: onOpenProfile),
             ],
@@ -226,10 +221,7 @@ class _AccountTile extends StatelessWidget {
 }
 
 class _SystemButton extends StatelessWidget {
-  const _SystemButton({required this.selected, required this.onTap});
-
-  final bool selected;
-  final VoidCallback onTap;
+  const _SystemButton();
 
   @override
   Widget build(BuildContext context) {
@@ -237,21 +229,22 @@ class _SystemButton extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Tooltip(
-        message: 'System',
+        message: 'Settings',
         child: InkWell(
+          key: const Key('settings-placeholder-button'),
           borderRadius: BorderRadius.circular(14),
-          onTap: onTap,
+          onTap: () {},
           child: Container(
             width: 38,
             height: 38,
             decoration: BoxDecoration(
-              color: selected ? colors.primaryContainer : Colors.transparent,
+              color: Colors.transparent,
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
               Icons.settings_outlined,
               size: 20,
-              color: selected ? colors.primary : colors.onSurfaceVariant,
+              color: colors.onSurfaceVariant,
             ),
           ),
         ),
