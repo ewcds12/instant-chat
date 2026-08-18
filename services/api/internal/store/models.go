@@ -116,6 +116,12 @@ type PostImage struct {
 	CreatedAt   time.Time `db:"created_at"`
 }
 
+type PostLike struct {
+	PostID    uint64    `db:"post_id"`
+	UserID    uint64    `db:"user_id"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
 type PostReport struct {
 	PostID     uint64    `db:"post_id"`
 	ReporterID uint64    `db:"reporter_id"`

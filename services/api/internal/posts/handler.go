@@ -14,10 +14,12 @@ import (
 
 type postService interface {
 	Create(context.Context, uint64, string, []ImageUpload) (Post, error)
-	List(context.Context, *uint64, int) (Page, error)
+	List(context.Context, uint64, *uint64, int) (Page, error)
 	Image(context.Context, uint64) (ImageFile, error)
 	Delete(context.Context, uint64, uint64) error
 	Report(context.Context, uint64, uint64, string) error
+	Like(context.Context, uint64, uint64) (LikeState, error)
+	Unlike(context.Context, uint64, uint64) (LikeState, error)
 	CreateComment(context.Context, uint64, uint64, *uint64, string) (Comment, error)
 	ListComments(context.Context, uint64, *uint64, int) (CommentPage, error)
 	DeleteComment(context.Context, uint64, uint64, uint64) error
@@ -56,7 +58,7 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	page, err := h.service.List(r.Context(), before, limit)
+	page, err := h.service.List(r.Context(), currentUserID(r), before, limit)
 	if err != nil {
 		writeServiceError(w, r, err)
 		return
@@ -74,6 +76,33 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 		Posts      []postResponse `json:"posts"`
 		NextCursor *string        `json:"next_cursor"`
 	}{Posts: posts, NextCursor: next})
+}
+
+// Like idempotently records the current user's like for one post.
+func (h *Handler) Like(w http.ResponseWriter, r *http.Request) {
+	h.writeLikeState(w, r, h.service.Like)
+}
+
+// Unlike idempotently removes the current user's like for one post.
+func (h *Handler) Unlike(w http.ResponseWriter, r *http.Request) {
+	h.writeLikeState(w, r, h.service.Unlike)
+}
+
+func (h *Handler) writeLikeState(
+	w http.ResponseWriter,
+	r *http.Request,
+	action func(context.Context, uint64, uint64) (LikeState, error),
+) {
+	postID, ok := positivePathID(w, r, "post_id", "Post ID")
+	if !ok {
+		return
+	}
+	state, err := action(r.Context(), currentUserID(r), postID)
+	if err != nil {
+		writeServiceError(w, r, err)
+		return
+	}
+	httpapi.WriteJSON(w, http.StatusOK, responseFromLike(state))
 }
 
 // Image streams one authorized private post image.

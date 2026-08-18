@@ -27,6 +27,16 @@ abstract interface class PostGateway {
     required String reason,
   });
 
+  Future<PostLikeState> like({
+    required String accessToken,
+    required String postId,
+  });
+
+  Future<PostLikeState> unlike({
+    required String accessToken,
+    required String postId,
+  });
+
   Future<PostCommentPage> listComments({
     required String accessToken,
     required String postId,

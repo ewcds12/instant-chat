@@ -113,6 +113,13 @@ SELECT
   post.body,
   post.created_at,
   (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = post.id) AS comment_count,
+  (SELECT COUNT(*) FROM post_likes AS post_like WHERE post_like.post_id = post.id) AS like_count,
+  EXISTS (
+    SELECT 1
+    FROM post_likes AS viewer_like
+    WHERE viewer_like.post_id = post.id
+      AND viewer_like.user_id = ?
+  ) AS liked_by_me,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -129,11 +136,18 @@ WHERE post.id = ?
 ORDER BY image.position ASC
 `
 
+type GetPostParams struct {
+	ViewerID uint64 `db:"viewer_id"`
+	PostID   uint64 `db:"post_id"`
+}
+
 type GetPostRow struct {
 	ID                      uint64         `db:"id"`
 	Body                    string         `db:"body"`
 	CreatedAt               time.Time      `db:"created_at"`
 	CommentCount            int64          `db:"comment_count"`
+	LikeCount               int64          `db:"like_count"`
+	LikedByMe               bool           `db:"liked_by_me"`
 	AuthorID                uint64         `db:"author_id"`
 	AuthorUsername          string         `db:"author_username"`
 	AuthorDisplayName       string         `db:"author_display_name"`
@@ -145,8 +159,8 @@ type GetPostRow struct {
 	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
 }
 
-func (q *Queries) GetPost(ctx context.Context, postID uint64) ([]GetPostRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPost, postID)
+func (q *Queries) GetPost(ctx context.Context, arg GetPostParams) ([]GetPostRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPost, arg.ViewerID, arg.PostID)
 	if err != nil {
 		return nil, err
 	}
@@ -159,6 +173,8 @@ func (q *Queries) GetPost(ctx context.Context, postID uint64) ([]GetPostRow, err
 			&i.Body,
 			&i.CreatedAt,
 			&i.CommentCount,
+			&i.LikeCount,
+			&i.LikedByMe,
 			&i.AuthorID,
 			&i.AuthorUsername,
 			&i.AuthorDisplayName,
@@ -250,6 +266,56 @@ func (q *Queries) GetPostImage(ctx context.Context, imageID uint64) (GetPostImag
 	var i GetPostImageRow
 	err := row.Scan(&i.ContentType, &i.ByteSize, &i.ObjectKey)
 	return i, err
+}
+
+const getPostLikeState = `-- name: GetPostLikeState :one
+SELECT
+  COUNT(post_like.user_id) AS like_count,
+  EXISTS (
+    SELECT 1
+    FROM post_likes AS viewer_like
+    WHERE viewer_like.post_id = post.id
+      AND viewer_like.user_id = ?
+  ) AS liked_by_me
+FROM posts AS post
+LEFT JOIN post_likes AS post_like ON post_like.post_id = post.id
+WHERE post.id = ?
+GROUP BY post.id
+`
+
+type GetPostLikeStateParams struct {
+	UserID uint64 `db:"user_id"`
+	PostID uint64 `db:"post_id"`
+}
+
+type GetPostLikeStateRow struct {
+	LikeCount int64 `db:"like_count"`
+	LikedByMe bool  `db:"liked_by_me"`
+}
+
+func (q *Queries) GetPostLikeState(ctx context.Context, arg GetPostLikeStateParams) (GetPostLikeStateRow, error) {
+	row := q.db.QueryRowContext(ctx, getPostLikeState, arg.UserID, arg.PostID)
+	var i GetPostLikeStateRow
+	err := row.Scan(&i.LikeCount, &i.LikedByMe)
+	return i, err
+}
+
+const likePost = `-- name: LikePost :exec
+INSERT INTO post_likes (post_id, user_id)
+SELECT post.id, ?
+FROM posts AS post
+WHERE post.id = ?
+ON DUPLICATE KEY UPDATE post_id = VALUES(post_id)
+`
+
+type LikePostParams struct {
+	UserID uint64 `db:"user_id"`
+	PostID uint64 `db:"post_id"`
+}
+
+func (q *Queries) LikePost(ctx context.Context, arg LikePostParams) error {
+	_, err := q.db.ExecContext(ctx, likePost, arg.UserID, arg.PostID)
+	return err
 }
 
 const listLatestPostComments = `-- name: ListLatestPostComments :many
@@ -350,6 +416,13 @@ SELECT
   page.body,
   page.created_at,
   (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = page.id) AS comment_count,
+  (SELECT COUNT(*) FROM post_likes AS post_like WHERE post_like.post_id = page.id) AS like_count,
+  EXISTS (
+    SELECT 1
+    FROM post_likes AS viewer_like
+    WHERE viewer_like.post_id = page.id
+      AND viewer_like.user_id = ?
+  ) AS liked_by_me,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -370,11 +443,18 @@ LEFT JOIN post_images AS image ON image.post_id = page.id
 ORDER BY page.id DESC, image.position ASC
 `
 
+type ListLatestPostsParams struct {
+	ViewerID uint64 `db:"viewer_id"`
+	Limit    int32  `db:"limit"`
+}
+
 type ListLatestPostsRow struct {
 	ID                      uint64         `db:"id"`
 	Body                    string         `db:"body"`
 	CreatedAt               time.Time      `db:"created_at"`
 	CommentCount            int64          `db:"comment_count"`
+	LikeCount               int64          `db:"like_count"`
+	LikedByMe               bool           `db:"liked_by_me"`
 	AuthorID                uint64         `db:"author_id"`
 	AuthorUsername          string         `db:"author_username"`
 	AuthorDisplayName       string         `db:"author_display_name"`
@@ -386,8 +466,8 @@ type ListLatestPostsRow struct {
 	ImageByteSize           sql.NullInt32  `db:"image_byte_size"`
 }
 
-func (q *Queries) ListLatestPosts(ctx context.Context, limit int32) ([]ListLatestPostsRow, error) {
-	rows, err := q.db.QueryContext(ctx, listLatestPosts, limit)
+func (q *Queries) ListLatestPosts(ctx context.Context, arg ListLatestPostsParams) ([]ListLatestPostsRow, error) {
+	rows, err := q.db.QueryContext(ctx, listLatestPosts, arg.ViewerID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -400,6 +480,8 @@ func (q *Queries) ListLatestPosts(ctx context.Context, limit int32) ([]ListLates
 			&i.Body,
 			&i.CreatedAt,
 			&i.CommentCount,
+			&i.LikeCount,
+			&i.LikedByMe,
 			&i.AuthorID,
 			&i.AuthorUsername,
 			&i.AuthorDisplayName,
@@ -560,6 +642,13 @@ SELECT
   page.body,
   page.created_at,
   (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = page.id) AS comment_count,
+  (SELECT COUNT(*) FROM post_likes AS post_like WHERE post_like.post_id = page.id) AS like_count,
+  EXISTS (
+    SELECT 1
+    FROM post_likes AS viewer_like
+    WHERE viewer_like.post_id = page.id
+      AND viewer_like.user_id = ?
+  ) AS liked_by_me,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -582,6 +671,7 @@ ORDER BY page.id DESC, image.position ASC
 `
 
 type ListPostsBeforeParams struct {
+	ViewerID     uint64 `db:"viewer_id"`
 	BeforePostID uint64 `db:"before_post_id"`
 	Limit        int32  `db:"limit"`
 }
@@ -591,6 +681,8 @@ type ListPostsBeforeRow struct {
 	Body                    string         `db:"body"`
 	CreatedAt               time.Time      `db:"created_at"`
 	CommentCount            int64          `db:"comment_count"`
+	LikeCount               int64          `db:"like_count"`
+	LikedByMe               bool           `db:"liked_by_me"`
 	AuthorID                uint64         `db:"author_id"`
 	AuthorUsername          string         `db:"author_username"`
 	AuthorDisplayName       string         `db:"author_display_name"`
@@ -603,7 +695,7 @@ type ListPostsBeforeRow struct {
 }
 
 func (q *Queries) ListPostsBefore(ctx context.Context, arg ListPostsBeforeParams) ([]ListPostsBeforeRow, error) {
-	rows, err := q.db.QueryContext(ctx, listPostsBefore, arg.BeforePostID, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, listPostsBefore, arg.ViewerID, arg.BeforePostID, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
@@ -616,6 +708,8 @@ func (q *Queries) ListPostsBefore(ctx context.Context, arg ListPostsBeforeParams
 			&i.Body,
 			&i.CreatedAt,
 			&i.CommentCount,
+			&i.LikeCount,
+			&i.LikedByMe,
 			&i.AuthorID,
 			&i.AuthorUsername,
 			&i.AuthorDisplayName,
@@ -719,4 +813,20 @@ func (q *Queries) ReportablePostExists(ctx context.Context, arg ReportablePostEx
 	var reportable_post_exists bool
 	err := row.Scan(&reportable_post_exists)
 	return reportable_post_exists, err
+}
+
+const unlikePost = `-- name: UnlikePost :exec
+DELETE FROM post_likes
+WHERE post_id = ?
+  AND user_id = ?
+`
+
+type UnlikePostParams struct {
+	PostID uint64 `db:"post_id"`
+	UserID uint64 `db:"user_id"`
+}
+
+func (q *Queries) UnlikePost(ctx context.Context, arg UnlikePostParams) error {
+	_, err := q.db.ExecContext(ctx, unlikePost, arg.PostID, arg.UserID)
+	return err
 }

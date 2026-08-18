@@ -18,6 +18,13 @@ SELECT
   post.body,
   post.created_at,
   (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = post.id) AS comment_count,
+  (SELECT COUNT(*) FROM post_likes AS post_like WHERE post_like.post_id = post.id) AS like_count,
+  EXISTS (
+    SELECT 1
+    FROM post_likes AS viewer_like
+    WHERE viewer_like.post_id = post.id
+      AND viewer_like.user_id = sqlc.arg(viewer_id)
+  ) AS liked_by_me,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -39,6 +46,13 @@ SELECT
   page.body,
   page.created_at,
   (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = page.id) AS comment_count,
+  (SELECT COUNT(*) FROM post_likes AS post_like WHERE post_like.post_id = page.id) AS like_count,
+  EXISTS (
+    SELECT 1
+    FROM post_likes AS viewer_like
+    WHERE viewer_like.post_id = page.id
+      AND viewer_like.user_id = sqlc.arg(viewer_id)
+  ) AS liked_by_me,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -64,6 +78,13 @@ SELECT
   page.body,
   page.created_at,
   (SELECT COUNT(*) FROM post_comments AS comment WHERE comment.post_id = page.id) AS comment_count,
+  (SELECT COUNT(*) FROM post_likes AS post_like WHERE post_like.post_id = page.id) AS like_count,
+  EXISTS (
+    SELECT 1
+    FROM post_likes AS viewer_like
+    WHERE viewer_like.post_id = page.id
+      AND viewer_like.user_id = sqlc.arg(viewer_id)
+  ) AS liked_by_me,
   author.id AS author_id,
   author.username AS author_username,
   author.display_name AS author_display_name,
@@ -126,6 +147,32 @@ SELECT EXISTS (
 SELECT EXISTS (
   SELECT 1 FROM posts WHERE id = sqlc.arg(post_id)
 ) AS post_exists;
+
+-- name: LikePost :exec
+INSERT INTO post_likes (post_id, user_id)
+SELECT post.id, sqlc.arg(user_id)
+FROM posts AS post
+WHERE post.id = sqlc.arg(post_id)
+ON DUPLICATE KEY UPDATE post_id = VALUES(post_id);
+
+-- name: UnlikePost :exec
+DELETE FROM post_likes
+WHERE post_id = sqlc.arg(post_id)
+  AND user_id = sqlc.arg(user_id);
+
+-- name: GetPostLikeState :one
+SELECT
+  COUNT(post_like.user_id) AS like_count,
+  EXISTS (
+    SELECT 1
+    FROM post_likes AS viewer_like
+    WHERE viewer_like.post_id = post.id
+      AND viewer_like.user_id = sqlc.arg(user_id)
+  ) AS liked_by_me
+FROM posts AS post
+LEFT JOIN post_likes AS post_like ON post_like.post_id = post.id
+WHERE post.id = sqlc.arg(post_id)
+GROUP BY post.id;
 
 -- name: CreatePostComment :execresult
 INSERT INTO post_comments (post_id, author_id, parent_comment_id, body)

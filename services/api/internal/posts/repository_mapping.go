@@ -12,6 +12,8 @@ type postRecord struct {
 	body              string
 	createdAt         time.Time
 	commentCount      uint64
+	likeCount         uint64
+	likedByMe         bool
 	authorID          uint64
 	authorUsername    string
 	authorDisplayName string
@@ -27,7 +29,8 @@ func recordFromGet(row store.GetPostRow) postRecord {
 	return postRecord{
 		id: row.ID, body: row.Body, createdAt: row.CreatedAt,
 		commentCount: uint64(row.CommentCount),
-		authorID:     row.AuthorID, authorUsername: row.AuthorUsername,
+		likeCount:    uint64(row.LikeCount), likedByMe: row.LikedByMe,
+		authorID: row.AuthorID, authorUsername: row.AuthorUsername,
 		authorDisplayName: row.AuthorDisplayName,
 		authorHasAvatar:   row.AuthorAvatarContentType.Valid,
 		authorCreatedAt:   row.AuthorCreatedAt, imageID: row.ImageID,
@@ -40,7 +43,8 @@ func recordFromLatest(row store.ListLatestPostsRow) postRecord {
 	return postRecord{
 		id: row.ID, body: row.Body, createdAt: row.CreatedAt,
 		commentCount: uint64(row.CommentCount),
-		authorID:     row.AuthorID, authorUsername: row.AuthorUsername,
+		likeCount:    uint64(row.LikeCount), likedByMe: row.LikedByMe,
+		authorID: row.AuthorID, authorUsername: row.AuthorUsername,
 		authorDisplayName: row.AuthorDisplayName,
 		authorHasAvatar:   row.AuthorAvatarContentType.Valid,
 		authorCreatedAt:   row.AuthorCreatedAt, imageID: row.ImageID,
@@ -53,7 +57,8 @@ func recordFromBefore(row store.ListPostsBeforeRow) postRecord {
 	return postRecord{
 		id: row.ID, body: row.Body, createdAt: row.CreatedAt,
 		commentCount: uint64(row.CommentCount),
-		authorID:     row.AuthorID, authorUsername: row.AuthorUsername,
+		likeCount:    uint64(row.LikeCount), likedByMe: row.LikedByMe,
+		authorID: row.AuthorID, authorUsername: row.AuthorUsername,
 		authorDisplayName: row.AuthorDisplayName,
 		authorHasAvatar:   row.AuthorAvatarContentType.Valid,
 		authorCreatedAt:   row.AuthorCreatedAt, imageID: row.ImageID,
@@ -72,6 +77,7 @@ func appendPost(posts []Post, record postRecord) []Post {
 				CreatedAt: record.authorCreatedAt,
 			},
 			Body: record.body, Images: []Image{}, CommentCount: record.commentCount,
+			LikeCount: record.likeCount, LikedByMe: record.likedByMe,
 			CreatedAt: record.createdAt,
 		})
 	}

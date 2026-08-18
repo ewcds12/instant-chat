@@ -10,7 +10,11 @@ type fakeRepository struct {
 	createdBody   string
 	createdImages []ImageUpload
 	listedLimit   int
+	listedUserID  uint64
 	posts         []Post
+	likeState     LikeState
+	likeUserID    uint64
+	likePostID    uint64
 	reported      string
 	commentBody   string
 	commentParent *uint64
@@ -32,9 +36,11 @@ func (f *fakeRepository) Create(
 
 func (f *fakeRepository) List(
 	_ context.Context,
+	viewerID uint64,
 	_ *uint64,
 	limit int,
 ) ([]Post, error) {
+	f.listedUserID = viewerID
 	f.listedLimit = limit
 	return f.posts, f.err
 }
@@ -48,6 +54,16 @@ func (f *fakeRepository) Delete(context.Context, uint64, uint64) error { return 
 func (f *fakeRepository) Report(_ context.Context, _, _ uint64, reason string) error {
 	f.reported = reason
 	return f.err
+}
+
+func (f *fakeRepository) Like(_ context.Context, userID, postID uint64) (LikeState, error) {
+	f.likeUserID, f.likePostID = userID, postID
+	return f.likeState, f.err
+}
+
+func (f *fakeRepository) Unlike(_ context.Context, userID, postID uint64) (LikeState, error) {
+	f.likeUserID, f.likePostID = userID, postID
+	return f.likeState, f.err
 }
 
 func (f *fakeRepository) CreateComment(
@@ -127,7 +143,7 @@ func TestServiceListUsesDefaultLimitAndReturnsCursor(t *testing.T) {
 	repository := &fakeRepository{posts: posts}
 	service := NewService(repository)
 
-	page, err := service.List(context.Background(), nil, 0)
+	page, err := service.List(context.Background(), 7, nil, 0)
 
 	if err != nil {
 		t.Fatalf("List() error = %v", err)
@@ -135,8 +151,25 @@ func TestServiceListUsesDefaultLimitAndReturnsCursor(t *testing.T) {
 	if repository.listedLimit != defaultPageSize {
 		t.Fatalf("limit = %d, want %d", repository.listedLimit, defaultPageSize)
 	}
+	if repository.listedUserID != 7 {
+		t.Fatalf("viewer ID = %d, want 7", repository.listedUserID)
+	}
 	if page.NextCursor == nil || *page.NextCursor != posts[len(posts)-1].ID {
 		t.Fatalf("next cursor = %v", page.NextCursor)
+	}
+}
+
+func TestServiceLikeReturnsPersistedState(t *testing.T) {
+	repository := &fakeRepository{likeState: LikeState{LikeCount: 4, LikedByMe: true}}
+	service := NewService(repository)
+
+	state, err := service.Like(context.Background(), 7, 41)
+
+	if err != nil || state.LikeCount != 4 || !state.LikedByMe {
+		t.Fatalf("Like() = %+v, %v", state, err)
+	}
+	if repository.likeUserID != 7 || repository.likePostID != 41 {
+		t.Fatalf("user = %d, post = %d", repository.likeUserID, repository.likePostID)
 	}
 }
 

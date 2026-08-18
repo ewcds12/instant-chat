@@ -17,6 +17,7 @@ class PostDetailPanel extends ConsumerStatefulWidget {
     required this.onBack,
     required this.onPostAction,
     required this.onCommentCountChanged,
+    required this.onLike,
     required this.onDownloadImage,
     super.key,
   });
@@ -26,6 +27,7 @@ class PostDetailPanel extends ConsumerStatefulWidget {
   final VoidCallback onBack;
   final ValueChanged<PostAction> onPostAction;
   final ValueChanged<int> onCommentCountChanged;
+  final VoidCallback onLike;
   final Future<void> Function(PublicPostImage image) onDownloadImage;
 
   @override
@@ -126,6 +128,7 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
                 isOwnPost: widget.post.author.id == widget.session.user.id,
                 onAction: widget.onPostAction,
                 onComment: _focusComposer,
+                onLike: widget.onLike,
                 onDownloadImage: widget.onDownloadImage,
               ),
             ),

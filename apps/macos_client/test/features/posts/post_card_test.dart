@@ -9,6 +9,7 @@ void main() {
   testWidgets('renders a compact post and owner delete action', (tester) async {
     PostAction? selected;
     var openedComments = false;
+    var toggledLike = false;
     await tester.pumpWidget(
       MaterialApp(
         theme: RetroTheme.data,
@@ -22,6 +23,7 @@ void main() {
                 isOwnPost: true,
                 onAction: (value) => selected = value,
                 onComment: () => openedComments = true,
+                onLike: () => toggledLike = true,
                 onDownloadImage: (_) async {},
               ),
             ),
@@ -43,11 +45,12 @@ void main() {
     );
     await tester.tap(find.byTooltip('Like'));
     await tester.pump();
-    expect(find.byTooltip('Unlike'), findsOneWidget);
+    expect(toggledLike, isTrue);
     await tester.tap(find.byTooltip('Bookmark'));
     await tester.pump();
     expect(find.byTooltip('Remove bookmark'), findsOneWidget);
     expect(find.text('12'), findsOneWidget);
+    expect(find.text('4'), findsOneWidget);
     await tester.tap(find.byTooltip('Comments'));
     expect(openedComments, isTrue);
     await tester.tap(find.byTooltip('Post actions'));
@@ -74,6 +77,7 @@ void main() {
                 isOwnPost: true,
                 onAction: (_) {},
                 onComment: () {},
+                onLike: () {},
                 onDownloadImage: (_) async {},
               ),
             ),
@@ -106,6 +110,7 @@ void main() {
               isOwnPost: false,
               onAction: (_) {},
               onComment: () {},
+              onLike: () {},
               onDownloadImage: (_) async {},
             ),
           ),
@@ -131,6 +136,7 @@ final _post = PublicPost(
   ),
   body: 'Hello everyone',
   commentCount: 12,
+  likeCount: 4,
   images: const [],
   createdAt: DateTime.utc(2026, 8, 9, 9),
 );

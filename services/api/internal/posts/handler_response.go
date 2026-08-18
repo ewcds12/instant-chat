@@ -27,7 +27,14 @@ type postResponse struct {
 	Body         string          `json:"body"`
 	Images       []imageResponse `json:"images"`
 	CommentCount uint64          `json:"comment_count"`
+	LikeCount    uint64          `json:"like_count"`
+	LikedByMe    bool            `json:"liked_by_me"`
 	CreatedAt    time.Time       `json:"created_at"`
+}
+
+type likeResponse struct {
+	LikeCount uint64 `json:"like_count"`
+	LikedByMe bool   `json:"liked_by_me"`
 }
 
 type commentResponse struct {
@@ -51,8 +58,13 @@ func responseFromPost(post Post) postResponse {
 	return postResponse{
 		ID: strconv.FormatUint(post.ID, 10), Author: responseFromAuthor(post.Author),
 		Body: post.Body, Images: images, CommentCount: post.CommentCount,
+		LikeCount: post.LikeCount, LikedByMe: post.LikedByMe,
 		CreatedAt: post.CreatedAt.UTC(),
 	}
+}
+
+func responseFromLike(state LikeState) likeResponse {
+	return likeResponse{LikeCount: state.LikeCount, LikedByMe: state.LikedByMe}
 }
 
 func responseFromComment(comment Comment) commentResponse {

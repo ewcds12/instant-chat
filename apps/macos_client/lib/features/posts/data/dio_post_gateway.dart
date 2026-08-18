@@ -104,6 +104,28 @@ class DioPostGateway implements PostGateway {
   );
 
   @override
+  Future<PostLikeState> like({
+    required String accessToken,
+    required String postId,
+  }) => _changeLike(
+    _dio.put<Object?>(
+      '/api/v1/posts/$postId/like',
+      options: _options(accessToken),
+    ),
+  );
+
+  @override
+  Future<PostLikeState> unlike({
+    required String accessToken,
+    required String postId,
+  }) => _changeLike(
+    _dio.delete<Object?>(
+      '/api/v1/posts/$postId/like',
+      options: _options(accessToken),
+    ),
+  );
+
+  @override
   Future<PostCommentPage> listComments({
     required String accessToken,
     required String postId,
@@ -164,6 +186,12 @@ class DioPostGateway implements PostGateway {
   Future<void> _emptyRequest(Future<Response<Object?>> request) async {
     final response = await apiRequest(() => request);
     expectStatus(response, {204});
+  }
+
+  Future<PostLikeState> _changeLike(Future<Response<Object?>> request) async {
+    final response = await apiRequest(() => request);
+    expectStatus(response, {200});
+    return PostLikeState.fromJson(responseObject(response.data));
   }
 
   Options _options(String token) =>

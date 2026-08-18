@@ -65,6 +65,7 @@ func (s *Service) Create(
 // List returns one descending global feed page.
 func (s *Service) List(
 	ctx context.Context,
+	viewerID uint64,
 	before *uint64,
 	limit int,
 ) (Page, error) {
@@ -74,7 +75,7 @@ func (s *Service) List(
 	if limit < 1 || limit > maximumPageSize {
 		return Page{}, &InputError{Message: "Limit must be between 1 and 50."}
 	}
-	posts, err := s.repository.List(ctx, before, limit)
+	posts, err := s.repository.List(ctx, viewerID, before, limit)
 	if err != nil {
 		return Page{}, err
 	}
@@ -84,6 +85,16 @@ func (s *Service) List(
 		next = &cursor
 	}
 	return Page{Posts: posts, NextCursor: next}, nil
+}
+
+// Like idempotently records the current user's like and returns the persisted state.
+func (s *Service) Like(ctx context.Context, userID, postID uint64) (LikeState, error) {
+	return s.repository.Like(ctx, userID, postID)
+}
+
+// Unlike idempotently removes the current user's like and returns the persisted state.
+func (s *Service) Unlike(ctx context.Context, userID, postID uint64) (LikeState, error) {
+	return s.repository.Unlike(ctx, userID, postID)
 }
 
 // Image opens one post image visible to the current user.

@@ -77,7 +77,7 @@ func (r *MySQLRepository) Create(
 		r.cleanupObjects(stored)
 		return Post{}, fmt.Errorf("commit post transaction: %w", err)
 	}
-	return r.get(ctx, uint64(postID))
+	return r.get(ctx, uint64(postID), authorID)
 }
 
 type storedImage struct {
@@ -129,11 +129,14 @@ func (r *MySQLRepository) cleanupObjects(images []storedImage) {
 // List returns one descending global post page.
 func (r *MySQLRepository) List(
 	ctx context.Context,
+	viewerID uint64,
 	before *uint64,
 	limit int,
 ) ([]Post, error) {
 	if before == nil {
-		rows, err := r.queries.ListLatestPosts(ctx, int32(limit))
+		rows, err := r.queries.ListLatestPosts(ctx, store.ListLatestPostsParams{
+			ViewerID: viewerID, Limit: int32(limit),
+		})
 		if err != nil {
 			return nil, fmt.Errorf("list latest posts: %w", err)
 		}
@@ -144,7 +147,7 @@ func (r *MySQLRepository) List(
 		return posts, nil
 	}
 	rows, err := r.queries.ListPostsBefore(ctx, store.ListPostsBeforeParams{
-		BeforePostID: *before, Limit: int32(limit),
+		ViewerID: viewerID, BeforePostID: *before, Limit: int32(limit),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("list posts before cursor: %w", err)
@@ -156,8 +159,10 @@ func (r *MySQLRepository) List(
 	return posts, nil
 }
 
-func (r *MySQLRepository) get(ctx context.Context, postID uint64) (Post, error) {
-	rows, err := r.queries.GetPost(ctx, postID)
+func (r *MySQLRepository) get(ctx context.Context, postID, viewerID uint64) (Post, error) {
+	rows, err := r.queries.GetPost(ctx, store.GetPostParams{
+		ViewerID: viewerID, PostID: postID,
+	})
 	if err != nil {
 		return Post{}, fmt.Errorf("read post: %w", err)
 	}
@@ -169,6 +174,42 @@ func (r *MySQLRepository) get(ctx context.Context, postID uint64) (Post, error) 
 		posts = appendPost(posts, recordFromGet(row))
 	}
 	return posts[0], nil
+}
+
+// Like idempotently records one authenticated user's like.
+func (r *MySQLRepository) Like(ctx context.Context, userID, postID uint64) (LikeState, error) {
+	if err := r.queries.LikePost(ctx, store.LikePostParams{
+		UserID: userID, PostID: postID,
+	}); err != nil {
+		return LikeState{}, fmt.Errorf("like post: %w", err)
+	}
+	return r.likeState(ctx, userID, postID)
+}
+
+// Unlike idempotently removes one authenticated user's like.
+func (r *MySQLRepository) Unlike(ctx context.Context, userID, postID uint64) (LikeState, error) {
+	if err := r.queries.UnlikePost(ctx, store.UnlikePostParams{
+		PostID: postID, UserID: userID,
+	}); err != nil {
+		return LikeState{}, fmt.Errorf("unlike post: %w", err)
+	}
+	return r.likeState(ctx, userID, postID)
+}
+
+func (r *MySQLRepository) likeState(
+	ctx context.Context,
+	userID, postID uint64,
+) (LikeState, error) {
+	row, err := r.queries.GetPostLikeState(ctx, store.GetPostLikeStateParams{
+		UserID: userID, PostID: postID,
+	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return LikeState{}, ErrPostNotFound
+	}
+	if err != nil {
+		return LikeState{}, fmt.Errorf("read post like state: %w", err)
+	}
+	return LikeState{LikeCount: uint64(row.LikeCount), LikedByMe: row.LikedByMe}, nil
 }
 
 // Image opens one private post image for an authenticated request.

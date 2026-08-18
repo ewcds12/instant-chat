@@ -116,6 +116,18 @@ class _Gateway implements PostGateway {
     required String postId,
     required String reason,
   }) => throw UnimplementedError();
+
+  @override
+  Future<PostLikeState> like({
+    required String accessToken,
+    required String postId,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<PostLikeState> unlike({
+    required String accessToken,
+    required String postId,
+  }) => throw UnimplementedError();
 }
 
 final _session = AuthSession(

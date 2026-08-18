@@ -24,7 +24,42 @@ void main() {
     expect(page.nextCursor, '40');
     expect(page.posts.single.body, 'Hello everyone');
     expect(page.posts.single.commentCount, 3);
+    expect(page.posts.single.likeCount, 8);
+    expect(page.posts.single.likedByMe, isTrue);
     expect(page.posts.single.images.single.position, 0);
+  });
+
+  test('likes a post and parses the persisted count', () async {
+    final adapter = _StubAdapter(
+      statusCode: 200,
+      body: {'like_count': 9, 'liked_by_me': true},
+    );
+    final gateway = DioPostGateway(_createDio(adapter));
+
+    final state = await gateway.like(accessToken: 'access-token', postId: '41');
+
+    expect(adapter.method, 'PUT');
+    expect(adapter.path, '/api/v1/posts/41/like');
+    expect(state.likeCount, 9);
+    expect(state.likedByMe, isTrue);
+  });
+
+  test('unlikes a post and parses the persisted count', () async {
+    final adapter = _StubAdapter(
+      statusCode: 200,
+      body: {'like_count': 8, 'liked_by_me': false},
+    );
+    final gateway = DioPostGateway(_createDio(adapter));
+
+    final state = await gateway.unlike(
+      accessToken: 'access-token',
+      postId: '41',
+    );
+
+    expect(adapter.method, 'DELETE');
+    expect(adapter.path, '/api/v1/posts/41/like');
+    expect(state.likeCount, 8);
+    expect(state.likedByMe, isFalse);
   });
 
   test('creates and parses a post comment', () async {
@@ -130,6 +165,8 @@ final _post = {
   },
   'body': 'Hello everyone',
   'comment_count': 3,
+  'like_count': 8,
+  'liked_by_me': true,
   'images': [
     {
       'id': '3',

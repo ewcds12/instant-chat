@@ -24,6 +24,8 @@ type stubPostService struct {
 	commentBody   string
 	commentParent *uint64
 	commentID     uint64
+	likePostID    uint64
+	likeAction    string
 }
 
 func (s *stubPostService) Create(
@@ -38,9 +40,11 @@ func (s *stubPostService) Create(
 
 func (s *stubPostService) List(
 	_ context.Context,
+	userID uint64,
 	_ *uint64,
 	_ int,
 ) (Page, error) {
+	s.userID = userID
 	cursor := uint64(40)
 	return Page{Posts: []Post{testPost()}, NextCursor: &cursor}, nil
 }
@@ -52,6 +56,16 @@ func (s *stubPostService) Image(context.Context, uint64) (ImageFile, error) {
 func (s *stubPostService) Delete(context.Context, uint64, uint64) error { return nil }
 
 func (s *stubPostService) Report(context.Context, uint64, uint64, string) error { return nil }
+
+func (s *stubPostService) Like(_ context.Context, userID, postID uint64) (LikeState, error) {
+	s.userID, s.likePostID, s.likeAction = userID, postID, "like"
+	return LikeState{LikeCount: 5, LikedByMe: true}, nil
+}
+
+func (s *stubPostService) Unlike(_ context.Context, userID, postID uint64) (LikeState, error) {
+	s.userID, s.likePostID, s.likeAction = userID, postID, "unlike"
+	return LikeState{LikeCount: 4, LikedByMe: false}, nil
+}
 
 func (s *stubPostService) CreateComment(
 	_ context.Context,
@@ -163,6 +177,55 @@ func TestHandlerListReturnsStringCursorAndImagePosition(t *testing.T) {
 	if len(response.Posts) != 1 || response.Posts[0].Images[0].Position != 0 {
 		t.Fatalf("posts = %+v", response.Posts)
 	}
+	if service.userID != 7 || response.Posts[0].LikeCount != 4 || !response.Posts[0].LikedByMe {
+		t.Fatalf("user = %d, post = %+v", service.userID, response.Posts[0])
+	}
+}
+
+func TestHandlerLikeUsesAuthenticatedUserAndReturnsState(t *testing.T) {
+	service := &stubPostService{}
+	handler := NewHandler(service)
+	request := httptest.NewRequest(http.MethodPut, "/api/v1/posts/41/like", nil)
+	request.SetPathValue("post_id", "41")
+	request.Header.Set("Authorization", "Bearer token")
+	recorder := httptest.NewRecorder()
+
+	authenticated(http.HandlerFunc(handler.Like)).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var response likeResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if service.userID != 7 || service.likePostID != 41 || service.likeAction != "like" ||
+		response.LikeCount != 5 || !response.LikedByMe {
+		t.Fatalf("service = %+v, response = %+v", service, response)
+	}
+}
+
+func TestHandlerUnlikeUsesAuthenticatedUserAndReturnsState(t *testing.T) {
+	service := &stubPostService{}
+	handler := NewHandler(service)
+	request := httptest.NewRequest(http.MethodDelete, "/api/v1/posts/41/like", nil)
+	request.SetPathValue("post_id", "41")
+	request.Header.Set("Authorization", "Bearer token")
+	recorder := httptest.NewRecorder()
+
+	authenticated(http.HandlerFunc(handler.Unlike)).ServeHTTP(recorder, request)
+
+	if recorder.Code != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", recorder.Code, recorder.Body.String())
+	}
+	var response likeResponse
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if service.userID != 7 || service.likePostID != 41 || service.likeAction != "unlike" ||
+		response.LikeCount != 4 || response.LikedByMe {
+		t.Fatalf("service = %+v, response = %+v", service, response)
+	}
 }
 
 func TestHandlerCreateCommentUsesAuthenticatedAuthor(t *testing.T) {
@@ -272,6 +335,7 @@ func testPost() Post {
 			CreatedAt: time.Date(2026, 8, 9, 8, 0, 0, 0, time.UTC),
 		},
 		Body: "Hello world", Images: []Image{{ID: 3, Position: 0, ContentType: "image/png", ByteSize: 8}},
+		LikeCount: 4, LikedByMe: true,
 		CreatedAt: time.Date(2026, 8, 9, 9, 0, 0, 0, time.UTC),
 	}
 }

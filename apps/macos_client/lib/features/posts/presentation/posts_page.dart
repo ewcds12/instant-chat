@@ -130,6 +130,9 @@ class _PostsPageState extends ConsumerState<PostsPage> {
                     onCommentCountChanged: (delta) => ref
                         .read(postsControllerProvider.notifier)
                         .adjustCommentCount(detailPost.id, delta),
+                    onLike: () => ref
+                        .read(postsControllerProvider.notifier)
+                        .toggleLike(detailPost.id),
                     onDownloadImage: _downloadImage,
                   ),
           ),
@@ -208,6 +211,9 @@ class _PostsPageState extends ConsumerState<PostsPage> {
                   isOwnPost: post.author.id == session.user.id,
                   onAction: (action) => _handleAction(action, post),
                   onComment: () => setState(() => _detailPostId = post.id),
+                  onLike: () => ref
+                      .read(postsControllerProvider.notifier)
+                      .toggleLike(post.id),
                   onDownloadImage: _downloadImage,
                 ),
               ),

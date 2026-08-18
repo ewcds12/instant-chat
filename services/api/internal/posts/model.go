@@ -40,7 +40,15 @@ type Post struct {
 	Body         string
 	Images       []Image
 	CommentCount uint64
+	LikeCount    uint64
+	LikedByMe    bool
 	CreatedAt    time.Time
+}
+
+// LikeState is the persisted like state for one post and authenticated user.
+type LikeState struct {
+	LikeCount uint64
+	LikedByMe bool
 }
 
 // Comment is one authenticated public response to a post.
@@ -96,10 +104,12 @@ type ObjectStore interface {
 // Repository defines persistence required by post use cases.
 type Repository interface {
 	Create(context.Context, uint64, string, []ImageUpload) (Post, error)
-	List(context.Context, *uint64, int) ([]Post, error)
+	List(context.Context, uint64, *uint64, int) ([]Post, error)
 	Image(context.Context, uint64) (ImageFile, error)
 	Delete(context.Context, uint64, uint64) error
 	Report(context.Context, uint64, uint64, string) error
+	Like(context.Context, uint64, uint64) (LikeState, error)
+	Unlike(context.Context, uint64, uint64) (LikeState, error)
 	CreateComment(context.Context, uint64, uint64, *uint64, string) (Comment, error)
 	ListComments(context.Context, uint64, *uint64, int) ([]Comment, error)
 	DeleteComment(context.Context, uint64, uint64, uint64) error

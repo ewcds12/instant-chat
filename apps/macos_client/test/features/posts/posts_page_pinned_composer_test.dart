@@ -291,6 +291,18 @@ class _StubPostGateway implements PostGateway {
   }) => throw UnimplementedError();
 
   @override
+  Future<PostLikeState> like({
+    required String accessToken,
+    required String postId,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<PostLikeState> unlike({
+    required String accessToken,
+    required String postId,
+  }) => throw UnimplementedError();
+
+  @override
   Future<PostCommentPage> listComments({
     required String accessToken,
     required String postId,

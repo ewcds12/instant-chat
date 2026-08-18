@@ -50,6 +50,8 @@ class PostsState {
 }
 
 class PostsController extends AsyncNotifier<PostsState> {
+  final _changingLikes = <String>{};
+
   PostGateway get _gateway => ref.read(postGatewayProvider);
 
   String get _accessToken {
@@ -158,6 +160,43 @@ class PostsController extends AsyncNotifier<PostsState> {
         reason: reason,
       ),
     );
+  }
+
+  Future<bool> toggleLike(String postId) async {
+    final current = state.asData?.value;
+    final post = current?.posts.where((post) => post.id == postId).firstOrNull;
+    if (post == null || !_changingLikes.add(postId)) return false;
+    try {
+      final likeState = post.likedByMe
+          ? await _gateway.unlike(accessToken: _accessToken, postId: postId)
+          : await _gateway.like(accessToken: _accessToken, postId: postId);
+      final latest = state.asData?.value;
+      if (latest == null) return false;
+      state = AsyncData(
+        latest.copyWith(
+          posts: latest.posts
+              .map(
+                (item) => item.id == postId
+                    ? item.copyWith(
+                        likeCount: likeState.likeCount,
+                        likedByMe: likeState.likedByMe,
+                      )
+                    : item,
+              )
+              .toList(growable: false),
+          clearError: true,
+        ),
+      );
+      return true;
+    } catch (error) {
+      final latest = state.asData?.value;
+      if (latest != null) {
+        state = AsyncData(latest.copyWith(errorMessage: _message(error)));
+      }
+      return false;
+    } finally {
+      _changingLikes.remove(postId);
+    }
   }
 
   void adjustCommentCount(String postId, int delta) {
