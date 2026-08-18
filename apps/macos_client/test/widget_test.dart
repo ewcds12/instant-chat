@@ -285,7 +285,7 @@ void main() {
     );
     expect(
       bubble.padding,
-      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
     expect(messageGateway.sentBody, 'Hello.');
   });

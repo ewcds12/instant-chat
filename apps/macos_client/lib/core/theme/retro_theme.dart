@@ -81,8 +81,8 @@ abstract final class RetroMetrics {
   static const messageAvatarGap = 4.0;
   static const messageAvatarSlotWidth = 44.0;
   static const messageBubbleMaxWidth = 520.0;
-  static const messageBubbleHorizontalInset = 20.0;
-  static const messageBubbleVerticalInset = 12.0;
+  static const messageBubbleHorizontalInset = 16.0;
+  static const messageBubbleVerticalInset = 8.0;
   static const messageReplyAccentWidth = 2.0;
   static const messageReplyTextInset = 8.0;
   static const messageReplyContentGap = 7.0;
