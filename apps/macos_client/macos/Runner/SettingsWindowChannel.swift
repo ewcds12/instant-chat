@@ -7,6 +7,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
   private static let minimumWindowSize = NSSize(width: 760, height: 500)
 
   private let channel: FlutterMethodChannel
+  private var launchAtLoginChannel: LaunchAtLoginChannel?
   private var settingsWindow: NSWindow?
   private var settingsEngine: FlutterEngine?
 
@@ -55,6 +56,9 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
         nibName: nil,
         bundle: nil
       )
+      let launchAtLoginChannel = LaunchAtLoginChannel(
+        controller: viewController
+      )
       viewController.backgroundColor = NSColor(
         calibratedRed: 0.98,
         green: 0.99,
@@ -78,6 +82,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
       window.center()
 
       self.settingsEngine = engine
+      self.launchAtLoginChannel = launchAtLoginChannel
       self.settingsWindow = window
       NSApp.activate(ignoringOtherApps: true)
       window.makeKeyAndOrderFront(nil)
@@ -87,6 +92,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
 
   func windowWillClose(_ notification: Notification) {
     settingsWindow = nil
+    launchAtLoginChannel = nil
     settingsEngine?.shutDownEngine()
     settingsEngine = nil
   }

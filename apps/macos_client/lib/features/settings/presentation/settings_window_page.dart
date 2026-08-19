@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/settings/presentation/launch_at_login_setting.dart';
 
 enum SettingsCategory {
   general('General', Icons.settings_outlined),
@@ -210,7 +211,6 @@ class _GeneralSettingsShell extends StatefulWidget {
 }
 
 class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
-  var _launchAtLogin = true;
   var _openLinksExternally = true;
   var _keepInDock = true;
   var _checkSpelling = true;
@@ -219,11 +219,7 @@ class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _SettingsToggleRow(
-          label: 'Launch at login',
-          value: _launchAtLogin,
-          onChanged: (value) => setState(() => _launchAtLogin = value),
-        ),
+        const LaunchAtLoginSetting(),
         _SettingsToggleRow(
           label: 'Open links in default browser',
           value: _openLinksExternally,

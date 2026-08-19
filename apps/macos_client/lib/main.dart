@@ -11,5 +11,5 @@ void main() {
 @pragma('vm:entry-point')
 void settingsMain() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const SettingsApp());
+  runApp(const ProviderScope(child: SettingsApp()));
 }
