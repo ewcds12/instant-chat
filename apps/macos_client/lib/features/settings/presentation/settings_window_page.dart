@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/settings/presentation/keep_app_in_dock_setting.dart';
 import 'package:instant_chat/features/settings/presentation/launch_at_login_setting.dart';
 import 'package:instant_chat/features/settings/presentation/open_links_setting.dart';
 
@@ -212,7 +213,6 @@ class _GeneralSettingsShell extends StatefulWidget {
 }
 
 class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
-  var _keepInDock = true;
   var _checkSpelling = true;
 
   @override
@@ -221,11 +221,7 @@ class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
       children: [
         const LaunchAtLoginSetting(),
         const OpenLinksSetting(),
-        _SettingsToggleRow(
-          label: 'Keep app in Dock',
-          value: _keepInDock,
-          onChanged: (value) => setState(() => _keepInDock = value),
-        ),
+        const KeepAppInDockSetting(),
         const Divider(height: 1),
         const _SettingsValueRow(label: 'Language', value: 'System Default'),
         const _SettingsValueRow(

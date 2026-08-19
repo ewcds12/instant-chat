@@ -12,7 +12,7 @@ The authentication, contacts, direct conversations, and persisted message founda
 - Registration uses a unique lowercase username and password, with no email address required.
 - The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
 - The authenticated client provides modern Chats, Contacts, Explore, and system-status workspaces.
-- The standalone Settings window can register or unregister the main macOS app as a login item. It reads the current system state whenever General opens and directs users to System Settings when macOS requires approval.
+- The standalone Settings window can register or unregister the main macOS app as a login item, persist whether links use the default browser, and show or hide the app in the Dock. These preferences restore on startup, and Launch at login directs users to System Settings when macOS requires approval.
 - The account card opens an in-app Profile sheet where users can set a profile photo, Name, Gender, Region, and ID. Changes persist to MySQL, are restored with the session, and update connected peers through the authenticated realtime channel.
 - The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, automatic older-history loading while scrolling, a focused complete-history search with direct result navigation, an inline Contact Info view with back navigation, and a persistent desktop master-detail layout.
 - Message rows omit sender avatars so incoming and outgoing content align cleanly with the chat area edges.

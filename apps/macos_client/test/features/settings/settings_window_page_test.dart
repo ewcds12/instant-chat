@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:instant_chat/core/platform/macos_dock_visibility.dart';
 import 'package:instant_chat/core/platform/macos_launch_at_login.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/settings/presentation/settings_app.dart';
@@ -15,6 +16,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          dockVisibilityPlatformProvider.overrideWithValue(
+            _FakeDockVisibilityPlatform(),
+          ),
           launchAtLoginPlatformProvider.overrideWithValue(
             _FakeLaunchAtLoginPlatform(),
           ),
@@ -63,6 +67,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          dockVisibilityPlatformProvider.overrideWithValue(
+            _FakeDockVisibilityPlatform(),
+          ),
           launchAtLoginPlatformProvider.overrideWithValue(platform),
           linkOpeningPreferenceProvider.overrideWithValue(
             _FakeLinkOpeningPreference(),
@@ -100,6 +107,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          dockVisibilityPlatformProvider.overrideWithValue(
+            _FakeDockVisibilityPlatform(),
+          ),
           launchAtLoginPlatformProvider.overrideWithValue(
             _FakeLaunchAtLoginPlatform(),
           ),
@@ -126,6 +136,60 @@ void main() {
     );
     expect(browserSwitch.value, isTrue);
   });
+
+  testWidgets('reads and updates the Dock preference', (tester) async {
+    tester.view.physicalSize = const Size(920, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final platform = _FakeDockVisibilityPlatform(enabled: false);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          dockVisibilityPlatformProvider.overrideWithValue(platform),
+          launchAtLoginPlatformProvider.overrideWithValue(
+            _FakeLaunchAtLoginPlatform(),
+          ),
+          linkOpeningPreferenceProvider.overrideWithValue(
+            _FakeLinkOpeningPreference(),
+          ),
+        ],
+        child: const SettingsApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    var dockSwitch = tester.widget<Switch>(
+      find.byKey(const Key('keep-app-in-dock-switch')),
+    );
+    expect(dockSwitch.value, isFalse);
+
+    await tester.tap(find.byKey(const Key('keep-app-in-dock-switch')));
+    await tester.pumpAndSettle();
+
+    expect(platform.requestedValues, [true]);
+    dockSwitch = tester.widget<Switch>(
+      find.byKey(const Key('keep-app-in-dock-switch')),
+    );
+    expect(dockSwitch.value, isTrue);
+  });
+}
+
+class _FakeDockVisibilityPlatform implements DockVisibilityPlatform {
+  _FakeDockVisibilityPlatform({this.enabled = true});
+
+  bool enabled;
+  final requestedValues = <bool>[];
+
+  @override
+  Future<bool> getKeepAppInDock() async => enabled;
+
+  @override
+  Future<void> setKeepAppInDock(bool enabled) async {
+    requestedValues.add(enabled);
+    this.enabled = enabled;
+  }
 }
 
 class _FakeLaunchAtLoginPlatform implements LaunchAtLoginPlatform {
