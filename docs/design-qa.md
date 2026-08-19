@@ -244,6 +244,49 @@ final result: passed
 
 ---
 
+# Settings Window Shell Design QA
+
+## Evidence
+
+- Source visual truth: `/Users/ewcds/.codex/generated_images/019fb7bb-097b-7e61-a06b-1f260f8cc2ca/exec-d8379690-8841-4bae-8eec-c43488a7af89.png`
+- Native implementation capture: `/tmp/settings-window-general-native.jpeg`
+- Side-by-side comparison: `/tmp/settings-window-design-qa.png`
+- Source pixels: `1508 × 1043`
+- Native capture pixels: `760 × 500`
+- Window target: `920 × 620` logical pixels, with a `760 × 500` minimum size.
+- State: standalone macOS Settings window, General selected, authenticated app window retained behind it.
+
+## Full-View Comparison
+
+The implementation preserves the selected direction's compact two-column macOS settings layout: native traffic lights, a narrow category sidebar with search, six clearly grouped categories, and a spacious settings surface on the right. General exposes representative switches and value rows so spacing, hierarchy, and control density can be judged before individual features are connected.
+
+## Focused Comparison
+
+- Typography: heading, row labels, secondary values, and sidebar labels follow the app's existing type hierarchy and remain legible at minimum window size.
+- Spacing and layout: sidebar width, row rhythm, dividers, and right-aligned controls match the source structure without overflow.
+- Colors and tokens: the existing Instant Chat blue, neutral surfaces, subtle dividers, and selected-row tint are reused consistently.
+- Icons: built-in Material symbols provide a coherent category set without introducing mixed raster assets.
+- Copy: category names and General row labels match the approved visual direction.
+
+## Interaction Verification
+
+- The existing sidebar gear opens a reusable, genuinely separate macOS window.
+- Category selection switches the right-side shell between all six sections.
+- Sidebar search filters categories without changing the main app state.
+- Closing Settings leaves the primary Instant Chat window running.
+- General controls are intentionally local preview state; persistence and platform behavior will be connected as each settings feature is implemented.
+
+## Findings
+
+- No actionable P0, P1, or P2 visual, interaction, overflow, or accessibility findings remain.
+- P3, accepted by scope: Appearance, Messages, Notifications, Privacy, and Storage currently show compact placeholders because the user requested the shell first and feature implementation later.
+
+## Final Result
+
+final result: passed
+
+---
+
 # Explore Multi-Image Layout Design QA
 
 ## Evidence

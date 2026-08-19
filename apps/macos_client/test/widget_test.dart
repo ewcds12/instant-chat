@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/app/instant_chat_app.dart';
 import 'package:instant_chat/core/platform/macos_window_controller.dart';
+import 'package:instant_chat/core/platform/macos_settings_window_controller.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
@@ -18,12 +19,16 @@ import 'package:instant_chat/features/users/domain/public_user.dart';
 import 'support/widget_network_stubs.dart';
 
 void main() {
-  testWidgets('keeps the settings button without opening a page', (
+  testWidgets('opens settings in a separate window from the sidebar', (
     tester,
   ) async {
+    final settingsWindowController = _RecordingSettingsWindowController();
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          settingsWindowControllerProvider.overrideWithValue(
+            settingsWindowController,
+          ),
           authControllerProvider.overrideWith(
             () => _StubAuthController(AuthState(session: _session)),
           ),
@@ -45,6 +50,7 @@ void main() {
     expect(find.byTooltip('Settings'), findsOneWidget);
     await tester.tap(find.byKey(const Key('settings-placeholder-button')));
     await tester.pumpAndSettle();
+    expect(settingsWindowController.openCalls, 1);
     expect(find.text('System'), findsNothing);
     expect(find.byTooltip('Settings'), findsOneWidget);
   });
@@ -271,6 +277,13 @@ class _RecordingWindowController implements AppWindowController {
 
   @override
   Future<void> setMode(AppWindowMode mode) async => modes.add(mode);
+}
+
+class _RecordingSettingsWindowController implements SettingsWindowController {
+  var openCalls = 0;
+
+  @override
+  Future<void> open() async => openCalls += 1;
 }
 
 const _emptyContacts = ContactsState(contacts: [], incoming: [], outgoing: []);

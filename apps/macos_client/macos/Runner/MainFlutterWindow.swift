@@ -17,6 +17,7 @@ class MainFlutterWindow: NSWindow {
   private static let trafficLightSpacing = CGFloat(20)
   private var clipboardImageChannel: ClipboardImageChannel?
   private var messageTranslationChannel: MessageTranslationChannel?
+  private var settingsWindowChannel: SettingsWindowChannel?
   private var windowModeChannel: AppWindowModeChannel?
 
   override func awakeFromNib() {
@@ -31,6 +32,9 @@ class MainFlutterWindow: NSWindow {
       controller: flutterViewController
     )
     messageTranslationChannel = MessageTranslationChannel(
+      controller: flutterViewController
+    )
+    settingsWindowChannel = SettingsWindowChannel(
       controller: flutterViewController
     )
     windowModeChannel = AppWindowModeChannel(

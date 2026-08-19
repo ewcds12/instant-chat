@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/app/shell_navigation_refresh.dart';
+import 'package:instant_chat/core/platform/macos_settings_window_controller.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
@@ -50,6 +51,8 @@ class _AuthenticatedShellState extends ConsumerState<AuthenticatedShell> {
                 session: widget.session,
                 onSignOut: widget.onSignOut,
               ),
+              onOpenSettings: () =>
+                  ref.read(settingsWindowControllerProvider).open(),
             ),
             VerticalDivider(color: colors.outlineVariant),
             Expanded(
@@ -102,12 +105,14 @@ class _AppSidebar extends ConsumerWidget {
     required this.selectedIndex,
     required this.onSelect,
     required this.onOpenProfile,
+    required this.onOpenSettings,
   });
 
   final AuthSession session;
   final int selectedIndex;
   final ValueChanged<int> onSelect;
   final VoidCallback onOpenProfile;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -148,7 +153,7 @@ class _AppSidebar extends ConsumerWidget {
                 onTap: () => onSelect(2),
               ),
               const Spacer(),
-              const _SystemButton(),
+              _SystemButton(onTap: onOpenSettings),
               const SizedBox(height: 10),
               _AccountTile(session: session, onTap: onOpenProfile),
             ],
@@ -221,7 +226,9 @@ class _AccountTile extends StatelessWidget {
 }
 
 class _SystemButton extends StatelessWidget {
-  const _SystemButton();
+  const _SystemButton({required this.onTap});
+
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +240,7 @@ class _SystemButton extends StatelessWidget {
         child: InkWell(
           key: const Key('settings-placeholder-button'),
           borderRadius: BorderRadius.circular(14),
-          onTap: () {},
+          onTap: onTap,
           child: Container(
             width: 38,
             height: 38,
