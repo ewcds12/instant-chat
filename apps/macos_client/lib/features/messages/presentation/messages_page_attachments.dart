@@ -35,14 +35,16 @@ extension _MessagesPageAttachments on _MessagesPageState {
 
   void _showImageLimit() {
     if (mounted) {
-      _showSaveError('You can attach up to 3 photos.');
+      _showSaveError(context.l10n.ui('You can attach up to 3 photos.'));
     }
   }
 
   Future<void> _pickAndSendImage(
     AsyncNotifierProvider<MessagesController, MessagesState> provider,
   ) async {
-    final imagePath = await ref.read(localImagePickerProvider).pickImagePath();
+    final imagePath = await ref
+        .read(localImagePickerProvider)
+        .pickImagePath(prompt: context.l10n.ui('Choose an image to send'));
     if (!mounted || imagePath == null) {
       return;
     }
@@ -71,7 +73,7 @@ extension _MessagesPageAttachments on _MessagesPageState {
   ) async {
     for (final file in files) {
       if (file.isDirectory) {
-        _showSaveError("Folders can't be sent.");
+        _showSaveError(context.l10n.ui("Folders can't be sent."));
         continue;
       }
       final shouldContinue = await _sendDroppedFile(provider, file);
@@ -86,12 +88,13 @@ extension _MessagesPageAttachments on _MessagesPageState {
     AsyncNotifierProvider<MessagesController, MessagesState> provider,
     MessageDroppedFile file,
   ) async {
+    final localizations = context.l10n;
     try {
       return await file.withAccess(() async {
         final byteSize = await File(file.path).length();
         final sizeError = messageDropSizeError(file.path, byteSize);
         if (sizeError != null) {
-          _showSaveError(sizeError);
+          _showSaveError(localizations.ui(sizeError));
           return true;
         }
         final controller = ref.read(provider.notifier);
@@ -108,9 +111,11 @@ extension _MessagesPageAttachments on _MessagesPageState {
         return true;
       });
     } on MessageDropAccessException {
-      _showSaveError('The dropped file could not be accessed.');
+      _showSaveError(
+        localizations.ui('The dropped file could not be accessed.'),
+      );
     } on FileSystemException {
-      _showSaveError('The dropped file could not be read.');
+      _showSaveError(localizations.ui('The dropped file could not be read.'));
     }
     return true;
   }
@@ -118,6 +123,7 @@ extension _MessagesPageAttachments on _MessagesPageState {
   Future<void> _retryMessage(
     AsyncNotifierProvider<MessagesController, MessagesState> provider,
   ) async {
+    final localizations = context.l10n;
     final failed = ref.read(provider).value?.failedMessage;
     final droppedFile = _failedDroppedFile;
     final file =
@@ -141,9 +147,11 @@ extension _MessagesPageAttachments on _MessagesPageState {
         await file.deleteTemporaryCopy();
       }
     } on MessageDropAccessException {
-      _showSaveError('The dropped file could not be accessed.');
+      _showSaveError(
+        localizations.ui('The dropped file could not be accessed.'),
+      );
     } on FileSystemException {
-      _showSaveError('The dropped file could not be read.');
+      _showSaveError(localizations.ui('The dropped file could not be read.'));
     }
   }
 }

@@ -163,6 +163,25 @@ class RunnerTests: XCTestCase {
     XCTAssertNil(MessageTranslationLanguage(rawValue: "unsupported"))
   }
 
+  func testAppLanguageDefaultsFollowSupportedMacLanguages() {
+    XCTAssertEqual(
+      AppLanguageChannel.defaultLanguage(preferredLanguages: ["en-US"]),
+      "en"
+    )
+    XCTAssertEqual(
+      AppLanguageChannel.defaultLanguage(preferredLanguages: ["ja-JP"]),
+      "ja"
+    )
+    XCTAssertEqual(
+      AppLanguageChannel.defaultLanguage(preferredLanguages: ["zh-Hans-CN"]),
+      "zh-Hans"
+    )
+    XCTAssertEqual(
+      AppLanguageChannel.defaultLanguage(preferredLanguages: ["zh-Hant-TW"]),
+      "en"
+    )
+  }
+
   private func makeWindow() -> NSWindow {
     NSWindow(
       contentRect: NSRect(x: 0, y: 0, width: 1150, height: 750),

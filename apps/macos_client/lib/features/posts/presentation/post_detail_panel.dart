@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
@@ -166,7 +167,7 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
               onPressed: () => ref.invalidate(
                 postCommentsControllerProvider(widget.post.id),
               ),
-              child: const Text('Try again'),
+              child: Text(context.l10n.ui('Try again')),
             ),
           );
         }
@@ -209,19 +210,21 @@ class _PostDetailPanelState extends ConsumerState<PostDetailPanel> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Comment?'),
-        content: const Text('This comment will be permanently removed.'),
+        title: Text(context.l10n.ui('Delete Comment?')),
+        content: Text(
+          context.l10n.ui('This comment will be permanently removed.'),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.ui('Cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
               backgroundColor: Theme.of(context).colorScheme.error,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.ui('Delete')),
           ),
         ],
       ),

@@ -16,6 +16,7 @@ class MainFlutterWindow: NSWindow {
   private static let standardTrafficLightOrigin = NSPoint(x: 7, y: 6)
   private static let trafficLightSpacing = CGFloat(20)
   private var clipboardImageChannel: ClipboardImageChannel?
+  private var appLanguageChannel: AppLanguageChannel?
   private var messageTranslationChannel: MessageTranslationChannel?
   private var settingsWindowChannel: SettingsWindowChannel?
   private var urlLauncherChannel: URLLauncherChannel?
@@ -33,6 +34,7 @@ class MainFlutterWindow: NSWindow {
     clipboardImageChannel = ClipboardImageChannel(
       controller: flutterViewController
     )
+    appLanguageChannel = AppLanguageChannel(controller: flutterViewController)
     messageTranslationChannel = MessageTranslationChannel(
       controller: flutterViewController
     )

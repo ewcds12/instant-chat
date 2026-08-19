@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 part 'profile_photo_crop.dart';
@@ -59,13 +60,18 @@ class _ProfilePhotoCropperState extends State<_ProfilePhotoCropper> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Crop photo', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                context.l10n.ui('Crop photo'),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
               const SizedBox(height: RetroMetrics.spaceMedium),
               _cropArea(colors),
               const SizedBox(height: RetroMetrics.spaceMedium),
               Text(
                 _errorMessage ??
-                    'Drag the circle to choose your profile photo.',
+                    context.l10n.ui(
+                      'Drag the circle to choose your profile photo.',
+                    ),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: _errorMessage == null
@@ -82,13 +88,17 @@ class _ProfilePhotoCropperState extends State<_ProfilePhotoCropper> {
                     onPressed: _isExporting
                         ? null
                         : () => Navigator.of(context).pop(),
-                    child: const Text('Cancel'),
+                    child: Text(context.l10n.ui('Cancel')),
                   ),
                   const SizedBox(width: RetroMetrics.spaceSmall),
                   FilledButton(
                     key: const Key('profile-photo-crop-confirm'),
                     onPressed: _image == null || _isExporting ? null : _confirm,
-                    child: Text(_isExporting ? 'Preparing…' : 'Use photo'),
+                    child: Text(
+                      context.l10n.ui(
+                        _isExporting ? 'Preparing…' : 'Use photo',
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -133,7 +143,11 @@ class _ProfilePhotoCropperState extends State<_ProfilePhotoCropper> {
       setState(() => _image = image);
     } on Exception {
       if (mounted) {
-        setState(() => _errorMessage = 'This image could not be opened.');
+        setState(
+          () => _errorMessage = context.l10n.ui(
+            'This image could not be opened.',
+          ),
+        );
       }
     }
   }
@@ -159,7 +173,9 @@ class _ProfilePhotoCropperState extends State<_ProfilePhotoCropper> {
       if (mounted) {
         setState(() {
           _isExporting = false;
-          _errorMessage = 'The cropped photo could not be prepared.';
+          _errorMessage = context.l10n.ui(
+            'The cropped photo could not be prepared.',
+          );
         });
       }
     }

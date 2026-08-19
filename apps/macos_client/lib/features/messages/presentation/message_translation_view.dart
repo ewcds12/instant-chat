@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_message_translation.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
@@ -72,7 +73,7 @@ class MessageTranslationView extends StatelessWidget {
             const SizedBox(width: RetroMetrics.spaceSmall),
             Flexible(
               child: Text(
-                'Translating…',
+                context.l10n.ui('Translating…'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: style,
@@ -97,7 +98,7 @@ class MessageTranslationView extends StatelessWidget {
             const SizedBox(width: RetroMetrics.spaceSmall),
             Flexible(
               child: Text(
-                'Translation unavailable',
+                context.l10n.ui('Translation unavailable'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: style,

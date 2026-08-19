@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 
 final openLinksInDefaultBrowserProvider =
@@ -45,7 +46,7 @@ class OpenLinksSetting extends ConsumerWidget {
         children: [
           Expanded(
             child: Text(
-              'Open links in default browser',
+              context.l10n.openLinksInDefaultBrowser,
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
@@ -78,7 +79,7 @@ class OpenLinksSetting extends ConsumerWidget {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update link settings.')),
+        SnackBar(content: Text(context.l10n.linkSettingUpdateFailed)),
       );
     }
   }

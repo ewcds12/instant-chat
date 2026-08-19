@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
@@ -56,7 +57,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         _AuthField(
                           key: const Key('auth-id'),
                           controller: _usernameController,
-                          hintText: 'ID',
+                          hintText: context.l10n.id,
                           icon: Icons.person_outline_rounded,
                           autocorrect: false,
                           textCapitalization: TextCapitalization.none,
@@ -68,7 +69,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           _AuthField(
                             key: const Key('auth-display-name'),
                             controller: _displayNameController,
-                            hintText: 'Display name',
+                            hintText: context.l10n.displayName,
                             icon: Icons.badge_outlined,
                             textInputAction: TextInputAction.next,
                             validator: _validateDisplayName,
@@ -78,7 +79,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         _AuthField(
                           key: const Key('auth-password'),
                           controller: _passwordController,
-                          hintText: 'Password',
+                          hintText: context.l10n.password,
                           icon: Icons.lock_outline_rounded,
                           obscureText: true,
                           onFieldSubmitted: (_) => _submit(auth?.isSubmitting),
@@ -86,7 +87,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         if (auth?.errorMessage case final message?) ...[
                           const SizedBox(height: 8),
                           Text(
-                            message,
+                            context.l10n.ui(message),
                             textAlign: TextAlign.center,
                             style: Theme.of(context).textTheme.bodySmall
                                 ?.copyWith(color: colors.error),
@@ -102,10 +103,10 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                 : () => _submit(false),
                             child: Text(
                               auth?.isSubmitting == true
-                                  ? 'Please wait…'
+                                  ? context.l10n.pleaseWait
                                   : _isRegistration
-                                  ? 'Create account'
-                                  : 'Sign in',
+                                  ? context.l10n.createAccount
+                                  : context.l10n.signIn,
                             ),
                           ),
                         ),
@@ -125,8 +126,8 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                                 : _toggleMode,
                             child: Text(
                               _isRegistration
-                                  ? 'Back to sign in'
-                                  : 'Create an account',
+                                  ? context.l10n.backToSignIn
+                                  : context.l10n.createAnAccount,
                               style: Theme.of(context).textTheme.bodySmall
                                   ?.copyWith(
                                     color: colors.primary,
@@ -175,7 +176,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   String? _validateDisplayName(String? value) {
     final length = value?.trim().length ?? 0;
     if (length < 2 || length > 80) {
-      return 'Use 2 to 80 characters.';
+      return context.l10n.displayNameValidation;
     }
     return null;
   }
@@ -183,7 +184,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   String? _validateUsername(String? value) {
     final username = value?.trim().toLowerCase() ?? '';
     if (!RegExp(r'^[a-z][a-z0-9_]{2,31}$').hasMatch(username)) {
-      return 'Use 3 to 32 lowercase letters, numbers, or underscores.';
+      return context.l10n.usernameValidation;
     }
     return null;
   }

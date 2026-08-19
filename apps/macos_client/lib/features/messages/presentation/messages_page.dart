@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_clipboard_image.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_file_picker.dart';
@@ -208,7 +209,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
                 ),
                 if (state.value case final value?) ...[
                   if (value.errorMessage case final message?)
-                    MessageErrorBar(message: message),
+                    MessageErrorBar(message: context.l10n.ui(message)),
                   if (value.failedMessage != null)
                     MessageRetryBar(
                       disabled: value.isSending,
@@ -245,7 +246,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       await _downloadFile(provider, actions, file);
     } catch (_) {
       if (mounted) {
-        _showSaveError('File could not be saved.');
+        _showSaveError(context.l10n.ui('File could not be saved.'));
       }
     }
   }
@@ -256,7 +257,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Link could not be opened.')),
+          SnackBar(content: Text(context.l10n.ui('Link could not be opened.'))),
         );
       }
     }
@@ -290,7 +291,7 @@ class _MessagesPageState extends ConsumerState<MessagesPage> {
       await actions.writeDownloadFile(path, bytes);
     } catch (_) {
       if (mounted) {
-        _showSaveError('Image could not be saved.');
+        _showSaveError(context.l10n.ui('Image could not be saved.'));
       }
     }
   }

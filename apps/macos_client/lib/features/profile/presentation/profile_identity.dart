@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_session.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
@@ -14,12 +15,15 @@ class ProfileHeader extends StatelessWidget {
     child: Stack(
       alignment: Alignment.center,
       children: [
-        Text('Profile', style: Theme.of(context).textTheme.titleLarge),
+        Text(
+          context.l10n.ui('Profile'),
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
         Align(
           alignment: Alignment.centerRight,
           child: IconButton(
             key: const Key('profile-sheet-close'),
-            tooltip: 'Close profile',
+            tooltip: context.l10n.ui('Close profile'),
             onPressed: onClose,
             icon: const Icon(Icons.close_rounded),
           ),
@@ -73,7 +77,7 @@ class ProfileIdentity extends StatelessWidget {
               ),
             ),
           ),
-          child: const Text('Edit photo'),
+          child: Text(context.l10n.ui('Edit photo')),
         ),
         const SizedBox(height: RetroMetrics.spaceMedium),
         Text(

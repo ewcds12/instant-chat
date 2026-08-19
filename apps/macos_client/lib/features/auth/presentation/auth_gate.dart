@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/app/authenticated_shell.dart';
 import 'package:instant_chat/core/platform/macos_window_controller.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
@@ -66,7 +67,7 @@ class _BootPage extends StatelessWidget {
     return Scaffold(
       body: Center(
         child: Semantics(
-          label: 'Restoring secure session',
+          label: context.l10n.ui('Restoring secure session'),
           child: CircularProgressIndicator(),
         ),
       ),
@@ -89,13 +90,16 @@ class _SessionErrorPage extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Unable to restore your session',
+                context.l10n.ui('Unable to restore your session'),
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: RetroMetrics.spaceMedium),
-              const Text('The saved session could not be loaded.'),
+              Text(context.l10n.ui('The saved session could not be loaded.')),
               const SizedBox(height: RetroMetrics.spaceLarge),
-              FilledButton(onPressed: onRetry, child: const Text('Try again')),
+              FilledButton(
+                onPressed: onRetry,
+                child: Text(context.l10n.ui('Try again')),
+              ),
             ],
           ),
         ),

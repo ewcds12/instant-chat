@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/posts/domain/post_comment.dart';
@@ -64,7 +65,7 @@ class _PostCommentComposerState extends State<PostCommentComposer> {
           children: [
             if (widget.errorMessage case final message?) ...[
               Text(
-                message,
+                context.l10n.ui(message),
                 textAlign: TextAlign.center,
                 style: Theme.of(
                   context,
@@ -84,7 +85,7 @@ class _PostCommentComposerState extends State<PostCommentComposer> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'Replying to ${reply.author.displayName}',
+                      context.l10n.replyingTo(reply.author.displayName),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -94,7 +95,7 @@ class _PostCommentComposerState extends State<PostCommentComposer> {
                   ),
                   IconButton(
                     key: const Key('post-comment-cancel-reply'),
-                    tooltip: 'Cancel reply',
+                    tooltip: context.l10n.ui('Cancel reply'),
                     visualDensity: VisualDensity.compact,
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints.tightFor(
@@ -131,7 +132,7 @@ class _PostCommentComposerState extends State<PostCommentComposer> {
                       maxLength: 500,
                       style: Theme.of(context).textTheme.bodyMedium,
                       decoration: InputDecoration(
-                        hintText: 'Write a comment',
+                        hintText: context.l10n.ui('Write a comment'),
                         counterText: '',
                         isDense: true,
                         filled: true,
@@ -161,7 +162,7 @@ class _PostCommentComposerState extends State<PostCommentComposer> {
                   dimension: RetroMetrics.postCommentSendDiameter,
                   child: IconButton.filled(
                     key: const Key('post-comment-send'),
-                    tooltip: 'Post comment',
+                    tooltip: context.l10n.ui('Post comment'),
                     padding: EdgeInsets.zero,
                     onPressed: canSend ? _send : null,
                     icon: widget.disabled

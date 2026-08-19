@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 class PostActivityRow extends StatefulWidget {
@@ -37,7 +38,7 @@ class _PostActivityRowState extends State<PostActivityRow> {
             color: muted,
             label: widget.commentCount == 0 ? null : '${widget.commentCount}',
             onPressed: widget.onComment,
-            tooltip: 'Comments',
+            tooltip: context.l10n.ui('Comments'),
           ),
           _ActivityIcon(
             icon: widget.likedByMe
@@ -48,7 +49,7 @@ class _PostActivityRowState extends State<PostActivityRow> {
                 : muted,
             label: widget.likeCount == 0 ? null : '${widget.likeCount}',
             onPressed: widget.onLike,
-            tooltip: widget.likedByMe ? 'Unlike' : 'Like',
+            tooltip: context.l10n.ui(widget.likedByMe ? 'Unlike' : 'Like'),
           ),
           _ActivityIcon(
             icon: _bookmarked
@@ -56,7 +57,9 @@ class _PostActivityRowState extends State<PostActivityRow> {
                 : Icons.bookmark_border_rounded,
             color: _bookmarked ? Theme.of(context).colorScheme.primary : muted,
             onPressed: () => setState(() => _bookmarked = !_bookmarked),
-            tooltip: _bookmarked ? 'Remove bookmark' : 'Bookmark',
+            tooltip: context.l10n.ui(
+              _bookmarked ? 'Remove bookmark' : 'Bookmark',
+            ),
           ),
         ],
       ),

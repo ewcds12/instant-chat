@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/config/app_config.dart';
 import 'package:instant_chat/core/network/api_response.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
@@ -66,7 +67,10 @@ class _SharedHeader extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text('Shared', style: Theme.of(context).textTheme.titleMedium),
+          child: Text(
+            context.l10n.ui('Shared'),
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
         ),
         TextButton.icon(
           key: const Key('contact-shared-see-all'),
@@ -79,7 +83,7 @@ class _SharedHeader extends StatelessWidget {
             ).textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
           ),
           icon: const Icon(Icons.chevron_right_rounded, size: 18),
-          label: const Text('See All'),
+          label: Text(context.l10n.ui('See All')),
         ),
       ],
     );
@@ -120,9 +124,9 @@ class _SharedContent extends StatelessWidget {
             onOpen: onOpenFile,
           )
         else
-          const ContactSharedEmptyRow(
+          ContactSharedEmptyRow(
             icon: Icons.insert_drive_file_outlined,
-            label: 'No shared files yet',
+            label: context.l10n.ui('No shared files yet'),
           ),
         const SizedBox(height: 12),
         if (content.links.isNotEmpty)
@@ -131,9 +135,9 @@ class _SharedContent extends StatelessWidget {
             onTap: () => onOpenLinks(content.links),
           )
         else
-          const ContactSharedEmptyRow(
+          ContactSharedEmptyRow(
             icon: Icons.link_rounded,
-            label: 'No shared links yet',
+            label: context.l10n.ui('No shared links yet'),
           ),
       ],
     );
@@ -238,8 +242,11 @@ class _SharedFailure extends StatelessWidget {
   Widget build(BuildContext context) {
     return _SharedStatus(
       icon: Icons.cloud_off_outlined,
-      message: 'Shared content is unavailable.',
-      action: TextButton(onPressed: onRetry, child: const Text('Try Again')),
+      message: context.l10n.ui('Shared content is unavailable.'),
+      action: TextButton(
+        onPressed: onRetry,
+        child: Text(context.l10n.ui('Try Again')),
+      ),
     );
   }
 }
@@ -249,9 +256,9 @@ class _SharedEmpty extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const _SharedStatus(
+    return _SharedStatus(
       icon: Icons.photo_library_outlined,
-      message: 'No shared photos, files, or links yet.',
+      message: context.l10n.ui('No shared photos, files, or links yet.'),
     );
   }
 }

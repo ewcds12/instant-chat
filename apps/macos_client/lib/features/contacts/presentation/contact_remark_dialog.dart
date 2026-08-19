@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 
 Future<String?> showContactRemarkDialog({
   required BuildContext context,
@@ -49,7 +50,7 @@ class _ContactRemarkDialogState extends State<_ContactRemarkDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Set Remark'),
+      title: Text(context.l10n.ui('Set Remark')),
       content: SizedBox(
         width: 320,
         child: Column(
@@ -71,7 +72,9 @@ class _ContactRemarkDialogState extends State<_ContactRemarkDialog> {
             ),
             const SizedBox(height: 4),
             Text(
-              'The original name stays visible and searchable. Leave this empty to clear the remark.',
+              context.l10n.ui(
+                'The original name stays visible and searchable. Leave this empty to clear the remark.',
+              ),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -82,9 +85,9 @@ class _ContactRemarkDialogState extends State<_ContactRemarkDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.ui('Cancel')),
         ),
-        FilledButton(onPressed: _save, child: const Text('Save')),
+        FilledButton(onPressed: _save, child: Text(context.l10n.ui('Save'))),
       ],
     );
   }

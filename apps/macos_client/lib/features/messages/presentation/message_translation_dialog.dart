@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_message_translation.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
@@ -72,7 +73,7 @@ class _MessageTranslationLanguageDialogState
           RetroMetrics.spaceSmall,
         ),
         title: Text(
-          'Translate to',
+          context.l10n.ui('Translate to'),
           style: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         contentPadding: const EdgeInsets.fromLTRB(
@@ -110,7 +111,7 @@ class _MessageTranslationLanguageDialogState
             : [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
+                  child: Text(context.l10n.ui('Cancel')),
                 ),
               ],
       ),
@@ -147,7 +148,7 @@ class _LanguageSearchField extends StatelessWidget {
         onChanged: onChanged,
         style: Theme.of(context).textTheme.bodyMedium,
         decoration: InputDecoration(
-          hintText: 'Search languages',
+          hintText: context.l10n.ui('Search languages'),
           prefixIcon: const Icon(
             Icons.search_rounded,
             size: RetroMetrics.messageTranslationSearchIconSize,
@@ -156,7 +157,7 @@ class _LanguageSearchField extends StatelessWidget {
           suffixIcon: hasQuery
               ? IconButton(
                   key: const Key('message-translation-language-search-clear'),
-                  tooltip: 'Clear search',
+                  tooltip: context.l10n.ui('Clear search'),
                   onPressed: onClear,
                   padding: EdgeInsets.zero,
                   iconSize: RetroMetrics.messageTranslationSearchIconSize,
@@ -194,10 +195,10 @@ class _LanguageList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (languages.isEmpty) {
-      return const SizedBox(
+      return SizedBox(
         key: Key('message-translation-language-empty'),
         height: RetroMetrics.messageTranslationEmptyHeight,
-        child: Center(child: Text('No languages found')),
+        child: Center(child: Text(context.l10n.ui('No languages found'))),
       );
     }
     return ConstrainedBox(

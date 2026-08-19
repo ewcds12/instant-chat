@@ -24,7 +24,7 @@ class _PreviewToolbar extends StatelessWidget {
         alignment: Alignment.center,
         children: [
           Text(
-            '${index + 1} of $total',
+            context.l10n.imagePosition(index + 1, total),
             key: const Key('message-image-preview-counter'),
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
@@ -36,7 +36,7 @@ class _PreviewToolbar extends StatelessWidget {
             children: [
               if (onDownload != null)
                 Tooltip(
-                  message: 'Download image',
+                  message: context.l10n.ui('Download image'),
                   child: TextButton.icon(
                     key: const Key('message-image-preview-download'),
                     onPressed: isDownloading ? null : onDownload,
@@ -58,13 +58,13 @@ class _PreviewToolbar extends StatelessWidget {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.download_rounded, size: 17),
-                    label: const Text('Download'),
+                    label: Text(context.l10n.ui('Download')),
                   ),
                 ),
               const Spacer(),
               IconButton(
                 key: const Key('message-image-preview-close'),
-                tooltip: 'Close',
+                tooltip: context.l10n.ui('Close'),
                 onPressed: onClose,
                 icon: const Icon(Icons.close_rounded),
               ),

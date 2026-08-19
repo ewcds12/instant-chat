@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
@@ -44,12 +45,12 @@ class MessageAttachmentMenu extends StatelessWidget {
             children: [
               _MenuItem(
                 icon: Icons.photo_outlined,
-                label: 'Photo…',
+                label: context.l10n.ui('Photo…'),
                 onTap: onPhoto,
               ),
               _MenuItem(
                 icon: Icons.insert_drive_file_outlined,
-                label: 'File…',
+                label: context.l10n.ui('File…'),
                 onTap: onFile,
               ),
             ],

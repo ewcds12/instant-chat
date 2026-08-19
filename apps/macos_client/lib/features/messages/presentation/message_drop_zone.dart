@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 class MessageDropZone extends StatefulWidget {
@@ -142,7 +143,7 @@ class _DropOverlay extends StatelessWidget {
                 ),
                 const SizedBox(width: RetroMetrics.spaceSmall),
                 Text(
-                  'Release to send',
+                  context.l10n.ui('Release to send'),
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ],

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
@@ -72,10 +73,13 @@ class _PostComposerDialogState extends ConsumerState<_PostComposerDialog> {
   Widget _header(bool submitting) {
     return Row(
       children: [
-        Text('New Post', style: Theme.of(context).textTheme.titleMedium),
+        Text(
+          context.l10n.ui('New Post'),
+          style: Theme.of(context).textTheme.titleMedium,
+        ),
         const Spacer(),
         IconButton(
-          tooltip: 'Close',
+          tooltip: context.l10n.ui('Close'),
           splashRadius: 18,
           onPressed: submitting ? null : () => Navigator.of(context).pop(),
           icon: const Icon(Icons.close_rounded, size: 19),
@@ -91,8 +95,8 @@ class _PostComposerDialogState extends ConsumerState<_PostComposerDialog> {
       minLines: 4,
       maxLines: 8,
       maxLength: 1000,
-      decoration: const InputDecoration(
-        hintText: 'Share something with everyone…',
+      decoration: InputDecoration(
+        hintText: context.l10n.ui('Share something with everyone…'),
         counterText: '',
       ),
       onChanged: (_) => setState(() => _error = null),
@@ -137,7 +141,7 @@ class _PostComposerDialogState extends ConsumerState<_PostComposerDialog> {
         TextButton.icon(
           onPressed: submitting || _images.length >= 4 ? null : _addPhoto,
           icon: const Icon(Icons.add_photo_alternate_outlined, size: 17),
-          label: Text('Photo ${_images.length}/4'),
+          label: Text(context.l10n.photoCount(_images.length)),
         ),
         const Spacer(),
         FilledButton(
@@ -152,7 +156,7 @@ class _PostComposerDialogState extends ConsumerState<_PostComposerDialog> {
                   height: 15,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Post'),
+              : Text(context.l10n.ui('Post')),
         ),
       ],
     );
@@ -161,16 +165,22 @@ class _PostComposerDialogState extends ConsumerState<_PostComposerDialog> {
   Future<void> _addPhoto() async {
     final path = await ref
         .read(localImagePickerProvider)
-        .pickImagePath(prompt: 'Choose a photo for your post');
+        .pickImagePath(prompt: context.l10n.ui('Choose a photo for your post'));
     if (path == null || !mounted) return;
     if (_images.contains(path)) {
-      setState(() => _error = 'That photo is already selected.');
+      setState(
+        () => _error = context.l10n.ui('That photo is already selected.'),
+      );
       return;
     }
     final size = await File(path).length();
     if (!mounted) return;
     if (size == 0 || size > 15 * 1024 * 1024) {
-      setState(() => _error = 'Each photo must be no larger than 15 MB.');
+      setState(
+        () => _error = context.l10n.ui(
+          'Each photo must be no larger than 15 MB.',
+        ),
+      );
       return;
     }
     setState(() {
@@ -180,8 +190,11 @@ class _PostComposerDialogState extends ConsumerState<_PostComposerDialog> {
   }
 
   Future<void> _publish() async {
+    final localizations = context.l10n;
     if (_controller.text.trim().isEmpty && _images.isEmpty) {
-      setState(() => _error = 'Add text or at least one photo.');
+      setState(
+        () => _error = context.l10n.ui('Add text or at least one photo.'),
+      );
       return;
     }
     final created = await ref
@@ -192,7 +205,8 @@ class _PostComposerDialogState extends ConsumerState<_PostComposerDialog> {
       Navigator.of(context).pop();
     } else {
       setState(() {
-        _error = ref.read(postsControllerProvider).value?.errorMessage;
+        final message = ref.read(postsControllerProvider).value?.errorMessage;
+        _error = message == null ? null : localizations.ui(message);
       });
     }
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
@@ -24,15 +25,17 @@ class ContactDirectoryList extends StatelessWidget {
   Widget build(BuildContext context) {
     final groups = groupContacts(contacts, query);
     if (contacts.isEmpty) {
-      return const ContactDirectoryEmptyState(
-        title: 'No contacts yet',
-        description: 'Search for an exact ID to send a contact request.',
+      return ContactDirectoryEmptyState(
+        title: context.l10n.ui('No contacts yet'),
+        description: context.l10n.ui(
+          'Search for an exact ID to send a contact request.',
+        ),
       );
     }
     if (groups.isEmpty) {
-      return const ContactDirectoryEmptyState(
-        title: 'No matching contacts',
-        description: 'Try a different name or ID.',
+      return ContactDirectoryEmptyState(
+        title: context.l10n.ui('No matching contacts'),
+        description: context.l10n.ui('Try a different name or ID.'),
       );
     }
     return ListView.builder(
@@ -136,7 +139,7 @@ class _DirectoryContactRow extends StatelessWidget {
     return Semantics(
       selected: selected,
       button: true,
-      label: 'Contact ${contact.displayName}',
+      label: context.l10n.contactSemantics(contact.displayName),
       child: Container(
         key: ValueKey('contact-directory-selection-${contact.user.id}'),
         height: RetroMetrics.contactRowHeight,

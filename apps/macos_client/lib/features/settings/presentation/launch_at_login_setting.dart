@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_launch_at_login.dart';
 
 final launchAtLoginProvider =
@@ -57,10 +58,11 @@ class LaunchAtLoginSetting extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Launch at login',
+                  context.l10n.launchAtLogin,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
-                if (_supportingText(value, status) case final text?) ...[
+                if (_supportingText(context, value, status)
+                    case final text?) ...[
                   const SizedBox(height: 2),
                   Text(
                     text,
@@ -100,18 +102,18 @@ class LaunchAtLoginSetting extends ConsumerWidget {
   }
 
   String? _supportingText(
+    BuildContext context,
     AsyncValue<LaunchAtLoginState> value,
     LaunchAtLoginStatus? status,
   ) {
     if (value.hasError) {
-      return 'Unable to update this setting.';
+      return context.l10n.unableToUpdateSetting;
     }
     return switch (status) {
       LaunchAtLoginStatus.requiresApproval =>
-        'Approval is required in System Settings.',
-      LaunchAtLoginStatus.unavailable =>
-        'Available after installing Instant Chat.',
-      LaunchAtLoginStatus.unsupported => 'Requires macOS 13 or later.',
+        context.l10n.launchAtLoginApproval,
+      LaunchAtLoginStatus.unavailable => context.l10n.launchAtLoginUnavailable,
+      LaunchAtLoginStatus.unsupported => context.l10n.launchAtLoginUnsupported,
       _ => null,
     };
   }
@@ -128,7 +130,7 @@ class LaunchAtLoginSetting extends ConsumerWidget {
     final result = ref.read(launchAtLoginProvider);
     if (result.hasError) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update Launch at login.')),
+        SnackBar(content: Text(context.l10n.launchAtLoginUpdateFailed)),
       );
     }
   }

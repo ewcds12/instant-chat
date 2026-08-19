@@ -4,6 +4,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/network/api_failure.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
@@ -131,7 +132,7 @@ class _ProfileSheetState extends ConsumerState<ProfileSheet> {
                 ProfileAccountActions(onSignOut: _signOut),
                 const SizedBox(height: RetroMetrics.spaceLarge),
                 Text(
-                  'Instant Chat for macOS',
+                  context.l10n.ui('Instant Chat for macOS'),
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     color: colors.onSurfaceVariant,
                   ),
@@ -147,7 +148,7 @@ class _ProfileSheetState extends ConsumerState<ProfileSheet> {
   Future<void> _editPhoto(AuthSession session) async {
     final path = await ref
         .read(localImagePickerProvider)
-        .pickImagePath(prompt: 'Choose a profile photo');
+        .pickImagePath(prompt: context.l10n.ui('Choose a profile photo'));
     if (!mounted || path == null) {
       return;
     }
@@ -182,10 +183,12 @@ class _ProfileSheetState extends ConsumerState<ProfileSheet> {
     final user = session.user;
     final value = await showProfileTextEditor(
       context: context,
-      title: field.title,
-      label: field.label,
+      title: context.l10n.ui(field.title),
+      label: context.l10n.ui(field.label),
       initialValue: field.value(user),
-      hintText: field.hintText,
+      hintText: field == ProfileField.name
+          ? context.l10n.ui(field.hintText)
+          : field.hintText,
       lowercase: field == ProfileField.id,
     );
     if (!mounted || value == null || value == field.value(user)) {
@@ -214,15 +217,16 @@ class _ProfileSheetState extends ConsumerState<ProfileSheet> {
   }
 
   Future<void> _save(Future<AuthUser> Function() request) async {
+    final localizations = context.l10n;
     setState(() => _isSaving = true);
     try {
       final user = await request();
       await ref.read(authControllerProvider.notifier).replaceCurrentUser(user);
-      _showFeedback('Profile updated.');
+      _showFeedback(localizations.ui('Profile updated.'));
     } on ApiFailure catch (failure) {
-      _showError(failure.message);
+      _showError(localizations.ui(failure.message));
     } on FormatException {
-      _showError('The server returned an invalid response.');
+      _showError(localizations.ui('The server returned an invalid response.'));
     } finally {
       if (mounted) {
         setState(() => _isSaving = false);

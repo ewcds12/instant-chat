@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
@@ -43,7 +44,7 @@ class PostComposerBar extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'What’s happening?',
+                    context.l10n.ui('What’s happening?'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: colors.onSurfaceVariant,
                     ),
@@ -61,7 +62,7 @@ class PostComposerBar extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(horizontal: 15),
                   ),
                   onPressed: onCreate,
-                  child: const Text('Post'),
+                  child: Text(context.l10n.ui('Post')),
                 ),
               ],
             ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
@@ -117,12 +118,12 @@ class _ContactMessageSearchDialogState
                 autofocus: true,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Search messages',
+                  hintText: context.l10n.ui('Search messages'),
                   prefixIcon: const Icon(Icons.search_rounded),
                   suffixIcon: _queryController.text.isEmpty
                       ? null
                       : IconButton(
-                          tooltip: 'Clear search',
+                          tooltip: context.l10n.ui('Clear search'),
                           onPressed: _clearQuery,
                           icon: const Icon(Icons.close_rounded),
                         ),
@@ -152,7 +153,7 @@ class _ContactMessageSearchDialogState
               if (matches.isNotEmpty) ...[
                 const SizedBox(height: RetroMetrics.spaceMedium),
                 Text(
-                  'Press Return to open the first result',
+                  context.l10n.ui('Press Return to open the first result'),
                   key: const Key('contact-message-search-return-hint'),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -209,7 +210,9 @@ class _ContactMessageSearchDialogState
       if (mounted) {
         setState(() {
           _nextCursor = before;
-          _errorMessage = 'Message history could not be loaded.';
+          _errorMessage = context.l10n.ui(
+            'Message history could not be loaded.',
+          );
         });
       }
     } finally {

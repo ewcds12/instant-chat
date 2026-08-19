@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_shared_content.dart';
@@ -151,7 +152,7 @@ class _IdentityRow extends StatelessWidget {
                 textStyle: Theme.of(context).textTheme.labelLarge,
               ),
               icon: const Icon(Icons.chat_bubble_outline_rounded, size: 16),
-              label: const Text('Message'),
+              label: Text(context.l10n.ui('Message')),
             ),
           ),
         ],
@@ -185,7 +186,7 @@ class _ContactAvatar extends StatelessWidget {
       return avatar;
     }
     return Tooltip(
-      message: 'View profile photo',
+      message: context.l10n.ui('View profile photo'),
       child: Stack(
         children: [
           avatar,

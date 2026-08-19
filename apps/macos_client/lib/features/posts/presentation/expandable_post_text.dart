@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 class ExpandablePostText extends StatefulWidget {
@@ -59,7 +60,9 @@ class _ExpandablePostTextState extends State<ExpandablePostText> {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   visualDensity: VisualDensity.compact,
                 ),
-                child: Text(_expanded ? 'Show less' : 'Show more'),
+                child: Text(
+                  context.l10n.ui(_expanded ? 'Show less' : 'Show more'),
+                ),
               ),
           ],
         );

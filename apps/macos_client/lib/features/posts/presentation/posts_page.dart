@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
@@ -188,8 +189,10 @@ class _PostsPageState extends ConsumerState<PostsPage> {
                 height: emptyHeight,
                 child: ExploreEmpty(
                   label: _selectedTab == ExploreFeedTab.contacts
-                      ? 'Posts from your contacts will appear here.'
-                      : 'Be the first to share something.',
+                      ? context.l10n.ui(
+                          'Posts from your contacts will appear here.',
+                        )
+                      : context.l10n.ui('Be the first to share something.'),
                   onCreate: () => showPostComposer(context),
                 ),
               );
@@ -239,7 +242,10 @@ class _PostsPageState extends ConsumerState<PostsPage> {
             borderRadius: BorderRadius.circular(RetroMetrics.corner),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Text(message, textAlign: TextAlign.center),
+              child: Text(
+                context.l10n.ui(message),
+                textAlign: TextAlign.center,
+              ),
             ),
           ),
         ),
@@ -261,7 +267,9 @@ class _PostsPageState extends ConsumerState<PostsPage> {
         final reason = await askReportReason(context);
         if (reason != null && mounted) {
           final reported = await controller.report(post.id, reason);
-          if (reported && mounted) _notice('Report submitted.');
+          if (reported && mounted) {
+            _notice(context.l10n.ui('Report submitted.'));
+          }
         }
     }
   }
@@ -278,7 +286,9 @@ class _PostsPageState extends ConsumerState<PostsPage> {
           .downloadImage(image);
       await actions.writeDownloadFile(path, bytes);
     } catch (_) {
-      if (mounted) _notice('Image could not be saved.');
+      if (mounted) {
+        _notice(context.l10n.ui('Image could not be saved.'));
+      }
     }
   }
 
@@ -298,7 +308,10 @@ class _PostsPageState extends ConsumerState<PostsPage> {
 
   void _notice(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), duration: const Duration(seconds: 3)),
+      SnackBar(
+        content: Text(context.l10n.ui(message)),
+        duration: const Duration(seconds: 3),
+      ),
     );
   }
 }

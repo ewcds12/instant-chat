@@ -2,7 +2,9 @@
 
 Instant Chat is a macOS instant messaging client with a modern, native-feeling interface.
 
-The product and repository use American English (`en-US`) exclusively.
+The repository uses American English (`en-US`). The product interface supports
+English, Japanese, and Simplified Chinese; user-authored messages, posts,
+comments, and remote news content are never translated automatically.
 
 ## Current Status
 
@@ -12,6 +14,7 @@ The authentication, contacts, direct conversations, and persisted message founda
 - Registration uses a unique lowercase username and password, with no email address required.
 - The client restores sessions from macOS Keychain and refreshes access tokens before they expire.
 - The authenticated client provides modern Chats, Contacts, Explore, and system-status workspaces.
+- General settings can switch the complete app-owned interface between English, Japanese, and Simplified Chinese. The choice is stored on macOS, updates the main and standalone Settings windows immediately, and is restored the next time Instant Chat opens. User messages, posts, comments, filenames, account names, and Daily Brief content remain unchanged; native file selection and download prompts follow the selected interface language.
 - The standalone Settings window can register or unregister the installed macOS app as a login item, persist whether links use the default browser, show or hide the app in the Dock, and choose whether closing the authenticated chat window keeps Instant Chat running or quits the app. These preferences restore on startup, and Launch at login directs users to System Settings when macOS requires approval. Local ad-hoc development builds report Launch at login as unavailable until the app is installed as a signed build.
 - The account card opens an in-app Profile sheet where users can set a profile photo, Name, Gender, Region, and ID. Changes persist to MySQL, are restored with the session, and update connected peers through the authenticated realtime channel.
 - The chat workspace provides real conversation filtering, last-message previews for text, photo, and file messages, automatic older-history loading while scrolling, a focused complete-history search with direct result navigation, an inline Contact Info view with back navigation, and a persistent desktop master-detail layout.

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 
@@ -55,14 +56,14 @@ class ContactRequestDrawerRow extends StatelessWidget {
             ),
             _RequestButton(
               key: ValueKey('contact-request-decline-${request.id}'),
-              label: 'Decline',
+              label: context.l10n.ui('Decline'),
               onPressed: disabled ? null : onDecline,
               width: 62,
             ),
             const SizedBox(width: 8),
             _RequestButton(
               key: ValueKey('contact-request-accept-${request.id}'),
-              label: 'Accept',
+              label: context.l10n.ui('Accept'),
               onPressed: disabled ? null : onAccept,
               width: 58,
               primary: true,

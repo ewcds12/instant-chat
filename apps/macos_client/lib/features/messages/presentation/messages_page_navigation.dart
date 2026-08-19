@@ -66,7 +66,9 @@ extension _MessagesPageNavigation on _MessagesPageState {
       ref.read(messageNavigationTargetProvider.notifier).clear();
       _requestedMessageId = null;
       if (!found) {
-        _showSaveError('The selected message could not be found.');
+        _showSaveError(
+          context.l10n.ui('The selected message could not be found.'),
+        );
         return;
       }
       _showFocusedMessage(messageId);

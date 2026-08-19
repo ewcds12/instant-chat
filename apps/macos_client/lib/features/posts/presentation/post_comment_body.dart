@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/posts/domain/post_comment.dart';
 import 'package:instant_chat/features/posts/presentation/post_card.dart';
@@ -50,7 +51,7 @@ class PostCommentBody extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           Expanded(child: _content(context, colors)),
-          if (isOwnComment) _deleteMenu(colors),
+          if (isOwnComment) _deleteMenu(context, colors),
         ],
       ),
     );
@@ -73,7 +74,8 @@ class PostCommentBody extends StatelessWidget {
             const SizedBox(width: 5),
             Flexible(
               child: Text(
-                '@${comment.author.username} · ${postTime(comment.createdAt)}',
+                '@${comment.author.username} · '
+                '${postTime(comment.createdAt, null, context.l10n)}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(
@@ -96,16 +98,19 @@ class PostCommentBody extends StatelessWidget {
               foregroundColor: colors.onSurfaceVariant,
             ),
             onPressed: () => onReply(comment),
-            child: Text('Reply', style: Theme.of(context).textTheme.labelSmall),
+            child: Text(
+              context.l10n.ui('Reply'),
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
           ),
         ),
       ],
     );
   }
 
-  Widget _deleteMenu(ColorScheme colors) {
+  Widget _deleteMenu(BuildContext context, ColorScheme colors) {
     return PopupMenuButton<String>(
-      tooltip: 'Comment actions',
+      tooltip: context.l10n.ui('Comment actions'),
       icon: const Icon(Icons.more_horiz_rounded, size: 16),
       splashRadius: 15,
       padding: EdgeInsets.zero,
@@ -120,7 +125,7 @@ class PostCommentBody extends StatelessWidget {
               Icon(Icons.delete_outline_rounded, size: 15, color: colors.error),
               const SizedBox(width: 7),
               Text(
-                'Delete',
+                context.l10n.ui('Delete'),
                 style: TextStyle(fontSize: 13, color: colors.error),
               ),
             ],

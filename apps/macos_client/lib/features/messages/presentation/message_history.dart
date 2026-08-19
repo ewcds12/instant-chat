@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_bubble.dart';
@@ -63,12 +64,12 @@ class MessageHistory extends StatelessWidget {
             Icon(Icons.waving_hand_outlined, color: colors.outline, size: 30),
             const SizedBox(height: 12),
             Text(
-              'No messages yet',
+              context.l10n.ui('No messages yet'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              'Send a message to start the conversation.',
+              context.l10n.ui('Send a message to start the conversation.'),
               style: TextStyle(color: colors.onSurfaceVariant),
             ),
           ],

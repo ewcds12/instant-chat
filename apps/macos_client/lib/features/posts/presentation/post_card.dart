@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
 import 'package:instant_chat/features/posts/presentation/expandable_post_text.dart';
@@ -115,7 +116,8 @@ class _PostHeader extends StatelessWidget {
               const SizedBox(width: 6),
               Flexible(
                 child: Text(
-                  '@${post.author.username} · ${postTime(post.createdAt)}',
+                  '@${post.author.username} · '
+                  '${postTime(post.createdAt, null, context.l10n)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -141,7 +143,7 @@ class _PostMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<PostAction>(
-      tooltip: 'Post actions',
+      tooltip: context.l10n.ui('Post actions'),
       icon: const Icon(Icons.more_horiz_rounded, size: 18),
       splashRadius: 17,
       padding: EdgeInsets.zero,
@@ -154,16 +156,19 @@ class _PostMenu extends StatelessWidget {
                 height: 34,
                 child: _MenuLabel(
                   icon: Icons.delete_outline_rounded,
-                  label: 'Delete Post',
+                  label: context.l10n.ui('Delete Post'),
                   color: Theme.of(context).colorScheme.error,
                 ),
               ),
             ]
-          : const [
+          : [
               PopupMenuItem(
                 value: PostAction.report,
                 height: 34,
-                child: _MenuLabel(icon: Icons.flag_outlined, label: 'Report'),
+                child: _MenuLabel(
+                  icon: Icons.flag_outlined,
+                  label: context.l10n.ui('Report'),
+                ),
               ),
             ],
     );
@@ -189,13 +194,26 @@ class _MenuLabel extends StatelessWidget {
   }
 }
 
-String postTime(DateTime value, [DateTime? reference]) {
+String postTime(
+  DateTime value, [
+  DateTime? reference,
+  AppLocalizations? localizations,
+]) {
   final local = value.toLocal();
   final now = reference ?? DateTime.now();
   final difference = now.difference(local);
-  if (difference.inMinutes < 1) return 'Now';
-  if (difference.inHours < 1) return '${difference.inMinutes}m';
-  if (difference.inDays < 1) return '${difference.inHours}h';
-  if (difference.inDays < 7) return '${difference.inDays}d';
+  if (difference.inMinutes < 1) return localizations?.ui('Now') ?? 'Now';
+  if (difference.inHours < 1) {
+    return localizations?.relativeMinutes(difference.inMinutes) ??
+        '${difference.inMinutes}m';
+  }
+  if (difference.inDays < 1) {
+    return localizations?.relativeHours(difference.inHours) ??
+        '${difference.inHours}h';
+  }
+  if (difference.inDays < 7) {
+    return localizations?.relativeDays(difference.inDays) ??
+        '${difference.inDays}d';
+  }
   return '${local.month}/${local.day}/${local.year}';
 }

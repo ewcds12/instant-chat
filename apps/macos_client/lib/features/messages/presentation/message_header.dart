@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
@@ -58,13 +59,13 @@ class MessageHeader extends StatelessWidget {
             ),
             IconButton(
               key: const Key('message-search-open'),
-              tooltip: 'Search messages',
+              tooltip: context.l10n.ui('Search messages'),
               onPressed: onSearch,
               icon: const Icon(Icons.search_rounded, size: 19),
             ),
             IconButton(
               key: const Key('message-contact-info-open'),
-              tooltip: 'View contact info',
+              tooltip: context.l10n.ui('View contact info'),
               onPressed: onContactInfo,
               icon: const Icon(Icons.person_outline_rounded, size: 19),
             ),

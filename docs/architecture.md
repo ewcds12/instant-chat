@@ -16,7 +16,10 @@ MySQL 8.4                    MinIO object storage
 
 The Flutter client never accesses MySQL or MinIO directly. Docker Compose manages local server infrastructure only; it is not a client runtime dependency.
 
-The application locale and repository language are fixed to American English (`en-US`).
+The repository language remains American English (`en-US`). The macOS client UI
+can switch between English, Japanese, and Simplified Chinese, while user-authored
+messages, posts, comments, and remote news content remain in their original
+language.
 
 ## macOS Client
 

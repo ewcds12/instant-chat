@@ -1,9 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_language.dart';
+import 'package:instant_chat/app/app_localizations.dart';
+import 'package:instant_chat/core/platform/macos_app_language.dart';
 
 final localFileActionsProvider = Provider<LocalFileActions>((ref) {
-  return const MacOSFileActions();
+  final language = ref.watch(appLanguageProvider).value ?? AppLanguage.english;
+  return MacOSFileActions(AppLocalizations(language));
 });
 
 enum MessageFileAction { download }
@@ -17,7 +21,11 @@ abstract interface class LocalFileActions {
 }
 
 class MacOSFileActions implements LocalFileActions {
-  const MacOSFileActions();
+  const MacOSFileActions([
+    this.localizations = const AppLocalizations(AppLanguage.english),
+  ]);
+
+  final AppLocalizations localizations;
 
   @override
   Future<MessageFileAction?> chooseAction(String filename) async {
@@ -27,18 +35,28 @@ class MacOSFileActions implements LocalFileActions {
       '-e',
       'set fileName to item 1 of argv',
       '-e',
-      'display dialog "Choose what to do with " & fileName buttons {"Cancel", "Download"} default button "Download" cancel button "Cancel"',
+      'set promptText to item 2 of argv',
+      '-e',
+      'set cancelText to item 3 of argv',
+      '-e',
+      'set downloadText to item 4 of argv',
+      '-e',
+      'display dialog promptText & " " & fileName buttons {cancelText, downloadText} default button downloadText cancel button cancelText',
       '-e',
       'button returned of result',
       '-e',
       'end run',
       _safeFilename(filename),
+      localizations.ui('Choose what to do with'),
+      localizations.ui('Cancel'),
+      localizations.ui('Download'),
     ]);
     if (result.exitCode != 0) {
       return null;
     }
     return switch (result.stdout.toString().trim()) {
-      'Download' => MessageFileAction.download,
+      final value when value == localizations.ui('Download') =>
+        MessageFileAction.download,
       _ => null,
     };
   }
@@ -51,12 +69,15 @@ class MacOSFileActions implements LocalFileActions {
       '-e',
       'set defaultName to item 1 of argv',
       '-e',
-      'set pickedFile to choose file name with prompt "Save file as" default name defaultName',
+      'set promptText to item 2 of argv',
+      '-e',
+      'set pickedFile to choose file name with prompt promptText default name defaultName',
       '-e',
       'POSIX path of pickedFile',
       '-e',
       'end run',
       _safeFilename(filename),
+      localizations.ui('Save file as'),
     ]);
     if (result.exitCode != 0) {
       return null;

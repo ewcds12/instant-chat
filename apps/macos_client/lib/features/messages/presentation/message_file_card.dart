@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 
 class MessageFileCard extends StatelessWidget {
@@ -103,7 +104,8 @@ class _FileText extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          '${_typeLabel(file.contentType)} · ${_formatBytes(file.byteSize)}',
+          '${context.l10n.ui(_typeLabel(file.contentType))} · '
+          '${_formatBytes(file.byteSize)}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(

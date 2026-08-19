@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 class MessageComposerImagePreviews extends StatelessWidget {
@@ -86,7 +87,7 @@ class _ImagePreview extends StatelessWidget {
             top: 4,
             right: 4,
             child: Tooltip(
-              message: 'Remove photo',
+              message: context.l10n.ui('Remove photo'),
               child: SizedBox.square(
                 dimension: RetroMetrics.composerImageRemoveDiameter,
                 child: Material(

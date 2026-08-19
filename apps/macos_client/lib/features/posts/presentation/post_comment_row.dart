@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/posts/domain/post_comment.dart';
 import 'package:instant_chat/features/posts/presentation/post_comment_body.dart';
@@ -113,7 +114,7 @@ class _PostCommentRowState extends State<PostCommentRow> {
                       key: ValueKey(
                         'post-comment-show-replies-${widget.comment.id}',
                       ),
-                      label: _collapsedLabel,
+                      label: _collapsedLabel(context),
                       onPressed: _showMoreReplies,
                     )
                   else ...[
@@ -122,15 +123,16 @@ class _PostCommentRowState extends State<PostCommentRow> {
                         key: ValueKey(
                           'post-comment-show-more-replies-${widget.comment.id}',
                         ),
-                        label:
-                            'Show ${remaining.clamp(1, _replyBatchSize)} more',
+                        label: context.l10n.showMoreReplies(
+                          remaining.clamp(1, _replyBatchSize),
+                        ),
                         onPressed: _showMoreReplies,
                       ),
                     _replyControl(
                       key: ValueKey(
                         'post-comment-collapse-replies-${widget.comment.id}',
                       ),
-                      label: 'Collapse',
+                      label: context.l10n.ui('Collapse'),
                       onPressed: _collapseReplies,
                     ),
                   ],
@@ -143,9 +145,9 @@ class _PostCommentRowState extends State<PostCommentRow> {
     );
   }
 
-  String get _collapsedLabel {
+  String _collapsedLabel(BuildContext context) {
     final count = widget.replies.length;
-    return 'Show $count ${count == 1 ? 'reply' : 'replies'}';
+    return context.l10n.showReplyCount(count);
   }
 
   Widget _replyControl({

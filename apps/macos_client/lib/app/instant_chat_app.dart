@@ -1,17 +1,28 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_language.dart';
+import 'package:instant_chat/app/app_localizations.dart';
+import 'package:instant_chat/core/platform/macos_app_language.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_gate.dart';
 
-class InstantChatApp extends StatelessWidget {
+class InstantChatApp extends ConsumerWidget {
   const InstantChatApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final language =
+        ref.watch(appLanguageProvider).value ?? AppLanguage.english;
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Instant Chat',
-      locale: const Locale('en', 'US'),
-      supportedLocales: const [Locale('en', 'US')],
+      onGenerateTitle: (context) => context.l10n.appTitle,
+      locale: language.locale,
+      supportedLocales: AppLanguage.values.map((item) => item.locale),
+      localizationsDelegates: const [
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       theme: RetroTheme.data,
       home: const AuthGate(),
     );

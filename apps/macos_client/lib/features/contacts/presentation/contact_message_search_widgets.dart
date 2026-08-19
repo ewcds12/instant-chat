@@ -12,14 +12,14 @@ class _SearchHeader extends StatelessWidget {
       children: [
         Expanded(
           child: Text(
-            'Search messages with $contactName',
+            context.l10n.searchMessagesWith(contactName),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
         const SizedBox(width: RetroMetrics.spaceMedium),
-        TextButton(onPressed: onCancel, child: const Text('Cancel')),
+        TextButton(onPressed: onCancel, child: Text(context.l10n.ui('Cancel'))),
       ],
     );
   }
@@ -46,17 +46,15 @@ class _SearchStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final label = !hasQuery
-        ? 'Search your complete conversation history.'
-        : isLoading
-        ? '$resultCount results so far'
-        : '$resultCount results';
+        ? context.l10n.ui('Search your complete conversation history.')
+        : context.l10n.resultCount(resultCount, partial: isLoading);
     return SizedBox(
       height: 28,
       child: Row(
         children: [
           Expanded(
             child: Text(
-              errorMessage ?? label,
+              errorMessage == null ? label : context.l10n.ui(errorMessage!),
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: errorMessage == null
                     ? colors.onSurfaceVariant
@@ -70,7 +68,10 @@ class _SearchStatus extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             )
           else if (errorMessage != null && !isComplete)
-            TextButton(onPressed: onRetry, child: const Text('Try Again')),
+            TextButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.ui('Try Again')),
+            ),
         ],
       ),
     );
@@ -96,12 +97,16 @@ class _SearchResults extends StatelessWidget {
   Widget build(BuildContext context) {
     final normalized = query.trim();
     if (normalized.isEmpty) {
-      return const Center(child: Text('Type a word or phrase to search.'));
+      return Center(
+        child: Text(context.l10n.ui('Type a word or phrase to search.')),
+      );
     }
     if (matches.isEmpty) {
       return Center(
         child: Text(
-          isComplete ? 'No matching messages.' : 'Searching history…',
+          context.l10n.ui(
+            isComplete ? 'No matching messages.' : 'Searching history…',
+          ),
         ),
       );
     }
@@ -125,7 +130,7 @@ class _SearchResults extends StatelessWidget {
           return _SearchResultRow(
             message: message,
             senderLabel: message.sender.id == currentUserId
-                ? 'You'
+                ? context.l10n.ui('You')
                 : message.sender.displayName,
             onOpen: () => onOpen(message),
           );
@@ -172,7 +177,8 @@ class _SearchResultRow extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Text(
-                        messageTimestampLabel(
+                        localizedMessageTimestampLabel(
+                          context,
                           message.createdAt,
                           now: DateTime.now(),
                         ),
@@ -192,7 +198,10 @@ class _SearchResultRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: RetroMetrics.spaceMedium),
-            Text('Open', style: TextStyle(color: colors.primary)),
+            Text(
+              context.l10n.ui('Open'),
+              style: TextStyle(color: colors.primary),
+            ),
           ],
         ),
       ),

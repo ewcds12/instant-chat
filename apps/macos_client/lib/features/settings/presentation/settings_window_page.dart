@@ -1,23 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/settings/presentation/close_window_setting.dart';
 import 'package:instant_chat/features/settings/presentation/keep_app_in_dock_setting.dart';
+import 'package:instant_chat/features/settings/presentation/language_setting.dart';
 import 'package:instant_chat/features/settings/presentation/launch_at_login_setting.dart';
 import 'package:instant_chat/features/settings/presentation/open_links_setting.dart';
-
-enum SettingsCategory {
-  general('General', Icons.settings_outlined),
-  appearance('Appearance', Icons.palette_outlined),
-  messages('Messages', Icons.chat_bubble_outline_rounded),
-  notifications('Notifications', Icons.notifications_none_rounded),
-  privacy('Privacy', Icons.shield_outlined),
-  storage('Storage', Icons.storage_outlined);
-
-  const SettingsCategory(this.label, this.icon);
-
-  final String label;
-  final IconData icon;
-}
+import 'package:instant_chat/features/settings/presentation/settings_category.dart';
 
 class SettingsWindowPage extends StatefulWidget {
   const SettingsWindowPage({super.key});
@@ -40,8 +29,12 @@ class _SettingsWindowPageState extends State<SettingsWindowPage> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final localizations = context.l10n;
     final visibleCategories = SettingsCategory.values.where((category) {
-      return category.label.toLowerCase().contains(_query.toLowerCase());
+      return category
+          .label(localizations)
+          .toLowerCase()
+          .contains(_query.toLowerCase());
     }).toList();
     return Scaffold(
       backgroundColor: RetroColors.canvasTop,
@@ -72,7 +65,7 @@ class _SettingsWindowPageState extends State<SettingsWindowPage> {
                       Padding(
                         padding: const EdgeInsets.only(top: 12),
                         child: Text(
-                          'No settings found',
+                          localizations.noSettingsFound,
                           textAlign: TextAlign.center,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(color: colors.onSurfaceVariant),
@@ -114,11 +107,14 @@ class _SettingsSearchField extends StatelessWidget {
         controller: controller,
         onChanged: onChanged,
         style: const TextStyle(fontSize: 13),
-        decoration: const InputDecoration(
-          hintText: 'Search',
-          prefixIcon: Icon(Icons.search_rounded, size: 18),
-          prefixIconConstraints: BoxConstraints(minWidth: 38),
-          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: InputDecoration(
+          hintText: context.l10n.search,
+          prefixIcon: const Icon(Icons.search_rounded, size: 18),
+          prefixIconConstraints: const BoxConstraints(minWidth: 38),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 8,
+          ),
         ),
       ),
     );
@@ -157,7 +153,7 @@ class _SettingsCategoryTile extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    category.label,
+                    category.label(context.l10n),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -188,7 +184,7 @@ class _SettingsContent extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            category.label,
+            category.label(context.l10n),
             key: const Key('settings-content-title'),
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontSize: 25,
@@ -224,11 +220,11 @@ class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
         const OpenLinksSetting(),
         const KeepAppInDockSetting(),
         const Divider(height: 1),
-        const _SettingsValueRow(label: 'Language', value: 'System Default'),
+        const LanguageSetting(),
         const CloseWindowSetting(),
         const Divider(height: 1),
         _SettingsToggleRow(
-          label: 'Check spelling while typing',
+          label: context.l10n.checkSpelling,
           value: _checkSpelling,
           onChanged: (value) => setState(() => _checkSpelling = value),
         ),
@@ -267,40 +263,6 @@ class _SettingsToggleRow extends StatelessWidget {
   }
 }
 
-class _SettingsValueRow extends StatelessWidget {
-  const _SettingsValueRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return SizedBox(
-      height: 58,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
-          ),
-          Text(
-            value,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: colors.onSurfaceVariant),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            Icons.chevron_right_rounded,
-            size: 20,
-            color: colors.onSurfaceVariant,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CategoryPlaceholder extends StatelessWidget {
   const _CategoryPlaceholder({required this.category});
 
@@ -323,7 +285,7 @@ class _CategoryPlaceholder extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                '${category.label} settings will be added here.',
+                context.l10n.settingsComingSoon(category.label(context.l10n)),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: colors.onSurfaceVariant,
                 ),

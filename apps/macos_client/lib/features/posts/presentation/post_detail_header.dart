@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 class PostDetailHeader extends StatelessWidget {
@@ -24,13 +25,16 @@ class PostDetailHeader extends StatelessWidget {
             const SizedBox(width: 10),
             IconButton(
               key: const Key('post-detail-back'),
-              tooltip: 'Back to Explore',
+              tooltip: context.l10n.ui('Back to Explore'),
               visualDensity: VisualDensity.compact,
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back_rounded, size: 18),
             ),
             const SizedBox(width: 3),
-            Text('Post', style: Theme.of(context).textTheme.titleSmall),
+            Text(
+              context.l10n.ui('Post'),
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
           ],
         ),
       ),
@@ -54,7 +58,7 @@ class PostCommentsLabel extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 10, 24, 3),
           child: Text(
-            count == 1 ? '1 Comment' : '$count Comments',
+            context.l10n.commentCount(count),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),

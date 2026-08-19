@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 enum ExploreFeedTab { forYou, contacts }
@@ -34,7 +35,7 @@ class ExploreHeader extends StatelessWidget {
             Positioned(
               left: 24,
               child: Text(
-                'Explore',
+                context.l10n.explore,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
@@ -42,12 +43,12 @@ class ExploreHeader extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _FeedTab(
-                  label: 'For you',
+                  label: context.l10n.ui('For you'),
                   selected: selectedTab == ExploreFeedTab.forYou,
                   onTap: () => onTabSelected(ExploreFeedTab.forYou),
                 ),
                 _FeedTab(
-                  label: 'Contacts',
+                  label: context.l10n.contacts,
                   selected: selectedTab == ExploreFeedTab.contacts,
                   onTap: () => onTabSelected(ExploreFeedTab.contacts),
                 ),
@@ -58,14 +59,14 @@ class ExploreHeader extends StatelessWidget {
               child: Row(
                 children: [
                   IconButton(
-                    tooltip: 'Refresh',
+                    tooltip: context.l10n.ui('Refresh'),
                     visualDensity: VisualDensity.compact,
                     onPressed: onRefresh,
                     icon: const Icon(Icons.refresh_rounded, size: 18),
                   ),
                   IconButton(
                     key: const Key('explore-compose-button'),
-                    tooltip: 'New Post',
+                    tooltip: context.l10n.ui('New Post'),
                     visualDensity: VisualDensity.compact,
                     color: colors.primary,
                     onPressed: onCreate,

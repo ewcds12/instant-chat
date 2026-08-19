@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 
 class MessageLoadFailure extends StatelessWidget {
   const MessageLoadFailure({required this.onRetry, super.key});
@@ -8,7 +9,10 @@ class MessageLoadFailure extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: FilledButton(onPressed: onRetry, child: const Text('Try again')),
+      child: FilledButton(
+        onPressed: onRetry,
+        child: Text(context.l10n.ui('Try again')),
+      ),
     );
   }
 }
@@ -47,10 +51,10 @@ class MessageRetryBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 18),
       child: Row(
         children: [
-          const Expanded(child: Text('Message not sent')),
+          Expanded(child: Text(context.l10n.ui('Message not sent'))),
           TextButton(
             onPressed: disabled ? null : onRetry,
-            child: const Text('Retry'),
+            child: Text(context.l10n.ui('Retry')),
           ),
         ],
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_dock_visibility.dart';
 
 final keepAppInDockProvider =
@@ -41,7 +42,7 @@ class KeepAppInDockSetting extends ConsumerWidget {
         children: [
           Expanded(
             child: Text(
-              'Keep app in Dock',
+              context.l10n.keepAppInDock,
               style: Theme.of(context).textTheme.bodyLarge,
             ),
           ),
@@ -72,7 +73,7 @@ class KeepAppInDockSetting extends ConsumerWidget {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not update Dock settings.')),
+        SnackBar(content: Text(context.l10n.dockSettingUpdateFailed)),
       );
     }
   }

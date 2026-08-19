@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
@@ -92,12 +93,12 @@ class _RequestCard extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(child: _RequestIdentity(request: request)),
             _RequestAction(
-              label: 'Decline',
+              label: context.l10n.ui('Decline'),
               onPressed: disabled ? null : onDecline,
             ),
             const SizedBox(width: RetroMetrics.spaceSmall),
             _RequestAction(
-              label: 'Accept',
+              label: context.l10n.ui('Accept'),
               onPressed: disabled ? null : onAccept,
               primary: true,
             ),
@@ -182,7 +183,7 @@ class _RequestEmptyState extends StatelessWidget {
           Icon(Icons.inbox_outlined, size: 18, color: colors.onSurfaceVariant),
           const SizedBox(width: RetroMetrics.spaceSmall),
           Text(
-            'No incoming requests.',
+            context.l10n.ui('No incoming requests.'),
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 
@@ -26,6 +27,7 @@ class MessageReplyPreview extends StatelessWidget {
         body: reply.body,
         filename: reply.filename,
         recalledAt: reply.recalledAt,
+        localizations: context.l10n,
       ),
       titleColor: isMine ? foreground.withValues(alpha: 0.86) : colors.primary,
       bodyColor: foreground.withValues(alpha: isMine ? 0.74 : 1),
@@ -37,9 +39,9 @@ class MessageReplyPreview extends StatelessWidget {
     }
     return Semantics(
       button: true,
-      label: 'Go to original message',
+      label: context.l10n.ui('Go to original message'),
       child: Tooltip(
-        message: 'Go to original message',
+        message: context.l10n.ui('Go to original message'),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -84,13 +86,14 @@ class MessageReplyComposerPreview extends StatelessWidget {
                 body: message.body,
                 filename: message.file?.filename ?? '',
                 recalledAt: message.recalledAt,
+                localizations: context.l10n,
               ),
             ),
           ),
           const SizedBox(width: RetroMetrics.spaceSmall / 2),
           IconButton(
             key: const Key('message-reply-cancel'),
-            tooltip: 'Cancel reply',
+            tooltip: context.l10n.ui('Cancel reply'),
             onPressed: onCancel,
             icon: const Icon(Icons.close_rounded, size: 18),
           ),
@@ -230,13 +233,15 @@ String messageReplySummary({
   required String body,
   required String filename,
   required DateTime? recalledAt,
+  AppLocalizations? localizations,
 }) {
   if (recalledAt != null) {
-    return 'Message recalled';
+    return localizations?.ui('Message recalled') ?? 'Message recalled';
   }
   return switch (kind) {
     MessageKind.text => body,
-    MessageKind.image => 'Photo',
-    MessageKind.file => filename.isEmpty ? 'File' : filename,
+    MessageKind.image => localizations?.ui('Photo') ?? 'Photo',
+    MessageKind.file =>
+      filename.isEmpty ? localizations?.ui('File') ?? 'File' : filename,
   };
 }

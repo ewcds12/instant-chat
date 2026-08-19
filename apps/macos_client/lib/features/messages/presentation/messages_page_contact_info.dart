@@ -54,14 +54,12 @@ extension _MessagesPageContactInfo on _MessagesPageState {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Contact?'),
-        content: Text(
-          'Delete ${peer.displayName} from your contacts and remove this chat from Chats? Message history will return if you add each other again.',
-        ),
+        title: Text(context.l10n.ui('Delete Contact?')),
+        content: Text(context.l10n.deleteContactDescription(peer.displayName)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.ui('Cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -69,7 +67,7 @@ extension _MessagesPageContactInfo on _MessagesPageState {
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.ui('Delete')),
           ),
         ],
       ),

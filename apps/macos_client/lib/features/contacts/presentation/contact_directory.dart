@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact.dart';
@@ -81,7 +82,9 @@ class ContactDirectory extends StatelessWidget {
           if (errorMessage != null) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-              child: _DirectoryFeedback(message: errorMessage!),
+              child: _DirectoryFeedback(
+                message: context.l10n.ui(errorMessage!),
+              ),
             ),
           ],
           if (searchResult != null) ...[
@@ -134,7 +137,7 @@ class _DirectorySearchField extends StatelessWidget {
       textCapitalization: TextCapitalization.none,
       style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 14),
       decoration: InputDecoration(
-        hintText: 'Search',
+        hintText: context.l10n.search,
         prefixIcon: const Icon(Icons.search_rounded, size: 18),
         fillColor: RetroColors.glassStrong,
         contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -148,7 +151,7 @@ class _DirectorySearchField extends StatelessWidget {
           borderSide: BorderSide(color: colors.primary),
         ),
         suffixIcon: IconButton(
-          tooltip: 'Search exact ID',
+          tooltip: context.l10n.ui('Search exact ID'),
           onPressed: disabled ? null : onSubmit,
           padding: EdgeInsets.zero,
           constraints: const BoxConstraints.tightFor(width: 32, height: 32),
@@ -198,7 +201,7 @@ class _SearchResult extends StatelessWidget {
             Expanded(child: ContactIdentity(user: user)),
             TextButton(
               onPressed: disabled ? null : onSendRequest,
-              child: const Text('Send Request'),
+              child: Text(context.l10n.ui('Send Request')),
             ),
           ],
         ),

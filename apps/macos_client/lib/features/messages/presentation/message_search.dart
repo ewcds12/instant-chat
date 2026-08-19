@@ -1,27 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 
 Future<void> showMessageSearch(BuildContext context, List<Message> messages) {
   return showSearch<void>(
     context: context,
-    delegate: _MessageSearchDelegate(messages),
+    delegate: _MessageSearchDelegate(messages, context.l10n),
   );
 }
 
 class _MessageSearchDelegate extends SearchDelegate<void> {
-  _MessageSearchDelegate(this.messages);
+  _MessageSearchDelegate(this.messages, this.localizations);
 
   final List<Message> messages;
+  final AppLocalizations localizations;
 
   @override
-  String get searchFieldLabel => 'Search messages';
+  String get searchFieldLabel => localizations.ui('Search messages');
 
   @override
   List<Widget> buildActions(BuildContext context) {
     return [
       if (query.isNotEmpty)
         IconButton(
-          tooltip: 'Clear search',
+          tooltip: context.l10n.ui('Clear search'),
           onPressed: () => query = '',
           icon: const Icon(Icons.close_rounded),
         ),
@@ -31,7 +33,7 @@ class _MessageSearchDelegate extends SearchDelegate<void> {
   @override
   Widget buildLeading(BuildContext context) {
     return IconButton(
-      tooltip: 'Close search',
+      tooltip: context.l10n.ui('Close search'),
       onPressed: () => close(context, null),
       icon: const Icon(Icons.arrow_back_rounded),
     );
@@ -53,10 +55,12 @@ class _MessageSearchDelegate extends SearchDelegate<void> {
               )
               .toList();
     if (normalized.isEmpty) {
-      return const Center(child: Text('Type to search loaded messages.'));
+      return Center(
+        child: Text(context.l10n.ui('Type to search loaded messages.')),
+      );
     }
     if (matches.isEmpty) {
-      return const Center(child: Text('No matching messages.'));
+      return Center(child: Text(context.l10n.ui('No matching messages.')));
     }
     return ListView.separated(
       padding: const EdgeInsets.all(16),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
 import 'package:instant_chat/features/profile/presentation/profile_avatar.dart';
@@ -101,7 +102,7 @@ class ConversationListRow extends StatelessWidget {
         ),
         const SizedBox(height: 4),
         Text(
-          _lastMessagePreview(conversation.lastMessage),
+          _lastMessagePreview(context, conversation.lastMessage),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -133,13 +134,16 @@ class ConversationListRow extends StatelessWidget {
   }
 }
 
-String _lastMessagePreview(ConversationLastMessage? message) {
+String _lastMessagePreview(
+  BuildContext context,
+  ConversationLastMessage? message,
+) {
   if (message == null) {
-    return 'No messages yet';
+    return context.l10n.ui('No messages yet');
   }
   return switch (message.kind) {
-    'image' => '[Photo]',
-    'file' => '[File]',
+    'image' => '[${context.l10n.ui('Photo')}]',
+    'file' => '[${context.l10n.ui('File')}]',
     _ => message.body.replaceAll(RegExp(r'\s+'), ' ').trim(),
   };
 }

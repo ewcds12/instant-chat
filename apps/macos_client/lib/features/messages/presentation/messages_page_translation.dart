@@ -50,7 +50,7 @@ extension _MessagesPageTranslation on _MessagesPageState {
         );
       } catch (_) {
         if (mounted && widget.conversation.id == conversationId) {
-          _showSaveError('Translation could not be saved.');
+          _showSaveError(context.l10n.ui('Translation could not be saved.'));
         }
       }
     } catch (_) {
@@ -106,7 +106,7 @@ extension _MessagesPageTranslation on _MessagesPageState {
       _updateTranslationState(() {
         _messageTranslations.putIfAbsent(message.id, () => translation!);
       });
-      _showSaveError('Translation could not be removed.');
+      _showSaveError(context.l10n.ui('Translation could not be removed.'));
     }
   }
 
@@ -174,7 +174,9 @@ extension _MessagesPageTranslation on _MessagesPageState {
           .setTargetLanguage(selected);
     } catch (_) {
       if (mounted) {
-        _showSaveError('Translation preference could not be saved.');
+        _showSaveError(
+          context.l10n.ui('Translation preference could not be saved.'),
+        );
       }
     }
     await _restoreStoredTranslations(language: selected);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 
 class ContactSharedLinksDialog extends StatelessWidget {
   const ContactSharedLinksDialog({
@@ -14,7 +15,7 @@ class ContactSharedLinksDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return AlertDialog(
       key: const Key('contact-shared-links-dialog'),
-      title: const Text('Shared Links'),
+      title: Text(context.l10n.ui('Shared Links')),
       content: SizedBox(
         width: 520,
         child: ListView.separated(
@@ -46,7 +47,7 @@ class ContactSharedLinksDialog extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Done'),
+          child: Text(context.l10n.ui('Done')),
         ),
       ],
     );

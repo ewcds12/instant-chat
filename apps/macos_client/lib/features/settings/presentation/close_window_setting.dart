@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_close_window_behavior.dart';
 
 final closeWindowBehaviorProvider =
@@ -33,11 +34,6 @@ class CloseWindowBehaviorNotifier extends AsyncNotifier<CloseWindowBehavior> {
 class CloseWindowSetting extends ConsumerWidget {
   const CloseWindowSetting({super.key});
 
-  static const _labels = {
-    CloseWindowBehavior.keepRunning: 'Keep Instant Chat running',
-    CloseWindowBehavior.quitApplication: 'Quit Instant Chat',
-  };
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final preference = ref.watch(closeWindowBehaviorProvider);
@@ -46,7 +42,7 @@ class CloseWindowSetting extends ConsumerWidget {
     return PopupMenuButton<CloseWindowBehavior>(
       key: const Key('close-window-setting'),
       enabled: !preference.isLoading,
-      tooltip: 'Choose what happens when the window closes',
+      tooltip: context.l10n.closeWindowTooltip,
       position: PopupMenuPosition.under,
       constraints: const BoxConstraints(minWidth: 380, maxWidth: 400),
       onSelected: (selection) => _setBehavior(context, ref, selection),
@@ -69,7 +65,7 @@ class CloseWindowSetting extends ConsumerWidget {
                       : null,
                 ),
                 const SizedBox(width: 8),
-                Text(_labels[option]!),
+                Text(_label(context, option)),
               ],
             ),
           ),
@@ -80,12 +76,12 @@ class CloseWindowSetting extends ConsumerWidget {
           children: [
             Expanded(
               child: Text(
-                'Close window',
+                context.l10n.closeWindow,
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
             ),
             Text(
-              _labels[behavior]!,
+              _label(context, behavior),
               key: const Key('close-window-current-value'),
               style: Theme.of(
                 context,
@@ -103,6 +99,13 @@ class CloseWindowSetting extends ConsumerWidget {
     );
   }
 
+  String _label(BuildContext context, CloseWindowBehavior behavior) {
+    return switch (behavior) {
+      CloseWindowBehavior.keepRunning => context.l10n.keepRunning,
+      CloseWindowBehavior.quitApplication => context.l10n.quitApplication,
+    };
+  }
+
   Future<void> _setBehavior(
     BuildContext context,
     WidgetRef ref,
@@ -117,9 +120,7 @@ class CloseWindowSetting extends ConsumerWidget {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not update close-window settings.'),
-        ),
+        SnackBar(content: Text(context.l10n.closeWindowSettingUpdateFailed)),
       );
     }
   }

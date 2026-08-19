@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 import 'package:instant_chat/features/messages/presentation/message_attachment_menu.dart';
@@ -181,7 +182,7 @@ class _MessageComposerState extends State<MessageComposer>
     return CompositedTransformTarget(
       link: _menuLink,
       child: Tooltip(
-        message: 'Add attachment',
+        message: context.l10n.ui('Add attachment'),
         child: SizedBox.square(
           key: const Key('message-attachment-button'),
           dimension: RetroMetrics.composerSendDiameter,

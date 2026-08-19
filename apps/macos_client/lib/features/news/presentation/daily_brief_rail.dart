@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/news/domain/daily_brief.dart';
@@ -25,9 +26,9 @@ class DailyBriefRail extends ConsumerWidget {
     } catch (_) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('The news link could not be opened.'),
-          duration: Duration(seconds: 3),
+        SnackBar(
+          content: Text(context.l10n.ui('The news link could not be opened.')),
+          duration: const Duration(seconds: 3),
         ),
       );
     }
@@ -56,9 +57,15 @@ class DailyBriefPanel extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Daily Brief', style: Theme.of(context).textTheme.titleLarge),
+            Text(
+              context.l10n.ui('Daily Brief'),
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
             const SizedBox(height: RetroMetrics.spaceSmall / 2),
-            Text('Today', style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              context.l10n.ui('Today'),
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: RetroMetrics.spaceMedium),
             Divider(color: colors.outlineVariant),
             const SizedBox(height: RetroMetrics.spaceSmall),
@@ -79,7 +86,11 @@ class DailyBriefPanel extends StatelessWidget {
 
   Widget _content(DailyBrief value) {
     if (value.items.isEmpty) {
-      return const Center(child: Text('No headlines are available today.'));
+      return Builder(
+        builder: (context) => Center(
+          child: Text(context.l10n.ui('No headlines are available today.')),
+        ),
+      );
     }
     return Builder(
       builder: (context) => ScrollConfiguration(
@@ -110,9 +121,19 @@ class DailyBriefPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Daily news is unavailable.', textAlign: TextAlign.center),
+          Builder(
+            builder: (context) => Text(
+              context.l10n.ui('Daily news is unavailable.'),
+              textAlign: TextAlign.center,
+            ),
+          ),
           const SizedBox(height: RetroMetrics.spaceSmall),
-          TextButton(onPressed: onRetry, child: const Text('Try Again')),
+          Builder(
+            builder: (context) => TextButton(
+              onPressed: onRetry,
+              child: Text(context.l10n.ui('Try Again')),
+            ),
+          ),
         ],
       ),
     );
@@ -132,7 +153,7 @@ class _NewsRow extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     return Semantics(
       button: true,
-      label: 'Open ${item.title}',
+      label: context.l10n.openNewsItem(item.title),
       child: InkWell(
         borderRadius: BorderRadius.circular(RetroMetrics.corner),
         onTap: () => onOpen(item.url),
@@ -188,7 +209,7 @@ class _Attribution extends StatelessWidget {
           Icons.open_in_new,
           size: RetroMetrics.dailyBriefFooterIconSize,
         ),
-        label: const Text('From Wikipedia'),
+        label: Text(context.l10n.ui('From Wikipedia')),
       ),
     );
   }

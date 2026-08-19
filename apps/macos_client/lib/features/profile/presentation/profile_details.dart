@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/domain/auth_user.dart';
 import 'package:instant_chat/features/profile/domain/profile_update.dart';
@@ -30,7 +31,7 @@ class ProfileDetails extends StatelessWidget {
             bottom: RetroMetrics.spaceSmall,
           ),
           child: Text(
-            'Personal details',
+            context.l10n.ui('Personal details'),
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
@@ -39,17 +40,17 @@ class ProfileDetails extends StatelessWidget {
         ProfileRows(
           children: [
             ProfileRow(
-              label: 'Name',
+              label: context.l10n.ui('Name'),
               value: user.displayName,
               onTap: onEditName,
             ),
             ProfileRow(
-              label: 'Gender',
-              value: genderLabel(user.gender),
+              label: context.l10n.ui('Gender'),
+              value: context.l10n.ui(genderLabel(user.gender)),
               onTap: onEditGender,
             ),
             ProfileRow(
-              label: 'ID',
+              label: context.l10n.id,
               value: '@${user.username}',
               onTap: onEditID,
             ),
@@ -77,7 +78,7 @@ class ProfileAccountActions extends StatelessWidget {
             bottom: RetroMetrics.spaceSmall,
           ),
           child: Text(
-            'Account',
+            context.l10n.ui('Account'),
             style: Theme.of(
               context,
             ).textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
@@ -99,7 +100,7 @@ class ProfileAccountActions extends StatelessWidget {
                     child: Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        'Sign out',
+                        context.l10n.ui('Sign out'),
                         style: Theme.of(
                           context,
                         ).textTheme.bodyLarge?.copyWith(color: colors.error),

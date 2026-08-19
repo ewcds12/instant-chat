@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/app/shell_navigation_refresh.dart';
 import 'package:instant_chat/core/platform/macos_settings_window_controller.dart';
 import 'package:instant_chat/core/theme/glass.dart';
@@ -130,13 +131,13 @@ class _AppSidebar extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _SidebarItem(
-                label: 'Chats',
+                label: context.l10n.chats,
                 icon: Icons.chat_bubble_outline_rounded,
                 selected: selectedIndex == 0,
                 onTap: () => onSelect(0),
               ),
               _SidebarItem(
-                label: 'Contacts',
+                label: context.l10n.contacts,
                 icon: Icons.person_outline_rounded,
                 selected: selectedIndex == 1,
                 onTap: () => onSelect(1),
@@ -147,7 +148,7 @@ class _AppSidebar extends ConsumerWidget {
                 ),
               ),
               _SidebarItem(
-                label: 'Explore',
+                label: context.l10n.explore,
                 icon: Icons.public_rounded,
                 selected: selectedIndex == 2,
                 onTap: () => onSelect(2),
@@ -236,7 +237,7 @@ class _SystemButton extends StatelessWidget {
     return Align(
       alignment: Alignment.centerLeft,
       child: Tooltip(
-        message: 'Settings',
+        message: context.l10n.settings,
         child: InkWell(
           key: const Key('settings-placeholder-button'),
           borderRadius: BorderRadius.circular(14),

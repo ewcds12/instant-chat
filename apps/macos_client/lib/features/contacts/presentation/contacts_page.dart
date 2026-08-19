@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/network/api_failure.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
@@ -42,7 +43,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
     return state.when(
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => _LoadFailure(
-        message: _contactLoadFailureMessage(error),
+        message: context.l10n.ui(_contactLoadFailureMessage(error)),
         onRetry: () => ref.invalidate(contactsControllerProvider),
       ),
       data: (contacts) {
@@ -144,14 +145,14 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Contact?'),
+        title: Text(context.l10n.ui('Delete Contact?')),
         content: Text(
-          'Delete ${contact.user.displayName} from your contacts and remove this chat from Chats? Message history will return if you add each other again.',
+          context.l10n.deleteContactDescription(contact.user.displayName),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(context.l10n.ui('Cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -159,7 +160,7 @@ class _ContactsPageState extends ConsumerState<ContactsPage> {
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete'),
+            child: Text(context.l10n.ui('Delete')),
           ),
         ],
       ),
@@ -211,7 +212,10 @@ class _LoadFailure extends StatelessWidget {
         children: [
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 12),
-          FilledButton(onPressed: onRetry, child: const Text('Try Again')),
+          FilledButton(
+            onPressed: onRetry,
+            child: Text(context.l10n.ui('Try Again')),
+          ),
         ],
       ),
     );

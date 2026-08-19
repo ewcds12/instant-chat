@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/conversations/domain/conversation.dart';
@@ -68,7 +69,7 @@ class ConversationList extends StatelessWidget {
                         context,
                       ).textTheme.bodyMedium?.copyWith(fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'Search',
+                        hintText: context.l10n.search,
                         prefixIcon: const Icon(Icons.search_rounded, size: 18),
                         fillColor: RetroColors.glassStrong,
                         contentPadding: const EdgeInsets.symmetric(vertical: 8),
@@ -87,7 +88,7 @@ class ConversationList extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 IconButton(
-                  tooltip: 'New conversation',
+                  tooltip: context.l10n.ui('New conversation'),
                   onPressed: onCompose,
                   icon: const Icon(Icons.edit_square, size: 18),
                 ),
@@ -99,7 +100,7 @@ class ConversationList extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: Text(
-                message,
+                context.l10n.ui(message),
                 style: Theme.of(
                   context,
                 ).textTheme.bodySmall?.copyWith(color: colors.error),
@@ -112,8 +113,8 @@ class ConversationList extends StatelessWidget {
                       padding: const EdgeInsets.all(RetroMetrics.spaceLarge),
                       child: Text(
                         conversations.isEmpty
-                            ? 'No conversations yet'
-                            : 'No matching conversations',
+                            ? context.l10n.ui('No conversations yet')
+                            : context.l10n.ui('No matching conversations'),
                         textAlign: TextAlign.center,
                         style: TextStyle(color: colors.onSurfaceVariant),
                       ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 class ContactRequestNotificationDot extends StatelessWidget {
@@ -7,7 +8,7 @@ class ContactRequestNotificationDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'New contact request',
+      label: context.l10n.ui('New contact request'),
       child: Container(
         key: const Key('contact-request-notification-dot'),
         width: RetroMetrics.contactRequestNotificationDotDiameter,

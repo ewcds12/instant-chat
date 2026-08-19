@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 
@@ -67,7 +68,7 @@ class ContactSharedLinksRow extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(
-                    'Links ($count)',
+                    context.l10n.linksCount(count),
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                 ),

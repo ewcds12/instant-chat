@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/config/app_config.dart';
 import 'package:instant_chat/core/network/api_response.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
@@ -41,14 +42,14 @@ class MessageImageView extends StatelessWidget {
               if (wasSynchronouslyLoaded || frame != null) {
                 return child;
               }
-              return const _ImagePlaceholder(
+              return _ImagePlaceholder(
                 icon: Icons.image_outlined,
-                label: 'Loading image…',
+                label: context.l10n.ui('Loading image…'),
               );
             },
-            errorBuilder: (context, _, _) => const _ImagePlaceholder(
+            errorBuilder: (context, _, _) => _ImagePlaceholder(
               icon: Icons.broken_image_outlined,
-              label: 'Image unavailable',
+              label: context.l10n.ui('Image unavailable'),
             ),
           ),
         ),

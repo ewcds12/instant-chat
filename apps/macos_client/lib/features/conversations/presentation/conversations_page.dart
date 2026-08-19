@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
@@ -44,7 +45,7 @@ class _ConversationsPageState extends ConsumerState<ConversationsPage> {
       error: (_, _) => Center(
         child: FilledButton(
           onPressed: () => ref.invalidate(conversationsControllerProvider),
-          child: const Text('Try again'),
+          child: Text(context.l10n.ui('Try again')),
         ),
       ),
       data: (value) {
@@ -123,12 +124,14 @@ class _NoConversationSelected extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Select a conversation',
+              context.l10n.ui('Select a conversation'),
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
             Text(
-              'Choose a chat from the list to view its messages.',
+              context.l10n.ui(
+                'Choose a chat from the list to view its messages.',
+              ),
               style: TextStyle(color: colors.onSurfaceVariant),
             ),
           ],

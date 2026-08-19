@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/features/posts/domain/public_post.dart';
 import 'package:instant_chat/features/posts/presentation/explore_header.dart';
 
@@ -46,7 +47,10 @@ class ExploreEmpty extends StatelessWidget {
           const SizedBox(height: 8),
           Text(label, style: Theme.of(context).textTheme.bodyMedium),
           const SizedBox(height: 12),
-          FilledButton(onPressed: onCreate, child: const Text('New Post')),
+          FilledButton(
+            onPressed: onCreate,
+            child: Text(context.l10n.ui('New Post')),
+          ),
         ],
       ),
     );
@@ -64,9 +68,12 @@ class ExploreFailure extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('Explore could not be loaded.'),
+          Text(context.l10n.ui('Explore could not be loaded.')),
           const SizedBox(height: 10),
-          FilledButton(onPressed: onRetry, child: const Text('Try Again')),
+          FilledButton(
+            onPressed: onRetry,
+            child: Text(context.l10n.ui('Try Again')),
+          ),
         ],
       ),
     );

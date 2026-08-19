@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
@@ -29,7 +30,7 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
       error: (_, _) => Center(
         child: FilledButton(
           onPressed: () => ref.invalidate(contactsControllerProvider),
-          child: const Text('Try Again'),
+          child: Text(context.l10n.ui('Try Again')),
         ),
       ),
       data: (requests) => LiquidGradientBackground(
@@ -52,12 +53,14 @@ class _RequestsPageState extends ConsumerState<RequestsPage> {
                     ),
                     children: [
                       if (requests.errorMessage case final message?) ...[
-                        _RequestError(message: message),
+                        _RequestError(message: context.l10n.ui(message)),
                         const SizedBox(height: RetroMetrics.spaceMedium),
                       ],
                       RequestSection(
-                        title: 'Incoming',
-                        countLabel: '${requests.incoming.length} pending',
+                        title: context.l10n.ui('Incoming'),
+                        countLabel: context.l10n.pendingCount(
+                          requests.incoming.length,
+                        ),
                         requests: requests.incoming,
                         accessToken: session.accessToken,
                         disabled: requests.isSubmitting,
@@ -106,7 +109,10 @@ class _RequestsHeader extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Text('Requests', style: Theme.of(context).textTheme.titleLarge),
+              Text(
+                context.l10n.ui('Requests'),
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
             ],
           ),
         ),
@@ -130,7 +136,7 @@ class _RequestError extends StatelessWidget {
         borderRadius: BorderRadius.circular(RetroMetrics.corner),
       ),
       child: Text(
-        message,
+        context.l10n.ui(message),
         style: Theme.of(
           context,
         ).textTheme.bodySmall?.copyWith(color: colors.onErrorContainer),

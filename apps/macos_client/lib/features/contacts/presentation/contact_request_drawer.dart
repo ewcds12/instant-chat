@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/contacts/domain/contact_request.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_request_drawer_row.dart';
@@ -47,8 +48,8 @@ class _ContactRequestDrawerState extends State<ContactRequestDrawer> {
         children: [
           Semantics(
             button: true,
-            label: _requestLabel(widget.requests.length),
-            value: _expanded ? 'Expanded' : 'Collapsed',
+            label: context.l10n.friendRequestCount(widget.requests.length),
+            value: context.l10n.ui(_expanded ? 'Expanded' : 'Collapsed'),
             child: InkWell(
               key: const Key('contact-request-drawer-toggle'),
               onTap: () => setState(() => _expanded = !_expanded),
@@ -60,7 +61,9 @@ class _ContactRequestDrawerState extends State<ContactRequestDrawer> {
                     children: [
                       Expanded(
                         child: Text(
-                          _requestLabel(widget.requests.length),
+                          context.l10n.friendRequestCount(
+                            widget.requests.length,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.titleSmall
@@ -158,6 +161,3 @@ class _RequestCountBadge extends StatelessWidget {
     );
   }
 }
-
-String _requestLabel(int count) =>
-    count == 1 ? '1 Friend Request' : '$count Friend Requests';

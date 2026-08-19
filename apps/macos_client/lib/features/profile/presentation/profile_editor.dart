@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 Future<String?> showProfileTextEditor({
@@ -85,9 +86,9 @@ class _ProfileTextEditorState extends State<_ProfileTextEditor> {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.ui('Cancel')),
         ),
-        FilledButton(onPressed: _save, child: const Text('Save')),
+        FilledButton(onPressed: _save, child: Text(context.l10n.ui('Save'))),
       ],
     );
   }
@@ -116,7 +117,7 @@ class _ProfileChoiceEditor extends StatelessWidget {
       'prefer_not_to_say': 'Prefer not to say',
     };
     return AlertDialog(
-      title: const Text('Gender'),
+      title: Text(context.l10n.ui('Gender')),
       contentPadding: const EdgeInsets.symmetric(
         vertical: RetroMetrics.spaceSmall,
       ),
@@ -128,7 +129,7 @@ class _ProfileChoiceEditor extends StatelessWidget {
             for (final entry in choices.entries)
               ListTile(
                 dense: true,
-                title: Text(entry.value),
+                title: Text(context.l10n.ui(entry.value)),
                 trailing: entry.key == currentValue
                     ? const Icon(Icons.check_rounded)
                     : null,
@@ -140,7 +141,7 @@ class _ProfileChoiceEditor extends StatelessWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(context.l10n.ui('Cancel')),
         ),
       ],
     );

@@ -1,9 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_language.dart';
+import 'package:instant_chat/app/app_localizations.dart';
+import 'package:instant_chat/core/platform/macos_app_language.dart';
 
 final localFilePickerProvider = Provider<LocalFilePicker>((ref) {
-  return const MacOSFilePicker();
+  final language = ref.watch(appLanguageProvider).value ?? AppLanguage.english;
+  return MacOSFilePicker(AppLocalizations(language));
 });
 
 abstract interface class LocalFilePicker {
@@ -11,15 +15,24 @@ abstract interface class LocalFilePicker {
 }
 
 class MacOSFilePicker implements LocalFilePicker {
-  const MacOSFilePicker();
+  const MacOSFilePicker([
+    this.localizations = const AppLocalizations(AppLanguage.english),
+  ]);
+
+  final AppLocalizations localizations;
 
   @override
   Future<String?> pickFilePath() async {
     final result = await Process.run('/usr/bin/osascript', [
       '-e',
-      'set pickedFile to choose file with prompt "Choose a file to send"',
+      'on run argv',
+      '-e',
+      'set pickedFile to choose file with prompt (item 1 of argv)',
       '-e',
       'POSIX path of pickedFile',
+      '-e',
+      'end run',
+      localizations.ui('Choose a file to send'),
     ]);
     if (result.exitCode != 0) {
       return null;

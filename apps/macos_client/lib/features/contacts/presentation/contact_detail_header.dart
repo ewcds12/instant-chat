@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/glass.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
@@ -38,7 +39,7 @@ class ContactDetailHeader extends StatelessWidget {
             if (onBack != null) ...[
               IconButton(
                 key: const Key('contact-detail-back'),
-                tooltip: 'Back to conversation',
+                tooltip: context.l10n.ui('Back to conversation'),
                 onPressed: onBack,
                 icon: const Icon(Icons.arrow_back_rounded, size: 19),
               ),
@@ -46,18 +47,18 @@ class ContactDetailHeader extends StatelessWidget {
             ],
             Expanded(
               child: Text(
-                'Contact Info',
+                context.l10n.ui('Contact Info'),
                 style: Theme.of(context).textTheme.titleMedium,
               ),
             ),
             IconButton(
               key: const Key('contact-message-search-open'),
-              tooltip: 'Search message history',
+              tooltip: context.l10n.ui('Search message history'),
               onPressed: disabled ? null : onSearch,
               icon: const Icon(Icons.search_rounded, size: 19),
             ),
             PopupMenuButton<_ContactMenuAction>(
-              tooltip: 'Contact options',
+              tooltip: context.l10n.ui('Contact options'),
               enabled: !disabled,
               onSelected: (action) {
                 switch (action) {
@@ -68,14 +69,14 @@ class ContactDetailHeader extends StatelessWidget {
                 }
               },
               itemBuilder: (context) => [
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: _ContactMenuAction.setRemark,
-                  child: Text('Set Remark…'),
+                  child: Text(context.l10n.ui('Set Remark…')),
                 ),
                 PopupMenuItem(
                   value: _ContactMenuAction.delete,
                   child: Text(
-                    'Delete Contact…',
+                    context.l10n.ui('Delete Contact…'),
                     style: TextStyle(color: colors.error),
                   ),
                 ),
@@ -106,12 +107,14 @@ class ContactDetailEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Select a contact',
+            context.l10n.ui('Select a contact'),
             style: Theme.of(context).textTheme.titleMedium,
           ),
           const SizedBox(height: 4),
           Text(
-            'Choose a contact from the directory to view their details.',
+            context.l10n.ui(
+              'Choose a contact from the directory to view their details.',
+            ),
             textAlign: TextAlign.center,
             style: Theme.of(
               context,

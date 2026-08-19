@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
 
@@ -102,10 +103,22 @@ class MessageContextMenu extends StatelessWidget {
   List<PopupMenuEntry<_MessageMenuAction>> _items(BuildContext context) {
     final items = <PopupMenuEntry<_MessageMenuAction>>[];
     if (onReply != null) {
-      items.add(_item(_MessageMenuAction.reply, Icons.reply_rounded, 'Reply'));
+      items.add(
+        _item(
+          _MessageMenuAction.reply,
+          Icons.reply_rounded,
+          context.l10n.ui('Reply'),
+        ),
+      );
     }
     if (message.kind == MessageKind.text) {
-      items.add(_item(_MessageMenuAction.copy, Icons.copy_outlined, 'Copy'));
+      items.add(
+        _item(
+          _MessageMenuAction.copy,
+          Icons.copy_outlined,
+          context.l10n.ui('Copy'),
+        ),
+      );
       if (onTranslate != null && onTranslationSettings != null) {
         items.add(
           _translationItem(
@@ -113,7 +126,9 @@ class MessageContextMenu extends StatelessWidget {
             action: translationVisible
                 ? _MessageMenuAction.removeTranslation
                 : _MessageMenuAction.translate,
-            label: translationVisible ? 'Original' : 'Translate',
+            label: context.l10n.ui(
+              translationVisible ? 'Original' : 'Translate',
+            ),
           ),
         );
       }
@@ -123,7 +138,7 @@ class MessageContextMenu extends StatelessWidget {
         _item(
           _MessageMenuAction.recall,
           Icons.undo_rounded,
-          'Recall',
+          context.l10n.ui('Recall'),
           color: Theme.of(context).colorScheme.error,
         ),
       );
@@ -132,7 +147,7 @@ class MessageContextMenu extends StatelessWidget {
         _item(
           _MessageMenuAction.delete,
           Icons.delete_outline_rounded,
-          'Delete',
+          context.l10n.ui('Delete'),
           color: Theme.of(context).colorScheme.error,
         ),
       );
@@ -161,7 +176,7 @@ class MessageContextMenu extends StatelessWidget {
           Expanded(child: _MessageMenuLabel(label)),
           IconButton(
             key: const Key('message-translation-settings'),
-            tooltip: 'Translation settings',
+            tooltip: context.l10n.ui('Translation settings'),
             visualDensity: VisualDensity.compact,
             constraints: const BoxConstraints.tightFor(
               width: RetroMetrics.messageMenuSettingsDiameter,

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 
 bool composerNeedsExpandedLayout(
@@ -90,7 +91,7 @@ class MessageComposerField extends StatelessWidget {
             textInputAction: TextInputAction.send,
             style: textStyle(context),
             decoration: InputDecoration(
-              hintText: 'Message $recipientName',
+              hintText: context.l10n.messageRecipient(recipientName),
               counterText: '',
               isDense: true,
               filled: false,
@@ -206,7 +207,7 @@ class MessageComposerSendButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Tooltip(
-      message: 'Send message',
+      message: context.l10n.ui('Send message'),
       child: SizedBox.square(
         key: const Key('message-send-button'),
         dimension: RetroMetrics.composerSendDiameter,

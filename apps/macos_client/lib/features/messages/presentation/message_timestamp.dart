@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 
 const messageTimestampInterval = Duration(minutes: 5);
 
@@ -16,13 +17,32 @@ class MessageTimestamp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Text(
-        messageTimestampLabel(timestamp, now: now),
+        localizedMessageTimestampLabel(context, timestamp, now: now),
         style: Theme.of(context).textTheme.bodySmall?.copyWith(
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );
   }
+}
+
+String localizedMessageTimestampLabel(
+  BuildContext context,
+  DateTime timestamp, {
+  required DateTime now,
+}) {
+  final localTimestamp = timestamp.toLocal();
+  final localNow = now.toLocal();
+  final dayDifference = _startOfDay(
+    localNow,
+  ).difference(_startOfDay(localTimestamp)).inDays;
+  final time = _timeLabel(localTimestamp);
+  if (dayDifference == 0) return time;
+  if (dayDifference == 1) return context.l10n.yesterdayAt(time);
+  if (dayDifference > 1 && dayDifference < 7) {
+    return context.l10n.weekdayAt(localTimestamp.weekday, time);
+  }
+  return context.l10n.fullDateTime(localTimestamp, time);
 }
 
 bool shouldShowMessageTimestamp({

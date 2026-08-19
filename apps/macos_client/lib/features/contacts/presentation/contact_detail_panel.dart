@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/core/theme/glass.dart';
@@ -162,7 +163,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
         return;
       }
       if (conversationId == null) {
-        _showMessage('This chat is not available yet.');
+        _showMessage(context.l10n.ui('This chat is not available yet.'));
         return;
       }
       final message = await showMessageHistorySearch(
@@ -182,7 +183,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
       widget.onMessage();
     } catch (_) {
       if (mounted) {
-        _showMessage('Message history could not be opened.');
+        _showMessage(context.l10n.ui('Message history could not be opened.'));
       }
     }
   }
@@ -224,7 +225,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
           );
     } catch (_) {
       if (mounted) {
-        _showMessage('File could not be saved.');
+        _showMessage(context.l10n.ui('File could not be saved.'));
       }
     }
   }
@@ -244,12 +245,13 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
       await actions.writeDownloadFile(path, bytes);
     } catch (_) {
       if (mounted) {
-        _showMessage('Image could not be saved.');
+        _showMessage(context.l10n.ui('Image could not be saved.'));
       }
     }
   }
 
   Future<void> _openLinks(List<Uri> links) async {
+    final localizations = context.l10n;
     await showDialog<void>(
       context: context,
       builder: (context) => ContactSharedLinksDialog(
@@ -259,7 +261,7 @@ class _ContactDetailState extends ConsumerState<_ContactDetail> {
             await ref.read(localUrlLauncherProvider).open(link);
           } catch (_) {
             if (mounted) {
-              _showMessage('Link could not be opened.');
+              _showMessage(localizations.ui('Link could not be opened.'));
             }
           }
         },
