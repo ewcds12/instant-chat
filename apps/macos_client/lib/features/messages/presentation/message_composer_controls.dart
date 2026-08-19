@@ -110,7 +110,11 @@ class MessageComposerField extends StatelessWidget {
               enabledBorder: InputBorder.none,
               focusedBorder: InputBorder.none,
             ),
-            onSubmitted: (_) => _send(),
+            onSubmitted: (_) {
+              if (!_hasActiveComposition) {
+                _send();
+              }
+            },
           ),
         ),
       ),
@@ -124,12 +128,20 @@ class MessageComposerField extends StatelessWidget {
     if (event.logicalKey != LogicalKeyboardKey.enter) {
       return KeyEventResult.ignored;
     }
+    if (_hasActiveComposition) {
+      return KeyEventResult.ignored;
+    }
     if (HardwareKeyboard.instance.isShiftPressed) {
       _insertLineBreak();
     } else {
       _send();
     }
     return KeyEventResult.handled;
+  }
+
+  bool get _hasActiveComposition {
+    final composing = controller.value.composing;
+    return composing.isValid && !composing.isCollapsed;
   }
 
   void _insertLineBreak() {

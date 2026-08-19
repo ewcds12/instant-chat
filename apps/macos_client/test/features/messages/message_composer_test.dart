@@ -222,6 +222,59 @@ void main() {
     expect(sent, 1);
   });
 
+  testWidgets('lets the input method confirm composing text before sending', (
+    tester,
+  ) async {
+    var sent = 0;
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: RetroTheme.data,
+        home: Scaffold(
+          body: MessageComposer(
+            controller: controller,
+            focusNode: focusNode,
+            disabled: false,
+            recipientName: 'Sam',
+            onSend: () => sent++,
+            onPickImage: () {},
+            onPickFile: () {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('message-composer')));
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'にほんご',
+        selection: TextSelection.collapsed(offset: 4),
+        composing: TextRange(start: 0, end: 4),
+      ),
+    );
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(sent, 0);
+    expect(controller.text, 'にほんご');
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: '日本語',
+        selection: TextSelection.collapsed(offset: 3),
+      ),
+    );
+    await tester.pump();
+    await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+    await tester.pump();
+
+    expect(sent, 1);
+  });
+
   testWidgets('moves actions below text when content wraps visually', (
     tester,
   ) async {
