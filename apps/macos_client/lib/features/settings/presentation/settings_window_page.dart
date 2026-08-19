@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
+import 'package:instant_chat/features/settings/presentation/close_window_setting.dart';
 import 'package:instant_chat/features/settings/presentation/keep_app_in_dock_setting.dart';
 import 'package:instant_chat/features/settings/presentation/launch_at_login_setting.dart';
 import 'package:instant_chat/features/settings/presentation/open_links_setting.dart';
@@ -224,10 +225,7 @@ class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
         const KeepAppInDockSetting(),
         const Divider(height: 1),
         const _SettingsValueRow(label: 'Language', value: 'System Default'),
-        const _SettingsValueRow(
-          label: 'Close window',
-          value: 'Keep Instant Chat running',
-        ),
+        const CloseWindowSetting(),
         const Divider(height: 1),
         _SettingsToggleRow(
           label: 'Check spelling while typing',

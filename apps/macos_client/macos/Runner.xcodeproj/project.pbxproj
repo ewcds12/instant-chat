@@ -32,6 +32,7 @@
 		A1B2C3D60100000000000001 /* LaunchAtLoginChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D60100000000000002 /* LaunchAtLoginChannel.swift */; };
 		A1B2C3D70100000000000001 /* URLLauncherChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D70100000000000002 /* URLLauncherChannel.swift */; };
 		A1B2C3D80100000000000001 /* DockVisibilityChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D80100000000000002 /* DockVisibilityChannel.swift */; };
+		A1B2C3D90100000000000001 /* CloseWindowBehaviorChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D90100000000000002 /* CloseWindowBehaviorChannel.swift */; };
 		78A318202AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage in Frameworks */ = {isa = PBXBuildFile; productRef = 78A3181F2AECB46A00862997 /* FlutterGeneratedPluginSwiftPackage */; };
 /* End PBXBuildFile section */
 
@@ -81,6 +82,7 @@
 		A1B2C3D60100000000000002 /* LaunchAtLoginChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D70100000000000002 /* URLLauncherChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = URLLauncherChannel.swift; sourceTree = "<group>"; };
 		A1B2C3D80100000000000002 /* DockVisibilityChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DockVisibilityChannel.swift; sourceTree = "<group>"; };
+		A1B2C3D90100000000000002 /* CloseWindowBehaviorChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloseWindowBehaviorChannel.swift; sourceTree = "<group>"; };
 		33CEB47222A05771004F2AC0 /* Flutter-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Debug.xcconfig"; sourceTree = "<group>"; };
 		33CEB47422A05771004F2AC0 /* Flutter-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = "Flutter-Release.xcconfig"; sourceTree = "<group>"; };
 		33CEB47722A0578A004F2AC0 /* Flutter-Generated.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = "Flutter-Generated.xcconfig"; path = "ephemeral/Flutter-Generated.xcconfig"; sourceTree = "<group>"; };
@@ -183,6 +185,7 @@
 				A1B2C3D60100000000000002 /* LaunchAtLoginChannel.swift */,
 				A1B2C3D70100000000000002 /* URLLauncherChannel.swift */,
 				A1B2C3D80100000000000002 /* DockVisibilityChannel.swift */,
+				A1B2C3D90100000000000002 /* CloseWindowBehaviorChannel.swift */,
 				33E51913231747F40026EE4D /* DebugProfile.entitlements */,
 				33E51914231749380026EE4D /* Release.entitlements */,
 				33CC11242044D66E0003C045 /* Resources */,
@@ -374,6 +377,7 @@
 				A1B2C3D60100000000000001 /* LaunchAtLoginChannel.swift in Sources */,
 				A1B2C3D70100000000000001 /* URLLauncherChannel.swift in Sources */,
 				A1B2C3D80100000000000001 /* DockVisibilityChannel.swift in Sources */,
+				A1B2C3D90100000000000001 /* CloseWindowBehaviorChannel.swift in Sources */,
 				A1B2C3D40100000000000001 /* MessageTranslationChannel.swift in Sources */,
 				33CC10F12044A3C60003C045 /* AppDelegate.swift in Sources */,
 				335BBD1B22A9A15E00E9071D /* GeneratedPluginRegistrant.swift in Sources */,

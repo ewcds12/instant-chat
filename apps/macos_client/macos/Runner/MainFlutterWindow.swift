@@ -20,13 +20,14 @@ class MainFlutterWindow: NSWindow {
   private var settingsWindowChannel: SettingsWindowChannel?
   private var urlLauncherChannel: URLLauncherChannel?
   private var windowModeChannel: AppWindowModeChannel?
+  private var windowMode = AppWindowMode.authentication
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     self.contentViewController = flutterViewController
     self.title = "Instant Chat"
     Self.configureWindowChrome(self)
-    Self.configureWindow(self, for: .authentication, animated: false)
+    setWindowMode(.authentication, animated: false)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
     clipboardImageChannel = ClipboardImageChannel(
@@ -64,6 +65,24 @@ class MainFlutterWindow: NSWindow {
       return
     }
     super.sendEvent(event)
+  }
+
+  override func performClose(_ sender: Any?) {
+    guard windowMode == .main else {
+      super.performClose(sender)
+      return
+    }
+    switch CloseWindowBehaviorPreference.current {
+    case .keepRunning:
+      orderOut(sender)
+    case .quitApplication:
+      NSApp.terminate(sender)
+    }
+  }
+
+  func setWindowMode(_ mode: AppWindowMode, animated: Bool) {
+    windowMode = mode
+    Self.configureWindow(self, for: mode, animated: animated)
   }
 
   @objc private func pasteFromMenu(_ sender: Any?) {
@@ -211,11 +230,18 @@ private final class AppWindowModeChannel {
         )
         return
       }
-      MainFlutterWindow.configureWindow(
-        window,
-        for: mode,
-        animated: MainFlutterWindow.animatesModeTransitions
-      )
+      if let mainWindow = window as? MainFlutterWindow {
+        mainWindow.setWindowMode(
+          mode,
+          animated: MainFlutterWindow.animatesModeTransitions
+        )
+      } else {
+        MainFlutterWindow.configureWindow(
+          window,
+          for: mode,
+          animated: MainFlutterWindow.animatesModeTransitions
+        )
+      }
       DispatchQueue.main.async { [weak window] in
         guard let window else {
           return

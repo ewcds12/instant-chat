@@ -7,6 +7,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
   private static let minimumWindowSize = NSSize(width: 760, height: 500)
 
   private let channel: FlutterMethodChannel
+  private var closeWindowBehaviorChannel: CloseWindowBehaviorChannel?
   private var dockVisibilityChannel: DockVisibilityChannel?
   private var launchAtLoginChannel: LaunchAtLoginChannel?
   private var urlLauncherChannel: URLLauncherChannel?
@@ -58,6 +59,9 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
         nibName: nil,
         bundle: nil
       )
+      let closeWindowBehaviorChannel = CloseWindowBehaviorChannel(
+        controller: viewController
+      )
       let dockVisibilityChannel = DockVisibilityChannel(controller: viewController)
       let launchAtLoginChannel = LaunchAtLoginChannel(
         controller: viewController
@@ -86,6 +90,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
       window.center()
 
       self.settingsEngine = engine
+      self.closeWindowBehaviorChannel = closeWindowBehaviorChannel
       self.dockVisibilityChannel = dockVisibilityChannel
       self.launchAtLoginChannel = launchAtLoginChannel
       self.urlLauncherChannel = urlLauncherChannel
@@ -98,6 +103,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
 
   func windowWillClose(_ notification: Notification) {
     settingsWindow = nil
+    closeWindowBehaviorChannel = nil
     dockVisibilityChannel = nil
     launchAtLoginChannel = nil
     urlLauncherChannel = nil

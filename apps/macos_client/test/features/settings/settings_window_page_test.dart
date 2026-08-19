@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:instant_chat/core/platform/macos_close_window_behavior.dart';
 import 'package:instant_chat/core/platform/macos_dock_visibility.dart';
 import 'package:instant_chat/core/platform/macos_launch_at_login.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
@@ -16,6 +17,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          closeWindowBehaviorPlatformProvider.overrideWithValue(
+            _FakeCloseWindowBehaviorPlatform(),
+          ),
           dockVisibilityPlatformProvider.overrideWithValue(
             _FakeDockVisibilityPlatform(),
           ),
@@ -67,6 +71,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          closeWindowBehaviorPlatformProvider.overrideWithValue(
+            _FakeCloseWindowBehaviorPlatform(),
+          ),
           dockVisibilityPlatformProvider.overrideWithValue(
             _FakeDockVisibilityPlatform(),
           ),
@@ -107,6 +114,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          closeWindowBehaviorPlatformProvider.overrideWithValue(
+            _FakeCloseWindowBehaviorPlatform(),
+          ),
           dockVisibilityPlatformProvider.overrideWithValue(
             _FakeDockVisibilityPlatform(),
           ),
@@ -147,6 +157,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          closeWindowBehaviorPlatformProvider.overrideWithValue(
+            _FakeCloseWindowBehaviorPlatform(),
+          ),
           dockVisibilityPlatformProvider.overrideWithValue(platform),
           launchAtLoginPlatformProvider.overrideWithValue(
             _FakeLaunchAtLoginPlatform(),
@@ -174,6 +187,73 @@ void main() {
     );
     expect(dockSwitch.value, isTrue);
   });
+
+  testWidgets('reads and updates the close-window behavior', (tester) async {
+    tester.view.physicalSize = const Size(920, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final platform = _FakeCloseWindowBehaviorPlatform(
+      behavior: CloseWindowBehavior.quitApplication,
+    );
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          closeWindowBehaviorPlatformProvider.overrideWithValue(platform),
+          dockVisibilityPlatformProvider.overrideWithValue(
+            _FakeDockVisibilityPlatform(),
+          ),
+          launchAtLoginPlatformProvider.overrideWithValue(
+            _FakeLaunchAtLoginPlatform(),
+          ),
+          linkOpeningPreferenceProvider.overrideWithValue(
+            _FakeLinkOpeningPreference(),
+          ),
+        ],
+        child: const SettingsApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('close-window-current-value')))
+          .data,
+      'Quit Instant Chat',
+    );
+
+    await tester.tap(find.byKey(const Key('close-window-setting')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('close-window-keep_running')));
+    await tester.pumpAndSettle();
+
+    expect(platform.requestedValues, [CloseWindowBehavior.keepRunning]);
+    expect(
+      tester
+          .widget<Text>(find.byKey(const Key('close-window-current-value')))
+          .data,
+      'Keep Instant Chat running',
+    );
+  });
+}
+
+class _FakeCloseWindowBehaviorPlatform implements CloseWindowBehaviorPlatform {
+  _FakeCloseWindowBehaviorPlatform({
+    this.behavior = CloseWindowBehavior.keepRunning,
+  });
+
+  CloseWindowBehavior behavior;
+  final requestedValues = <CloseWindowBehavior>[];
+
+  @override
+  Future<CloseWindowBehavior> getBehavior() async => behavior;
+
+  @override
+  Future<void> setBehavior(CloseWindowBehavior behavior) async {
+    requestedValues.add(behavior);
+    this.behavior = behavior;
+  }
 }
 
 class _FakeDockVisibilityPlatform implements DockVisibilityPlatform {
