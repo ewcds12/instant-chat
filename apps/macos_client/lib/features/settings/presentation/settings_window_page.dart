@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/settings/presentation/launch_at_login_setting.dart';
+import 'package:instant_chat/features/settings/presentation/open_links_setting.dart';
 
 enum SettingsCategory {
   general('General', Icons.settings_outlined),
@@ -211,7 +212,6 @@ class _GeneralSettingsShell extends StatefulWidget {
 }
 
 class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
-  var _openLinksExternally = true;
   var _keepInDock = true;
   var _checkSpelling = true;
 
@@ -220,11 +220,7 @@ class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
     return Column(
       children: [
         const LaunchAtLoginSetting(),
-        _SettingsToggleRow(
-          label: 'Open links in default browser',
-          value: _openLinksExternally,
-          onChanged: (value) => setState(() => _openLinksExternally = value),
-        ),
+        const OpenLinksSetting(),
         _SettingsToggleRow(
           label: 'Keep app in Dock',
           value: _keepInDock,

@@ -18,6 +18,7 @@ class MainFlutterWindow: NSWindow {
   private var clipboardImageChannel: ClipboardImageChannel?
   private var messageTranslationChannel: MessageTranslationChannel?
   private var settingsWindowChannel: SettingsWindowChannel?
+  private var urlLauncherChannel: URLLauncherChannel?
   private var windowModeChannel: AppWindowModeChannel?
 
   override func awakeFromNib() {
@@ -37,6 +38,7 @@ class MainFlutterWindow: NSWindow {
     settingsWindowChannel = SettingsWindowChannel(
       controller: flutterViewController
     )
+    urlLauncherChannel = URLLauncherChannel(controller: flutterViewController)
     windowModeChannel = AppWindowModeChannel(
       controller: flutterViewController,
       window: self

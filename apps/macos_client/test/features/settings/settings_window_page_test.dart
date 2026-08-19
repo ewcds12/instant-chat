@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/core/platform/macos_launch_at_login.dart';
+import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/settings/presentation/settings_app.dart';
 
 void main() {
@@ -16,6 +17,9 @@ void main() {
         overrides: [
           launchAtLoginPlatformProvider.overrideWithValue(
             _FakeLaunchAtLoginPlatform(),
+          ),
+          linkOpeningPreferenceProvider.overrideWithValue(
+            _FakeLinkOpeningPreference(),
           ),
         ],
         child: const SettingsApp(),
@@ -58,7 +62,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [launchAtLoginPlatformProvider.overrideWithValue(platform)],
+        overrides: [
+          launchAtLoginPlatformProvider.overrideWithValue(platform),
+          linkOpeningPreferenceProvider.overrideWithValue(
+            _FakeLinkOpeningPreference(),
+          ),
+        ],
         child: const SettingsApp(),
       ),
     );
@@ -78,6 +87,45 @@ void main() {
     );
     expect(launchSwitch.value, isTrue);
   });
+
+  testWidgets('reads and updates the default-browser preference', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(920, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final preference = _FakeLinkOpeningPreference(enabled: false);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          launchAtLoginPlatformProvider.overrideWithValue(
+            _FakeLaunchAtLoginPlatform(),
+          ),
+          linkOpeningPreferenceProvider.overrideWithValue(preference),
+        ],
+        child: const SettingsApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    var browserSwitch = tester.widget<Switch>(
+      find.byKey(const Key('open-links-in-default-browser-switch')),
+    );
+    expect(browserSwitch.value, isFalse);
+
+    await tester.tap(
+      find.byKey(const Key('open-links-in-default-browser-switch')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(preference.requestedValues, [true]);
+    browserSwitch = tester.widget<Switch>(
+      find.byKey(const Key('open-links-in-default-browser-switch')),
+    );
+    expect(browserSwitch.value, isTrue);
+  });
 }
 
 class _FakeLaunchAtLoginPlatform implements LaunchAtLoginPlatform {
@@ -94,5 +142,21 @@ class _FakeLaunchAtLoginPlatform implements LaunchAtLoginPlatform {
         ? LaunchAtLoginStatus.enabled
         : LaunchAtLoginStatus.disabled;
     return status;
+  }
+}
+
+class _FakeLinkOpeningPreference implements LinkOpeningPreference {
+  _FakeLinkOpeningPreference({this.enabled = true});
+
+  bool enabled;
+  final requestedValues = <bool>[];
+
+  @override
+  Future<bool> getOpenLinksInDefaultBrowser() async => enabled;
+
+  @override
+  Future<void> setOpenLinksInDefaultBrowser(bool enabled) async {
+    requestedValues.add(enabled);
+    this.enabled = enabled;
   }
 }

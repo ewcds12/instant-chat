@@ -8,6 +8,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
 
   private let channel: FlutterMethodChannel
   private var launchAtLoginChannel: LaunchAtLoginChannel?
+  private var urlLauncherChannel: URLLauncherChannel?
   private var settingsWindow: NSWindow?
   private var settingsEngine: FlutterEngine?
 
@@ -59,6 +60,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
       let launchAtLoginChannel = LaunchAtLoginChannel(
         controller: viewController
       )
+      let urlLauncherChannel = URLLauncherChannel(controller: viewController)
       viewController.backgroundColor = NSColor(
         calibratedRed: 0.98,
         green: 0.99,
@@ -83,6 +85,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
 
       self.settingsEngine = engine
       self.launchAtLoginChannel = launchAtLoginChannel
+      self.urlLauncherChannel = urlLauncherChannel
       self.settingsWindow = window
       NSApp.activate(ignoringOtherApps: true)
       window.makeKeyAndOrderFront(nil)
@@ -93,6 +96,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
   func windowWillClose(_ notification: Notification) {
     settingsWindow = nil
     launchAtLoginChannel = nil
+    urlLauncherChannel = nil
     settingsEngine?.shutDownEngine()
     settingsEngine = nil
   }
