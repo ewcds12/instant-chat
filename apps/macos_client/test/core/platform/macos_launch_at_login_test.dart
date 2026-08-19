@@ -36,10 +36,14 @@ void main() {
     await expectLater(platform.getStatus(), throwsStateError);
   });
 
-  test('maps approval and unsupported native states', () {
+  test('maps non-binary native states', () {
     expect(
       LaunchAtLoginStatus.fromPlatform('requires_approval'),
       LaunchAtLoginStatus.requiresApproval,
+    );
+    expect(
+      LaunchAtLoginStatus.fromPlatform('unavailable'),
+      LaunchAtLoginStatus.unavailable,
     );
     expect(
       LaunchAtLoginStatus.fromPlatform('unsupported'),

@@ -96,13 +96,7 @@ final class LaunchAtLoginChannel {
     case .requiresApproval:
       result("requires_approval")
     case .notFound:
-      result(
-        FlutterError(
-          code: "launch_at_login_unavailable",
-          message: "The login item could not be found.",
-          details: nil
-        )
-      )
+      result("unavailable")
     @unknown default:
       result(
         FlutterError(

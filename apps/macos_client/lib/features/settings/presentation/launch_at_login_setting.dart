@@ -95,6 +95,7 @@ class LaunchAtLoginSetting extends ConsumerWidget {
     return !value.isLoading &&
         !value.hasError &&
         launchState?.isUpdating != true &&
+        launchState?.status != LaunchAtLoginStatus.unavailable &&
         launchState?.status != LaunchAtLoginStatus.unsupported;
   }
 
@@ -108,6 +109,8 @@ class LaunchAtLoginSetting extends ConsumerWidget {
     return switch (status) {
       LaunchAtLoginStatus.requiresApproval =>
         'Approval is required in System Settings.',
+      LaunchAtLoginStatus.unavailable =>
+        'Available after installing Instant Chat.',
       LaunchAtLoginStatus.unsupported => 'Requires macOS 13 or later.',
       _ => null,
     };

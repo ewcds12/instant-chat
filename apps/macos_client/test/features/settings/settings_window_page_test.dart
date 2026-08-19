@@ -102,6 +102,47 @@ void main() {
     expect(launchSwitch.value, isTrue);
   });
 
+  testWidgets('explains when Launch at login needs an installed app', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(920, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          closeWindowBehaviorPlatformProvider.overrideWithValue(
+            _FakeCloseWindowBehaviorPlatform(),
+          ),
+          dockVisibilityPlatformProvider.overrideWithValue(
+            _FakeDockVisibilityPlatform(),
+          ),
+          launchAtLoginPlatformProvider.overrideWithValue(
+            _FakeLaunchAtLoginPlatform(status: LaunchAtLoginStatus.unavailable),
+          ),
+          linkOpeningPreferenceProvider.overrideWithValue(
+            _FakeLinkOpeningPreference(),
+          ),
+        ],
+        child: const SettingsApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Available after installing Instant Chat.'),
+      findsOneWidget,
+    );
+    expect(
+      tester
+          .widget<Switch>(find.byKey(const Key('launch-at-login-switch')))
+          .onChanged,
+      isNull,
+    );
+  });
+
   testWidgets('reads and updates the default-browser preference', (
     tester,
   ) async {
@@ -273,7 +314,9 @@ class _FakeDockVisibilityPlatform implements DockVisibilityPlatform {
 }
 
 class _FakeLaunchAtLoginPlatform implements LaunchAtLoginPlatform {
-  var status = LaunchAtLoginStatus.disabled;
+  _FakeLaunchAtLoginPlatform({this.status = LaunchAtLoginStatus.disabled});
+
+  LaunchAtLoginStatus status;
   final requestedValues = <bool>[];
 
   @override

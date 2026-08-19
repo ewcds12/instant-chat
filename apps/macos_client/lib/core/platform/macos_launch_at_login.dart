@@ -5,6 +5,7 @@ enum LaunchAtLoginStatus {
   disabled,
   enabled,
   requiresApproval,
+  unavailable,
   unsupported;
 
   static LaunchAtLoginStatus fromPlatform(String value) {
@@ -12,6 +13,7 @@ enum LaunchAtLoginStatus {
       'disabled' => disabled,
       'enabled' => enabled,
       'requires_approval' => requiresApproval,
+      'unavailable' => unavailable,
       'unsupported' => unsupported,
       _ => throw StateError('Unknown launch-at-login status: $value'),
     };

@@ -119,6 +119,37 @@ class RunnerTests: XCTestCase {
     }
   }
 
+  func testDockPolicyUpdateSucceedsWhenPolicyIsAlreadyApplied() {
+    var setPolicyCallCount = 0
+
+    let succeeded = DockVisibilityChannel.updateActivationPolicy(
+      .accessory,
+      currentPolicy: { .accessory },
+      setPolicy: { _ in
+        setPolicyCallCount += 1
+        return false
+      }
+    )
+
+    XCTAssertTrue(succeeded)
+    XCTAssertEqual(setPolicyCallCount, 0)
+  }
+
+  func testDockPolicyUpdateVerifiesTheResultInsteadOfTheReturnValue() {
+    var currentPolicy = NSApplication.ActivationPolicy.accessory
+
+    let succeeded = DockVisibilityChannel.updateActivationPolicy(
+      .regular,
+      currentPolicy: { currentPolicy },
+      setPolicy: { desiredPolicy in
+        currentPolicy = desiredPolicy
+        return false
+      }
+    )
+
+    XCTAssertTrue(succeeded)
+  }
+
   func testMessageTranslationLanguagesUseSupportedLocaleIdentifiers() {
     XCTAssertEqual(MessageTranslationLanguage.english.rawValue, "en")
     XCTAssertEqual(MessageTranslationLanguage.simplifiedChinese.rawValue, "zh-Hans")

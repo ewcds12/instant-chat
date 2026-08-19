@@ -15,7 +15,7 @@ final class DockVisibilityChannel {
     channel.setMethodCallHandler { call, result in
       switch call.method {
       case "getKeepAppInDock":
-        result(Self.keepAppInDock)
+        result(NSApp.activationPolicy() == .regular)
       case "setKeepAppInDock":
         Self.setKeepAppInDock(call: call, result: result)
       default:
@@ -29,7 +29,25 @@ final class DockVisibilityChannel {
   }
 
   static func applyStoredPreference() {
-    _ = NSApp.setActivationPolicy(keepAppInDock ? .regular : .accessory)
+    _ = updateActivationPolicy(
+      keepAppInDock ? .regular : .accessory
+    )
+  }
+
+  static func updateActivationPolicy(
+    _ desiredPolicy: NSApplication.ActivationPolicy,
+    currentPolicy: () -> NSApplication.ActivationPolicy = {
+      NSApp.activationPolicy()
+    },
+    setPolicy: (NSApplication.ActivationPolicy) -> Bool = {
+      NSApp.setActivationPolicy($0)
+    }
+  ) -> Bool {
+    if currentPolicy() == desiredPolicy {
+      return true
+    }
+    _ = setPolicy(desiredPolicy)
+    return currentPolicy() == desiredPolicy
   }
 
   private static var keepAppInDock: Bool {
@@ -56,7 +74,10 @@ final class DockVisibilityChannel {
       return
     }
     DispatchQueue.main.async {
-      guard NSApp.setActivationPolicy(enabled ? .regular : .accessory) else {
+      let desiredPolicy: NSApplication.ActivationPolicy = enabled
+        ? .regular
+        : .accessory
+      guard Self.updateActivationPolicy(desiredPolicy) else {
         result(
           FlutterError(
             code: "dock_visibility_update_failed",
