@@ -275,6 +275,48 @@ void main() {
     expect(sent, 1);
   });
 
+  testWidgets('applies the spelling preference to the message field', (
+    tester,
+  ) async {
+    final controller = TextEditingController();
+    final focusNode = FocusNode();
+    final spellCheckService = _FakeSpellCheckService();
+    addTearDown(controller.dispose);
+    addTearDown(focusNode.dispose);
+
+    Future<void> pumpComposer(bool enabled) {
+      return tester.pumpWidget(
+        MaterialApp(
+          theme: RetroTheme.data,
+          home: Scaffold(
+            body: MessageComposer(
+              controller: controller,
+              focusNode: focusNode,
+              disabled: false,
+              recipientName: 'Sam',
+              onSend: () {},
+              onPickImage: () {},
+              onPickFile: () {},
+              spellCheckEnabled: enabled,
+              spellCheckService: spellCheckService,
+            ),
+          ),
+        ),
+      );
+    }
+
+    await pumpComposer(false);
+    var field = tester.widget<TextField>(
+      find.byKey(const Key('message-composer')),
+    );
+    expect(field.spellCheckConfiguration!.spellCheckEnabled, isFalse);
+
+    await pumpComposer(true);
+    field = tester.widget<TextField>(find.byKey(const Key('message-composer')));
+    expect(field.spellCheckConfiguration!.spellCheckEnabled, isTrue);
+    expect(field.spellCheckConfiguration!.spellCheckService, spellCheckService);
+  });
+
   testWidgets('moves actions below text when content wraps visually', (
     tester,
   ) async {
@@ -316,4 +358,12 @@ void main() {
       ),
     );
   });
+}
+
+class _FakeSpellCheckService implements SpellCheckService {
+  @override
+  Future<List<SuggestionSpan>?> fetchSpellCheckSuggestions(
+    Locale locale,
+    String text,
+  ) async => const [];
 }

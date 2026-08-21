@@ -5,6 +5,9 @@ extension _MessagesPageComposer on _MessagesPageState {
     AsyncNotifierProvider<MessagesController, MessagesState> provider,
     MessagesState value,
   ) {
+    final spellCheckEnabled =
+        ref.watch(spellCheckEnabledProvider).value ?? true;
+    final spellCheckService = ref.watch(spellCheckPlatformProvider);
     return AnimatedBuilder(
       animation: _imageDraft,
       builder: (context, _) => MessageComposer(
@@ -22,6 +25,8 @@ extension _MessagesPageComposer on _MessagesPageState {
         onPasteImage: _imageDraft.paste,
         replyingTo: _replyingTo,
         onCancelReply: _cancelReply,
+        spellCheckEnabled: spellCheckEnabled,
+        spellCheckService: spellCheckService,
       ),
     );
   }

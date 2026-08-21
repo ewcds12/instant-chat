@@ -9,6 +9,7 @@ import 'package:instant_chat/core/platform/macos_file_actions.dart';
 import 'package:instant_chat/core/platform/macos_file_picker.dart';
 import 'package:instant_chat/core/platform/macos_image_picker.dart';
 import 'package:instant_chat/core/platform/macos_message_translation.dart';
+import 'package:instant_chat/core/platform/macos_spell_check.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/auth/presentation/auth_controller.dart';
 import 'package:instant_chat/features/contacts/presentation/contact_detail_panel.dart';

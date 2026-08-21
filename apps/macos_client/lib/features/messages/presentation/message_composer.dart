@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:instant_chat/app/app_localizations.dart';
 import 'package:instant_chat/core/theme/retro_theme.dart';
 import 'package:instant_chat/features/messages/domain/message.dart';
@@ -21,6 +22,8 @@ class MessageComposer extends StatefulWidget {
     this.onPasteImage,
     this.replyingTo,
     this.onCancelReply,
+    this.spellCheckEnabled = true,
+    this.spellCheckService,
     super.key,
   });
 
@@ -36,6 +39,8 @@ class MessageComposer extends StatefulWidget {
   final Future<bool> Function()? onPasteImage;
   final Message? replyingTo;
   final VoidCallback? onCancelReply;
+  final bool spellCheckEnabled;
+  final SpellCheckService? spellCheckService;
 
   @override
   State<MessageComposer> createState() => _MessageComposerState();
@@ -175,6 +180,8 @@ class _MessageComposerState extends State<MessageComposer>
       recipientName: widget.recipientName,
       onSend: widget.onSend,
       onPasteImage: widget.onPasteImage,
+      spellCheckEnabled: widget.spellCheckEnabled,
+      spellCheckService: widget.spellCheckService,
     );
   }
 

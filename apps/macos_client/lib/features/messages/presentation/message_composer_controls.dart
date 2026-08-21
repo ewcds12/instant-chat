@@ -45,6 +45,8 @@ class MessageComposerField extends StatelessWidget {
     required this.expanded,
     required this.recipientName,
     required this.onSend,
+    required this.spellCheckEnabled,
+    this.spellCheckService,
     this.onPasteImage,
     super.key,
   });
@@ -56,6 +58,8 @@ class MessageComposerField extends StatelessWidget {
   final bool expanded;
   final String recipientName;
   final VoidCallback onSend;
+  final bool spellCheckEnabled;
+  final SpellCheckService? spellCheckService;
   final Future<bool> Function()? onPasteImage;
 
   static TextStyle textStyle(BuildContext context) {
@@ -89,6 +93,7 @@ class MessageComposerField extends StatelessWidget {
             maxLines: RetroMetrics.composerMaxLines,
             maxLength: 4000,
             textInputAction: TextInputAction.send,
+            spellCheckConfiguration: _spellCheckConfiguration,
             style: textStyle(context),
             decoration: InputDecoration(
               hintText: context.l10n.messageRecipient(recipientName),
@@ -119,6 +124,13 @@ class MessageComposerField extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  SpellCheckConfiguration get _spellCheckConfiguration {
+    if (!spellCheckEnabled || spellCheckService == null) {
+      return const SpellCheckConfiguration.disabled();
+    }
+    return SpellCheckConfiguration(spellCheckService: spellCheckService);
   }
 
   KeyEventResult _handleKeyEvent(FocusNode _, KeyEvent event) {

@@ -19,6 +19,7 @@ class MainFlutterWindow: NSWindow {
   private var appLanguageChannel: AppLanguageChannel?
   private var messageTranslationChannel: MessageTranslationChannel?
   private var settingsWindowChannel: SettingsWindowChannel?
+  private var spellCheckChannel: SpellCheckChannel?
   private var urlLauncherChannel: URLLauncherChannel?
   private var windowModeChannel: AppWindowModeChannel?
   private var windowMode = AppWindowMode.authentication
@@ -41,6 +42,7 @@ class MainFlutterWindow: NSWindow {
     settingsWindowChannel = SettingsWindowChannel(
       controller: flutterViewController
     )
+    spellCheckChannel = SpellCheckChannel(controller: flutterViewController)
     urlLauncherChannel = URLLauncherChannel(controller: flutterViewController)
     windowModeChannel = AppWindowModeChannel(
       controller: flutterViewController,

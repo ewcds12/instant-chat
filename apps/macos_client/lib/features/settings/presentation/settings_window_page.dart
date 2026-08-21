@@ -7,6 +7,7 @@ import 'package:instant_chat/features/settings/presentation/language_setting.dar
 import 'package:instant_chat/features/settings/presentation/launch_at_login_setting.dart';
 import 'package:instant_chat/features/settings/presentation/open_links_setting.dart';
 import 'package:instant_chat/features/settings/presentation/settings_category.dart';
+import 'package:instant_chat/features/settings/presentation/spell_check_setting.dart';
 
 class SettingsWindowPage extends StatefulWidget {
   const SettingsWindowPage({super.key});
@@ -202,15 +203,8 @@ class _SettingsContent extends StatelessWidget {
   }
 }
 
-class _GeneralSettingsShell extends StatefulWidget {
+class _GeneralSettingsShell extends StatelessWidget {
   const _GeneralSettingsShell();
-
-  @override
-  State<_GeneralSettingsShell> createState() => _GeneralSettingsShellState();
-}
-
-class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
-  var _checkSpelling = true;
 
   @override
   Widget build(BuildContext context) {
@@ -223,42 +217,8 @@ class _GeneralSettingsShellState extends State<_GeneralSettingsShell> {
         const LanguageSetting(),
         const CloseWindowSetting(),
         const Divider(height: 1),
-        _SettingsToggleRow(
-          label: context.l10n.checkSpelling,
-          value: _checkSpelling,
-          onChanged: (value) => setState(() => _checkSpelling = value),
-        ),
+        const SpellCheckSetting(),
       ],
-    );
-  }
-}
-
-class _SettingsToggleRow extends StatelessWidget {
-  const _SettingsToggleRow({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 58,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(label, style: Theme.of(context).textTheme.bodyLarge),
-          ),
-          Transform.scale(
-            scale: 0.82,
-            child: Switch(value: value, onChanged: onChanged),
-          ),
-        ],
-      ),
     );
   }
 }

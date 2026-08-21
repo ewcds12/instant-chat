@@ -11,6 +11,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
   private var closeWindowBehaviorChannel: CloseWindowBehaviorChannel?
   private var dockVisibilityChannel: DockVisibilityChannel?
   private var launchAtLoginChannel: LaunchAtLoginChannel?
+  private var spellCheckChannel: SpellCheckChannel?
   private var urlLauncherChannel: URLLauncherChannel?
   private var settingsWindow: NSWindow?
   private var settingsEngine: FlutterEngine?
@@ -68,6 +69,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
       let launchAtLoginChannel = LaunchAtLoginChannel(
         controller: viewController
       )
+      let spellCheckChannel = SpellCheckChannel(controller: viewController)
       let urlLauncherChannel = URLLauncherChannel(controller: viewController)
       viewController.backgroundColor = NSColor(
         calibratedRed: 0.98,
@@ -96,6 +98,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
       self.closeWindowBehaviorChannel = closeWindowBehaviorChannel
       self.dockVisibilityChannel = dockVisibilityChannel
       self.launchAtLoginChannel = launchAtLoginChannel
+      self.spellCheckChannel = spellCheckChannel
       self.urlLauncherChannel = urlLauncherChannel
       self.settingsWindow = window
       NSApp.activate(ignoringOtherApps: true)
@@ -110,6 +113,7 @@ final class SettingsWindowChannel: NSObject, NSWindowDelegate {
     closeWindowBehaviorChannel = nil
     dockVisibilityChannel = nil
     launchAtLoginChannel = nil
+    spellCheckChannel = nil
     urlLauncherChannel = nil
     settingsEngine?.shutDownEngine()
     settingsEngine = nil

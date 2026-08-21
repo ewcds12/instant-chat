@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:instant_chat/core/platform/macos_close_window_behavior.dart';
 import 'package:instant_chat/core/platform/macos_dock_visibility.dart';
 import 'package:instant_chat/core/platform/macos_launch_at_login.dart';
+import 'package:instant_chat/core/platform/macos_spell_check.dart';
 import 'package:instant_chat/core/platform/macos_url_launcher.dart';
 import 'package:instant_chat/features/settings/presentation/settings_app.dart';
 
@@ -28,6 +30,9 @@ void main() {
           ),
           linkOpeningPreferenceProvider.overrideWithValue(
             _FakeLinkOpeningPreference(),
+          ),
+          spellCheckPlatformProvider.overrideWithValue(
+            _FakeSpellCheckPlatform(),
           ),
         ],
         child: const SettingsApp(),
@@ -81,6 +86,9 @@ void main() {
           linkOpeningPreferenceProvider.overrideWithValue(
             _FakeLinkOpeningPreference(),
           ),
+          spellCheckPlatformProvider.overrideWithValue(
+            _FakeSpellCheckPlatform(),
+          ),
         ],
         child: const SettingsApp(),
       ),
@@ -125,6 +133,9 @@ void main() {
           linkOpeningPreferenceProvider.overrideWithValue(
             _FakeLinkOpeningPreference(),
           ),
+          spellCheckPlatformProvider.overrideWithValue(
+            _FakeSpellCheckPlatform(),
+          ),
         ],
         child: const SettingsApp(),
       ),
@@ -165,6 +176,9 @@ void main() {
             _FakeLaunchAtLoginPlatform(),
           ),
           linkOpeningPreferenceProvider.overrideWithValue(preference),
+          spellCheckPlatformProvider.overrideWithValue(
+            _FakeSpellCheckPlatform(),
+          ),
         ],
         child: const SettingsApp(),
       ),
@@ -207,6 +221,9 @@ void main() {
           ),
           linkOpeningPreferenceProvider.overrideWithValue(
             _FakeLinkOpeningPreference(),
+          ),
+          spellCheckPlatformProvider.overrideWithValue(
+            _FakeSpellCheckPlatform(),
           ),
         ],
         child: const SettingsApp(),
@@ -251,6 +268,9 @@ void main() {
           linkOpeningPreferenceProvider.overrideWithValue(
             _FakeLinkOpeningPreference(),
           ),
+          spellCheckPlatformProvider.overrideWithValue(
+            _FakeSpellCheckPlatform(),
+          ),
         ],
         child: const SettingsApp(),
       ),
@@ -276,6 +296,50 @@ void main() {
           .data,
       'Keep Instant Chat running',
     );
+  });
+
+  testWidgets('reads and updates spelling while typing', (tester) async {
+    tester.view.physicalSize = const Size(920, 620);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final platform = _FakeSpellCheckPlatform(enabled: false);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          closeWindowBehaviorPlatformProvider.overrideWithValue(
+            _FakeCloseWindowBehaviorPlatform(),
+          ),
+          dockVisibilityPlatformProvider.overrideWithValue(
+            _FakeDockVisibilityPlatform(),
+          ),
+          launchAtLoginPlatformProvider.overrideWithValue(
+            _FakeLaunchAtLoginPlatform(),
+          ),
+          linkOpeningPreferenceProvider.overrideWithValue(
+            _FakeLinkOpeningPreference(),
+          ),
+          spellCheckPlatformProvider.overrideWithValue(platform),
+        ],
+        child: const SettingsApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    var spellingSwitch = tester.widget<Switch>(
+      find.byKey(const Key('check-spelling-switch')),
+    );
+    expect(spellingSwitch.value, isFalse);
+
+    await tester.tap(find.byKey(const Key('check-spelling-switch')));
+    await tester.pumpAndSettle();
+
+    expect(platform.requestedValues, [true]);
+    spellingSwitch = tester.widget<Switch>(
+      find.byKey(const Key('check-spelling-switch')),
+    );
+    expect(spellingSwitch.value, isTrue);
   });
 }
 
@@ -346,4 +410,32 @@ class _FakeLinkOpeningPreference implements LinkOpeningPreference {
     requestedValues.add(enabled);
     this.enabled = enabled;
   }
+}
+
+class _FakeSpellCheckPlatform implements SpellCheckPlatform {
+  _FakeSpellCheckPlatform({this.enabled = true});
+
+  bool enabled;
+  final requestedValues = <bool>[];
+
+  @override
+  Stream<bool> get enabledChanges => const Stream.empty();
+
+  @override
+  Future<bool> getEnabled() async => enabled;
+
+  @override
+  Future<void> setEnabled(bool enabled) async {
+    requestedValues.add(enabled);
+    this.enabled = enabled;
+  }
+
+  @override
+  Future<List<SuggestionSpan>?> fetchSpellCheckSuggestions(
+    Locale locale,
+    String text,
+  ) async => const [];
+
+  @override
+  Future<void> dispose() async {}
 }
